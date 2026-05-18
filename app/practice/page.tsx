@@ -204,6 +204,7 @@ export default function PracticePage() {
         grade,
       };
       saveSession(endedSession);
+      sessionStorage.setItem("hanyu_fresh_grade", "1");
       router.push("/results");
     } catch {
       const endedSession = { ...session, endTime: Date.now() };

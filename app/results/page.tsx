@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import GradeCard from "@/components/GradeCard";
+import GradeReveal from "@/components/GradeReveal";
 import ProgressChart from "@/components/ProgressChart";
 import {
   getCurrentSessionId,
@@ -31,12 +32,17 @@ export default function ResultsPage() {
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
   const [summaries, setSummaries] = useState<SessionSummary[]>([]);
   const [tab, setTab] = useState<"current" | "history">("current");
+  const [showReveal, setShowReveal] = useState(false);
 
   useEffect(() => {
+    const fresh = sessionStorage.getItem("hanyu_fresh_grade");
+    if (fresh) sessionStorage.removeItem("hanyu_fresh_grade");
+
     const id = getCurrentSessionId();
     if (id) {
       const s = getSession(id);
       setCurrentSession(s);
+      if (s?.grade && fresh) setShowReveal(true);
     }
     setSummaries(getSessionSummaries());
   }, []);
@@ -49,6 +55,12 @@ export default function ResultsPage() {
 
   return (
     <div className="min-h-screen">
+      {showReveal && currentSession?.grade && (
+        <GradeReveal
+          grade={currentSession.grade.overallGrade}
+          onComplete={() => setShowReveal(false)}
+        />
+      )}
       {/* Header */}
       <header className="glass border-b border-ink-600 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
