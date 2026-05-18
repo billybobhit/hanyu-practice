@@ -3,13 +3,13 @@ import { NextRequest } from "next/server";
 import { OPENROUTER_TEXT_FALLBACK_MODELS } from "@/lib/openrouter-models";
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.openrouterkey;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return Response.json({ error: "Server misconfigured: missing API key" }, { status: 500 });
   }
 
   const client = new OpenAI({
-    baseURL: "https://openrouter.ai/api/v1",
+    baseURL: "https://api.groq.com/openai/v1",
     apiKey,
   });
 
