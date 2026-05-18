@@ -1,4 +1,4 @@
-const KEY = "hanyu_gemini_key";
+const KEY = "hanyu_openrouter_key";
 
 export function getApiKey(): string | null {
   try {

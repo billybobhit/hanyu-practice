@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -7,7 +7,11 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "No API key" }, { status: 401 });
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  const client = new OpenAI({
+    baseURL: "https://openrouter.ai/api/v1",
+    apiKey,
+  });
+
   const { messages, material } = await req.json();
 
   const userMessages = messages.filter(
@@ -56,23 +60,24 @@ Grading criteria:
 
 Be honest and specific. A student who gives short answers or shows shallow comprehension should not get high scores.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash",
-    contents: prompt,
-    config: { maxOutputTokens: 1024 },
-  });
-
-  const text = response.text ?? "";
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-  if (!jsonMatch) {
-    return Response.json({ error: "Failed to parse grade response" }, { status: 500 });
-  }
-
   try {
+    const response = await client.chat.completions.create({
+      model: "google/gemini-2.0-flash-exp:free",
+      max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const text = response.choices[0]?.message?.content ?? "";
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) {
+      return Response.json({ error: "Failed to parse grade response" }, { status: 500 });
+    }
+
     const grade = JSON.parse(jsonMatch[0]);
     return Response.json(grade);
-  } catch {
-    return Response.json({ error: "Invalid grade JSON" }, { status: 500 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return Response.json({ error: msg }, { status: 502 });
   }
 }

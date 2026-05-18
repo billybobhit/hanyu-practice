@@ -14,14 +14,13 @@ export default function ApiKeySetup({ onComplete }: ApiKeySetupProps) {
 
   const handleSubmit = async () => {
     const trimmed = key.trim();
-    if (!trimmed.startsWith("AIza")) {
-      setError("Key should start with AIza");
+    if (!trimmed.startsWith("sk-or-")) {
+      setError("Key should start with sk-or-");
       return;
     }
     setTesting(true);
     setError("");
 
-    // Validate by making a minimal test call
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -36,17 +35,22 @@ export default function ApiKeySetup({ onComplete }: ApiKeySetupProps) {
         }),
       });
 
-      if (res.status === 401 || res.status === 400) {
+      if (res.status === 401) {
         setError("Invalid API key. Please check and try again.");
+        setTesting(false);
+        return;
+      }
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error || `Error ${res.status}`);
         setTesting(false);
         return;
       }
 
       // Consume and discard stream
       const reader = res.body?.getReader();
-      if (reader) {
-        await reader.cancel();
-      }
+      if (reader) await reader.cancel();
 
       setApiKey(trimmed);
       onComplete();
@@ -71,22 +75,22 @@ export default function ApiKeySetup({ onComplete }: ApiKeySetupProps) {
           >
             漢語練習
           </h1>
-          <p className="text-cream-400 text-sm">输入 Gemini API 密钥</p>
-          <p className="text-gold-500 text-xs mt-1">免费获取 — 无需信用卡</p>
+          <p className="text-cream-400 text-sm">输入 OpenRouter API 密钥</p>
+          <p className="text-gold-500 text-xs mt-1">免费获取 — 只需邮箱，无需信用卡，无年龄限制</p>
         </div>
 
         {/* Card */}
         <div className="bg-ink-800 border border-ink-500 rounded-2xl p-8 space-y-5">
           <div>
             <label className="block text-cream-300 text-sm font-medium mb-2">
-              Gemini API Key
+              OpenRouter API Key
             </label>
             <input
               type="password"
               value={key}
               onChange={(e) => { setKey(e.target.value); setError(""); }}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-              placeholder="AIza..."
+              placeholder="sk-or-..."
               className="w-full bg-ink-900 border border-ink-500 focus:border-vermillion-600 rounded-xl px-4 py-3 text-cream-100 placeholder-cream-700 text-sm focus:outline-none transition-colors font-mono"
             />
             {error && (
@@ -108,12 +112,12 @@ export default function ApiKeySetup({ onComplete }: ApiKeySetupProps) {
             </p>
             <p className="text-cream-600 text-xs text-center">
               <a
-                href="https://aistudio.google.com/apikey"
+                href="https://openrouter.ai/keys"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gold-500 hover:text-gold-400 transition-colors"
               >
-                前往 Google AI Studio 免费获取 →
+                前往 OpenRouter 免费获取 →
               </a>
             </p>
           </div>
