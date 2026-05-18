@@ -1,96 +1,369 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import type { Grade } from "@/lib/types";
 
-type Phase = "blackout" | "grade" | "character" | "exit";
+type Phase = "blackout" | "flash" | "grade" | "char" | "split";
 
 const GRADE_DATA = {
   A: {
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Sun_Wukong_pilgrimage.jpg/400px-Sun_Wukong_pilgrimage.jpg",
     emoji: "🐒",
     chinese: "孫悟空",
     english: "Sun Wukong",
     color: "#EEC050",
-    glow: "rgba(238,192,80,0.55)",
-    bg: "radial-gradient(ellipse at center, rgba(238,192,80,0.06) 0%, #000 65%)",
-    flavor: "天命之人！你的智慧如齊天大聖。",
-    sub: "Chosen by Heaven! Your wisdom rivals the Great Sage.",
+    glow: "rgba(238,192,80,0.7)",
+    rayColor: "rgba(238,192,80,0.18)",
+    bg: "radial-gradient(ellipse at center, rgba(120,10,10,0.45) 0%, #000 70%)",
   },
   B: {
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Qinshihuang.jpg/400px-Qinshihuang.jpg",
     emoji: "👑",
     chinese: "秦始皇",
     english: "Qin Shi Huang",
-    color: "#86efac",
-    glow: "rgba(134,239,172,0.55)",
-    bg: "radial-gradient(ellipse at center, rgba(134,239,172,0.06) 0%, #000 65%)",
-    flavor: "統一之才！秦始皇之魄力。",
-    sub: "Unifying talent! The spirit of the First Emperor.",
+    color: "#94a3b8",
+    glow: "rgba(148,163,184,0.7)",
+    rayColor: "rgba(148,163,184,0.14)",
+    bg: "radial-gradient(ellipse at center, rgba(80,0,20,0.45) 0%, #000 70%)",
   },
   C: {
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Terracotta_Army_-_Terra_Cotta_Warriors_of_the_Qin_Dynasty.JPG/400px-Terracotta_Army_-_Terra_Cotta_Warriors_of_the_Qin_Dynasty.JPG",
     emoji: "⚔️",
     chinese: "帝國士兵",
     english: "Imperial Soldier",
     color: "#9ca3af",
-    glow: "rgba(156,163,175,0.55)",
-    bg: "radial-gradient(ellipse at center, rgba(156,163,175,0.06) 0%, #000 65%)",
-    flavor: "忠誠的士兵，繼續訓練。",
-    sub: "Loyal soldier, keep training.",
+    glow: "rgba(156,163,175,0.6)",
+    rayColor: "rgba(156,163,175,0.1)",
+    bg: "radial-gradient(ellipse at center, rgba(50,50,60,0.45) 0%, #000 70%)",
   },
   D: {
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Chinese_peasants_working_the_fields.jpg/400px-Chinese_peasants_working_the_fields.jpg",
     emoji: "🌾",
     chinese: "農民",
     english: "Peasant",
     color: "#d97706",
-    glow: "rgba(217,119,6,0.55)",
-    bg: "radial-gradient(ellipse at center, rgba(217,119,6,0.06) 0%, #000 65%)",
-    flavor: "耕耘不輟，方能收穫。",
-    sub: "Keep tilling the soil — harvest comes with effort.",
+    glow: "rgba(217,119,6,0.65)",
+    rayColor: "rgba(217,119,6,0.12)",
+    bg: "radial-gradient(ellipse at center, rgba(60,35,0,0.45) 0%, #000 70%)",
   },
   F: {
+    image: null as string | null,
     emoji: "⛓️",
     chinese: "罪犯",
     english: "Criminal",
-    color: "#F55040",
-    glow: "rgba(245,80,64,0.55)",
-    bg: "radial-gradient(ellipse at center, rgba(245,80,64,0.06) 0%, #000 65%)",
-    flavor: "囚於無知之牢，學習是你的救贖。",
-    sub: "Imprisoned by ignorance — learning is your redemption.",
+    color: "#dc2626",
+    glow: "rgba(220,38,38,0.75)",
+    rayColor: "rgba(220,38,38,0.14)",
+    bg: "radial-gradient(ellipse at center, rgba(80,0,0,0.5) 0%, #000 70%)",
   },
 } as const;
 
+const FLAVOR: Record<string, { zh: string; en: string }> = {
+  A: { zh: "天命之人！你的智慧如齊天大聖。", en: "Chosen by Heaven! Your wisdom rivals the Great Sage." },
+  B: { zh: "統一之才！秦始皇之魄力。", en: "Unifying talent! The spirit of the First Emperor." },
+  C: { zh: "忠誠的士兵，繼續訓練。", en: "Loyal soldier, keep training." },
+  D: { zh: "耕耘不輟，方能收穫。", en: "Keep tilling the soil — harvest comes with effort." },
+  F: { zh: "囚於無知之牢，學習是你的救贖。", en: "Imprisoned by ignorance — learning is your redemption." },
+};
+
+// ── Particles ─────────────────────────────────────────────────────────────────
+function Particles({ color }: { color: string }) {
+  const items = Array.from({ length: 28 }, (_, i) => {
+    const angle = (i / 28) * 2 * Math.PI;
+    const dist = 180 + (i % 4) * 40;
+    return {
+      tx: Math.round(Math.cos(angle) * dist),
+      ty: Math.round(Math.sin(angle) * dist),
+      size: 4 + (i % 4) * 2,
+      delay: (i % 7) * 0.05,
+    };
+  });
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 2 }}>
+      {items.map((p, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "40%",
+            width: p.size,
+            height: p.size,
+            borderRadius: "50%",
+            background: color,
+            boxShadow: `0 0 ${p.size * 3}px ${color}`,
+            ["--tx" as string]: `${p.tx}px`,
+            ["--ty" as string]: `${p.ty}px`,
+            animation: `particleOut 1.1s ${p.delay}s ease-out both`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Light rays ────────────────────────────────────────────────────────────────
+function LightRays({ color }: { color: string }) {
+  const stops: string[] = [];
+  for (let i = 0; i < 12; i++) {
+    const base = i * 30;
+    stops.push(
+      `transparent ${base}deg`,
+      `${color} ${base + 6}deg`,
+      `${color} ${base + 18}deg`,
+      `transparent ${base + 30}deg`
+    );
+  }
+  return (
+    <div
+      style={{
+        position: "absolute",
+        width: "140vmax",
+        height: "140vmax",
+        left: "50%",
+        top: "50%",
+        background: `conic-gradient(${stops.join(", ")})`,
+        animation: "raysSpin 10s linear infinite",
+        willChange: "transform",
+        pointerEvents: "none",
+        zIndex: 0,
+      }}
+    />
+  );
+}
+
+// ── Letter-by-letter slam ─────────────────────────────────────────────────────
+function SlamLetters({
+  text, style, delayBase = 0,
+}: { text: string; style?: React.CSSProperties; delayBase?: number }) {
+  return (
+    <div style={style}>
+      {text.split("").map((ch, i) => (
+        <span
+          key={i}
+          className="inline-block"
+          style={{ animation: `letterSlam 0.45s ${delayBase + i * 0.07}s cubic-bezier(0.22,1,0.36,1) both` }}
+        >
+          {ch === " " ? " " : ch}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ── Score bar for split panel ─────────────────────────────────────────────────
+function SplitScoreBar({ label, score, color }: { label: string; score: number; color: string }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs">
+        <span className="text-cream-400">{label}</span>
+        <span style={{ color }} className="font-semibold">{score}</span>
+      </div>
+      <div className="h-1 bg-ink-600 rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${score}%`, background: `linear-gradient(90deg, ${color}88, ${color})`, transition: "width 1.2s 0.3s ease-out" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── Split screen (Phase 3) ────────────────────────────────────────────────────
+function SplitScreen({
+  grade, gradeData, onComplete,
+}: { grade: string; gradeData?: Grade; onComplete: () => void }) {
+  const router = useRouter();
+  const char = GRADE_DATA[grade as keyof typeof GRADE_DATA] ?? GRADE_DATA["C"];
+  const flavor = FLAVOR[grade] ?? FLAVOR["C"];
+
+  const gradeTextColor: Record<string, string> = {
+    A: "#EEC050", B: "#94a3b8", C: "#9ca3af", D: "#d97706", F: "#dc2626",
+  };
+  const textColor = gradeTextColor[grade] ?? "#EDE4D4";
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col sm:flex-row" style={{ backgroundColor: "#060A14", background: char.bg }}>
+      {/* LEFT: grade info */}
+      <div
+        className="flex-1 flex flex-col justify-center px-6 sm:px-10 py-8 overflow-y-auto"
+        style={{
+          borderRight: `1px solid ${char.color}22`,
+          boxShadow: `inset -1px 0 0 ${char.color}33, 4px 0 24px rgba(0,0,0,0.4)`,
+          animation: "slideFromLeft 0.9s cubic-bezier(0.22,1,0.36,1) both",
+        }}
+      >
+        {/* Grade letter */}
+        <div
+          className="font-bold leading-none mb-1 select-none"
+          style={{
+            fontSize: "clamp(5rem, 14vw, 9rem)",
+            fontFamily: "'Cormorant Garamond', serif",
+            color: textColor,
+            textShadow: `0 0 30px ${char.glow}, 0 0 60px ${char.glow}`,
+          }}
+        >
+          {grade}
+        </div>
+        <div className="text-cream-600 text-xs uppercase tracking-widest mb-6">总体评分</div>
+
+        {gradeData && (
+          <>
+            {/* Overall score */}
+            <div className="flex items-baseline gap-2 mb-5">
+              <span style={{ color: textColor }} className="text-4xl font-bold">{gradeData.overallScore}</span>
+              <span className="text-cream-600 text-sm">/ 100</span>
+            </div>
+
+            {/* Score bars */}
+            <div className="space-y-3 mb-6">
+              <SplitScoreBar label="词汇准确度" score={gradeData.vocabularyScore} color={textColor} />
+              <SplitScoreBar label="语法正确性" score={gradeData.grammarScore} color={textColor} />
+              <SplitScoreBar label="理解深度" score={gradeData.comprehensionScore} color={textColor} />
+            </div>
+
+            {/* Strengths */}
+            {gradeData.strengths.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs uppercase tracking-widest text-gold-600 mb-1.5">做得好 ✓</p>
+                {gradeData.strengths.map((s, i) => (
+                  <p key={i} className="text-cream-300 text-xs leading-relaxed">· {s}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Improvements */}
+            {gradeData.improvements.length > 0 && (
+              <div className="mb-5">
+                <p className="text-xs uppercase tracking-widest text-vermillion-500 mb-1.5">需要改进 →</p>
+                {gradeData.improvements.map((s, i) => (
+                  <p key={i} className="text-cream-400 text-xs leading-relaxed">· {s}</p>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        <button
+          onClick={onComplete}
+          className="text-xs text-cream-700 hover:text-cream-400 transition-colors cursor-pointer underline mt-auto pt-4"
+          style={{ fontFamily: "'Noto Serif SC', serif" }}
+        >
+          查看完整报告 →
+        </button>
+      </div>
+
+      {/* RIGHT: character */}
+      <div
+        className="flex-1 flex flex-col items-center justify-center px-6 py-8 relative overflow-hidden"
+        style={{ animation: "slideFromRight 0.9s cubic-bezier(0.22,1,0.36,1) both" }}
+      >
+        <LightRays color={char.rayColor} />
+
+        {/* Character image */}
+        <div
+          className="relative z-10 mb-5"
+          style={{ boxShadow: `0 0 50px ${char.glow}, 0 24px 60px rgba(0,0,0,0.8)`, borderRadius: "16px" }}
+        >
+          {char.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={char.image}
+              alt={char.english}
+              className="rounded-2xl object-cover"
+              style={{ width: "clamp(140px,22vw,240px)", height: "clamp(180px,28vw,300px)" }}
+            />
+          ) : (
+            <div
+              className="rounded-2xl flex items-center justify-center"
+              style={{
+                width: "clamp(140px,22vw,240px)",
+                height: "clamp(180px,28vw,300px)",
+                fontSize: "6rem",
+                background: "radial-gradient(circle, rgba(80,0,0,0.9), #000)",
+                border: `1px solid ${char.color}44`,
+              }}
+            >
+              {char.emoji}
+            </div>
+          )}
+        </div>
+
+        {/* Chinese name */}
+        <div
+          className="z-10 text-2xl font-bold text-center mb-0.5"
+          style={{ fontFamily: "'Noto Serif SC', serif", color: char.color, textShadow: `0 0 16px ${char.glow}` }}
+        >
+          {char.chinese}
+        </div>
+
+        {/* English name */}
+        <div
+          className="z-10 text-base text-cream-400 italic mb-5"
+          style={{ fontFamily: "'Cormorant Garamond', serif" }}
+        >
+          {char.english}
+        </div>
+
+        {/* Flavor */}
+        <div className="z-10 text-center max-w-xs px-4 mb-7">
+          <p className="text-cream-200 text-sm leading-loose" style={{ fontFamily: "'Noto Serif SC', serif" }}>
+            {flavor.zh}
+          </p>
+          <p className="text-cream-500 text-xs italic mt-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            {flavor.en}
+          </p>
+        </div>
+
+        <button
+          onClick={() => router.push("/")}
+          className="z-10 px-7 py-3 bg-vermillion-600 hover:bg-vermillion-500 text-cream-100 rounded-xl font-medium transition-all cursor-pointer text-sm"
+          style={{ fontFamily: "'Noto Serif SC', serif" }}
+        >
+          练习更多 →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 interface GradeRevealProps {
   grade: string;
+  gradeData?: Grade;
   onComplete: () => void;
 }
 
-export default function GradeReveal({ grade, onComplete }: GradeRevealProps) {
+export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevealProps) {
   const [phase, setPhase] = useState<Phase>("blackout");
-  const [shaking, setShaking] = useState(false);
+  const [rumbling, setRumbling] = useState(false);
   const [visible, setVisible] = useState(false);
 
   const char = GRADE_DATA[grade as keyof typeof GRADE_DATA] ?? GRADE_DATA["C"];
+  const flavor = FLAVOR[grade] ?? FLAVOR["C"];
 
-  const skip = useCallback(() => {
-    setPhase("exit");
-    setTimeout(onComplete, 500);
-  }, [onComplete]);
+  const skip = useCallback(() => setPhase("split"), []);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
-
     const timers = [
-      setTimeout(() => { setPhase("grade"); setShaking(true); }, 500),
-      setTimeout(() => setShaking(false), 1200),
-      setTimeout(() => setPhase("character"), 2200),
-      setTimeout(() => setPhase("exit"), 3700),
-      setTimeout(onComplete, 4200),
+      setTimeout(() => setPhase("flash"), 300),
+      setTimeout(() => { setPhase("grade"); setRumbling(true); }, 600),
+      setTimeout(() => setRumbling(false), 1800),
+      setTimeout(() => setPhase("char"), 2500),
+      setTimeout(() => setPhase("split"), 5500),
     ];
-
     return () => timers.forEach(clearTimeout);
-  }, [onComplete]);
+  }, []);
 
-  const isExit = phase === "exit";
-  const showGrade = phase !== "blackout";
-  const showChar = phase === "character";
+  if (phase === "split") {
+    return <SplitScreen grade={grade} gradeData={gradeData} onComplete={onComplete} />;
+  }
+
+  const showGrade = phase !== "blackout" && phase !== "flash";
+  const isChar = phase === "char";
 
   return (
     <div
@@ -98,71 +371,138 @@ export default function GradeReveal({ grade, onComplete }: GradeRevealProps) {
       style={{
         background: char.bg,
         backgroundColor: "#000",
-        opacity: isExit ? undefined : visible ? 1 : 0,
-        transition: isExit ? "none" : "opacity 0.4s ease",
-        animation: isExit ? "revealSlideUp 0.5s ease-in forwards" : undefined,
+        opacity: visible ? 1 : 0,
+        transition: "opacity 0.35s ease",
       }}
     >
+      {/* White flash */}
+      {phase === "flash" && (
+        <div
+          className="absolute inset-0 bg-white pointer-events-none"
+          style={{ animation: "whiteFlash 0.35s ease-out forwards", zIndex: 20 }}
+        />
+      )}
+
+      {/* Particles (grade phase only) */}
+      {phase === "grade" && <Particles color={char.color} />}
+
+      {/* Content */}
       <div
-        className={`w-full h-full flex flex-col items-center justify-center${shaking ? " animate-screen-shake" : ""}`}
+        className={`w-full h-full flex flex-col items-center relative${rumbling ? " animate-screen-rumble" : ""}`}
+        style={{ justifyContent: isChar ? "flex-start" : "center" }}
       >
         {/* Grade letter */}
         {showGrade && (
           <div
-            className="font-bold leading-none select-none"
+            className="font-bold leading-none select-none relative z-10"
             style={{
-              fontSize: showChar ? "clamp(4rem, 15vw, 9rem)" : "clamp(8rem, 28vw, 20rem)",
+              fontSize: isChar ? "clamp(3rem,10vw,5.5rem)" : "clamp(8rem,28vw,20rem)",
               fontFamily: "'Cormorant Garamond', serif",
               color: char.color,
-              textShadow: `0 0 30px ${char.glow}, 0 0 70px ${char.glow}, 0 0 130px ${char.glow}`,
-              transition: "font-size 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+              textShadow: `0 0 40px ${char.glow}, 0 0 90px ${char.glow}`,
               animation: phase === "grade"
-                ? "gradeSlamIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards"
+                ? "gradeDropIn 0.75s cubic-bezier(0.22,1,0.36,1) forwards, colorPulse 2s 0.8s ease-in-out infinite"
                 : undefined,
+              transition: "font-size 0.7s cubic-bezier(0.22,1,0.36,1)",
+              alignSelf: isChar ? "flex-start" : "center",
+              margin: isChar ? "1.5rem 0 0 2rem" : "0",
             }}
           >
             {grade}
           </div>
         )}
 
-        {/* Character reveal */}
-        {showChar && (
+        {/* "你的等级是..." (grade phase) */}
+        {phase === "grade" && (
           <div
-            className="flex flex-col items-center mt-5 text-center px-8"
-            style={{ animation: "characterFadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards" }}
+            className="text-cream-400 text-base tracking-[0.3em] z-10 mt-6"
+            style={{ fontFamily: "'Noto Serif SC', serif", animation: "fadeInUp 0.6s 0.9s ease-out both" }}
           >
-            <div className="text-6xl mb-3">{char.emoji}</div>
+            你的等级是...
+          </div>
+        )}
+
+        {/* Character cinematic */}
+        {isChar && (
+          <div className="flex-1 flex flex-col items-center justify-center relative w-full">
+            <LightRays color={char.rayColor} />
+
+            {/* Character image */}
             <div
-              className="text-2xl font-bold mb-0.5"
+              className="relative z-10 mb-4"
+              style={{ animation: "charBurst 0.8s 0.1s cubic-bezier(0.22,1,0.36,1) both" }}
+            >
+              {char.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={char.image}
+                  alt={char.english}
+                  className="rounded-2xl object-cover"
+                  style={{
+                    width: "clamp(150px,22vw,240px)",
+                    height: "clamp(190px,28vw,300px)",
+                    boxShadow: `0 0 40px ${char.glow}, 0 20px 60px rgba(0,0,0,0.85)`,
+                  }}
+                />
+              ) : (
+                <div
+                  className="rounded-2xl flex items-center justify-center"
+                  style={{
+                    width: "clamp(150px,22vw,240px)",
+                    height: "clamp(190px,28vw,300px)",
+                    fontSize: "6rem",
+                    background: "radial-gradient(circle, rgba(80,0,0,0.9), #000)",
+                    boxShadow: `0 0 40px ${char.glow}`,
+                    border: `1px solid ${char.color}44`,
+                  }}
+                >
+                  {char.emoji}
+                </div>
+              )}
+            </div>
+
+            {/* Chinese name — slam letters */}
+            <SlamLetters
+              text={char.chinese}
+              delayBase={0.35}
               style={{
                 fontFamily: "'Noto Serif SC', serif",
+                fontSize: "1.75rem",
+                fontWeight: 700,
                 color: char.color,
-                textShadow: `0 0 16px ${char.glow}`,
+                textShadow: `0 0 20px ${char.glow}`,
+                position: "relative",
+                zIndex: 10,
+                marginBottom: "0.2rem",
               }}
-            >
-              {char.chinese}
-            </div>
+            />
+
+            {/* English name — slam letters */}
+            <SlamLetters
+              text={char.english}
+              delayBase={0.55}
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: "1.1rem",
+                fontStyle: "italic",
+                color: "#EDE4D4",
+                opacity: 0.8,
+                position: "relative",
+                zIndex: 10,
+                marginBottom: "1.25rem",
+              }}
+            />
+
+            {/* Flavor text */}
             <div
-              className="text-lg text-cream-400 mb-5"
-              style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic" }}
+              className="z-10 text-center max-w-xs px-6"
+              style={{ animation: "flavorScrollUp 0.8s 1.3s ease-out both" }}
             >
-              {char.english}
-            </div>
-            <div
-              className="max-w-sm"
-              style={{ animation: "flavorTextReveal 0.6s 0.35s ease-out both" }}
-            >
-              <p
-                className="text-cream-200 text-sm leading-loose mb-1"
-                style={{ fontFamily: "'Noto Serif SC', serif" }}
-              >
-                {char.flavor}
+              <p className="text-cream-200 text-sm leading-loose" style={{ fontFamily: "'Noto Serif SC', serif" }}>
+                {flavor.zh}
               </p>
-              <p
-                className="text-cream-500 text-xs italic"
-                style={{ fontFamily: "'Cormorant Garamond', serif" }}
-              >
-                {char.sub}
+              <p className="text-cream-500 text-xs italic mt-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                {flavor.en}
               </p>
             </div>
           </div>
@@ -172,7 +512,7 @@ export default function GradeReveal({ grade, onComplete }: GradeRevealProps) {
       {/* Skip */}
       <button
         onClick={skip}
-        className="absolute bottom-8 right-8 text-cream-600 hover:text-cream-300 text-sm transition-colors cursor-pointer"
+        className="absolute bottom-7 right-7 text-cream-600 hover:text-cream-300 text-sm transition-colors cursor-pointer z-30"
         style={{ fontFamily: "'Noto Serif SC', serif" }}
       >
         跳过 →

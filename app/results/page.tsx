@@ -87,6 +87,7 @@ export default function ResultsPage() {
       {showReveal && currentSession?.grade && (
         <GradeReveal
           grade={currentSession.grade.overallGrade}
+          gradeData={currentSession.grade}
           onComplete={() => setShowReveal(false)}
         />
       )}
