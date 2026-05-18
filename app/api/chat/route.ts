@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   let stream: ReturnType<typeof client.chat.completions.stream>;
   try {
     stream = client.chat.completions.stream({
-      model: "google/gemini-2.0-flash-exp:free",
+      model: "meta-llama/llama-3.1-8b-instruct:free",
       max_tokens: 512,
       messages: [
         { role: "system", content: systemPrompt },

@@ -62,7 +62,7 @@ Be honest and specific. A student who gives short answers or shows shallow compr
 
   try {
     const response = await client.chat.completions.create({
-      model: "google/gemini-2.0-flash-exp:free",
+      model: "meta-llama/llama-3.1-8b-instruct:free",
       max_tokens: 1024,
       messages: [{ role: "user", content: prompt }],
     });

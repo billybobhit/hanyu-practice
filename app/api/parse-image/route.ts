@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const response = await client.chat.completions.create({
-      model: "google/gemini-2.0-flash-exp:free",
+      model: "meta-llama/llama-3.1-8b-instruct:free",
       max_tokens: 2048,
       messages: [
         {
