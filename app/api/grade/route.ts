@@ -62,7 +62,7 @@ Be honest and specific. A student who gives short answers or shows shallow compr
 
   try {
     const response = await client.chat.completions.create({
-      model: "meta-llama/llama-3.1-8b-instruct:free",
+      model: "qwen/qwen3-8b:free",
       max_tokens: 1024,
       messages: [{ role: "user", content: prompt }],
     });

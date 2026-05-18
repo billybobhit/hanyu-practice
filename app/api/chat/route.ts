@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   let stream: ReturnType<typeof client.chat.completions.stream>;
   try {
     stream = client.chat.completions.stream({
-      model: "meta-llama/llama-3.1-8b-instruct:free",
+      model: "qwen/qwen3-8b:free",
       max_tokens: 512,
       messages: [
         { role: "system", content: systemPrompt },
