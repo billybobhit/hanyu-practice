@@ -1,4 +1,4 @@
-const KEY = "hanyu_anthropic_key";
+const KEY = "hanyu_gemini_key";
 
 export function getApiKey(): string | null {
   try {

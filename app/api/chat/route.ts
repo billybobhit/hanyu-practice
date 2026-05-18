@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
 import { NextRequest } from "next/server";
 
 const BASE_SYSTEM = `You are 汉语老师 (Master Chen), a strict but encouraging Chinese tutor conducting an immersive Mandarin conversation session. The student has provided study materials — your job is to test their deep comprehension through Socratic dialogue.
@@ -21,12 +21,12 @@ Study Materials:
 ---`;
 
 export async function POST(req: NextRequest) {
-  const apiKey = req.headers.get("x-api-key") || process.env.ANTHROPIC_API_KEY;
+  const apiKey = req.headers.get("x-api-key");
   if (!apiKey) {
     return new Response("No API key provided", { status: 401 });
   }
-  const client = new Anthropic({ apiKey });
 
+  const ai = new GoogleGenAI({ apiKey });
   const { messages, material, pinyinMode } = await req.json();
 
   const pinyinInstruction = pinyinMode
@@ -36,24 +36,33 @@ export async function POST(req: NextRequest) {
   const systemPrompt = BASE_SYSTEM.replace(
     "{PINYIN_INSTRUCTION}",
     pinyinInstruction
-  ).replace("{MATERIAL}", material || "(No material provided — have a general Chinese conversation)");
+  ).replace(
+    "{MATERIAL}",
+    material || "(No material provided — have a general Chinese conversation)"
+  );
 
-  const stream = await client.messages.stream({
-    model: "claude-sonnet-4-6",
-    max_tokens: 512,
-    system: systemPrompt,
-    messages,
+  // Convert role "assistant" → "model" for Gemini
+  const contents = messages.map((m: { role: string; content: string }) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+
+  const stream = await ai.models.generateContentStream({
+    model: "gemini-2.0-flash",
+    contents,
+    config: {
+      systemInstruction: systemPrompt,
+      maxOutputTokens: 512,
+    },
   });
 
   const readable = new ReadableStream({
     async start(controller) {
       try {
         for await (const chunk of stream) {
-          if (
-            chunk.type === "content_block_delta" &&
-            chunk.delta.type === "text_delta"
-          ) {
-            controller.enqueue(new TextEncoder().encode(chunk.delta.text));
+          const text = chunk.text;
+          if (text) {
+            controller.enqueue(new TextEncoder().encode(text));
           }
         }
         controller.close();

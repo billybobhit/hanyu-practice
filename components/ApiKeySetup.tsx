@@ -14,8 +14,8 @@ export default function ApiKeySetup({ onComplete }: ApiKeySetupProps) {
 
   const handleSubmit = async () => {
     const trimmed = key.trim();
-    if (!trimmed.startsWith("sk-ant-")) {
-      setError("Key should start with sk-ant-");
+    if (!trimmed.startsWith("AIza")) {
+      setError("Key should start with AIza");
       return;
     }
     setTesting(true);
@@ -36,7 +36,7 @@ export default function ApiKeySetup({ onComplete }: ApiKeySetupProps) {
         }),
       });
 
-      if (res.status === 401) {
+      if (res.status === 401 || res.status === 400) {
         setError("Invalid API key. Please check and try again.");
         setTesting(false);
         return;
@@ -71,21 +71,22 @@ export default function ApiKeySetup({ onComplete }: ApiKeySetupProps) {
           >
             漢語練習
           </h1>
-          <p className="text-cream-400 text-sm">需要 Anthropic API 密钥才能开始</p>
+          <p className="text-cream-400 text-sm">输入 Gemini API 密钥</p>
+          <p className="text-gold-500 text-xs mt-1">免费获取 — 无需信用卡</p>
         </div>
 
         {/* Card */}
         <div className="bg-ink-800 border border-ink-500 rounded-2xl p-8 space-y-5">
           <div>
             <label className="block text-cream-300 text-sm font-medium mb-2">
-              Anthropic API Key
+              Gemini API Key
             </label>
             <input
               type="password"
               value={key}
               onChange={(e) => { setKey(e.target.value); setError(""); }}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-              placeholder="sk-ant-api03-..."
+              placeholder="AIza..."
               className="w-full bg-ink-900 border border-ink-500 focus:border-vermillion-600 rounded-xl px-4 py-3 text-cream-100 placeholder-cream-700 text-sm focus:outline-none transition-colors font-mono"
             />
             {error && (
@@ -106,14 +107,13 @@ export default function ApiKeySetup({ onComplete }: ApiKeySetupProps) {
               密钥仅存储在您的浏览器本地，不会上传到任何服务器
             </p>
             <p className="text-cream-600 text-xs text-center">
-              获取 API 密钥：{" "}
               <a
-                href="https://console.anthropic.com/settings/keys"
+                href="https://aistudio.google.com/apikey"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gold-500 hover:text-gold-400 transition-colors"
               >
-                console.anthropic.com
+                前往 Google AI Studio 免费获取 →
               </a>
             </p>
           </div>

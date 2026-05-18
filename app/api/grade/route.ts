@@ -1,12 +1,13 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const apiKey = req.headers.get("x-api-key") || process.env.ANTHROPIC_API_KEY;
+  const apiKey = req.headers.get("x-api-key");
   if (!apiKey) {
     return Response.json({ error: "No API key" }, { status: 401 });
   }
-  const client = new Anthropic({ apiKey });
+
+  const ai = new GoogleGenAI({ apiKey });
   const { messages, material } = await req.json();
 
   const userMessages = messages.filter(
@@ -26,13 +27,7 @@ export async function POST(req: NextRequest) {
     )
     .join("\n");
 
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1024,
-    messages: [
-      {
-        role: "user",
-        content: `You are evaluating a Chinese language learning session. Carefully analyze the student's responses and grade them.
+  const prompt = `You are evaluating a Chinese language learning session. Carefully analyze the student's responses and grade them.
 
 Study Material Context:
 ${material || "(General conversation, no specific material)"}
@@ -59,13 +54,15 @@ Grading criteria:
 - overallScore: weighted average (vocab 25%, grammar 35%, comprehension 40%)
 - overallGrade: A=90-100, B=80-89, C=70-79, D=60-69, F=below 60
 
-Be honest and specific. A student who gives short answers or shows shallow comprehension should not get high scores.`,
-      },
-    ],
+Be honest and specific. A student who gives short answers or shows shallow comprehension should not get high scores.`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: prompt,
+    config: { maxOutputTokens: 1024 },
   });
 
-  const text =
-    response.content[0].type === "text" ? response.content[0].text : "";
+  const text = response.text ?? "";
   const jsonMatch = text.match(/\{[\s\S]*\}/);
 
   if (!jsonMatch) {
