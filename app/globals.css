@@ -266,6 +266,18 @@ ruby rt {
   outline-offset: 2px;
 }
 
+/* Character glow animations */
+@keyframes charGlowPulseA {
+  0%, 100% { filter: drop-shadow(0 0 12px #EEC050); }
+  50%       { filter: drop-shadow(0 0 22px #EEC050) drop-shadow(0 0 44px orange); }
+}
+@keyframes charGlowPulseF {
+  0%, 100% { filter: drop-shadow(0 0 6px darkred); }
+  50%       { filter: drop-shadow(0 0 16px darkred) drop-shadow(0 0 32px rgba(120,0,0,0.6)); }
+}
+.char-glow-pulse-a { animation: charGlowPulseA 2s ease-in-out infinite; }
+.char-glow-pulse-f { animation: charGlowPulseF 2.5s ease-in-out infinite; }
+
 /* Noise texture */
 .noise::after {
   content: '';

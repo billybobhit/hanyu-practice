@@ -3,59 +3,72 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Grade } from "@/lib/types";
+import SunWukong from "@/components/characters/SunWukong";
+import QinShiHuang from "@/components/characters/QinShiHuang";
+import ImperialSoldier from "@/components/characters/ImperialSoldier";
+import Peasant from "@/components/characters/Peasant";
+import Criminal from "@/components/characters/Criminal";
 
 type Phase = "blackout" | "flash" | "grade" | "char" | "split";
 
+const CHAR_COMPONENTS: Record<string, React.ComponentType<{ style?: React.CSSProperties }>> = {
+  A: SunWukong,
+  B: QinShiHuang,
+  C: ImperialSoldier,
+  D: Peasant,
+  F: Criminal,
+};
+
 const GRADE_DATA = {
   A: {
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Sun_Wukong_pilgrimage.jpg/400px-Sun_Wukong_pilgrimage.jpg",
-    emoji: "🐒",
     chinese: "孫悟空",
     english: "Sun Wukong",
     color: "#EEC050",
     glow: "rgba(238,192,80,0.7)",
     rayColor: "rgba(238,192,80,0.18)",
     bg: "radial-gradient(ellipse at center, rgba(120,10,10,0.45) 0%, #000 70%)",
+    glowClass: "char-glow-pulse-a",
+    glowFilter: "drop-shadow(0 0 20px #EEC050) drop-shadow(0 0 40px orange)",
   },
   B: {
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Qinshihuang.jpg/400px-Qinshihuang.jpg",
-    emoji: "👑",
     chinese: "秦始皇",
     english: "Qin Shi Huang",
     color: "#94a3b8",
     glow: "rgba(148,163,184,0.7)",
     rayColor: "rgba(148,163,184,0.14)",
     bg: "radial-gradient(ellipse at center, rgba(80,0,20,0.45) 0%, #000 70%)",
+    glowClass: "",
+    glowFilter: "drop-shadow(0 0 15px #94a3b8)",
   },
   C: {
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Terracotta_Army_-_Terra_Cotta_Warriors_of_the_Qin_Dynasty.JPG/400px-Terracotta_Army_-_Terra_Cotta_Warriors_of_the_Qin_Dynasty.JPG",
-    emoji: "⚔️",
     chinese: "帝國士兵",
     english: "Imperial Soldier",
     color: "#9ca3af",
     glow: "rgba(156,163,175,0.6)",
     rayColor: "rgba(156,163,175,0.1)",
     bg: "radial-gradient(ellipse at center, rgba(50,50,60,0.45) 0%, #000 70%)",
+    glowClass: "",
+    glowFilter: "drop-shadow(0 0 8px #9ca3af)",
   },
   D: {
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Chinese_peasants_working_the_fields.jpg/400px-Chinese_peasants_working_the_fields.jpg",
-    emoji: "🌾",
     chinese: "農民",
     english: "Peasant",
     color: "#d97706",
     glow: "rgba(217,119,6,0.65)",
     rayColor: "rgba(217,119,6,0.12)",
     bg: "radial-gradient(ellipse at center, rgba(60,35,0,0.45) 0%, #000 70%)",
+    glowClass: "",
+    glowFilter: "none",
   },
   F: {
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Chinese_prisoners_1900.jpg/400px-Chinese_prisoners_1900.jpg" as string,
-    emoji: "⛓️",
     chinese: "罪犯",
     english: "Criminal",
     color: "#dc2626",
     glow: "rgba(220,38,38,0.75)",
     rayColor: "rgba(220,38,38,0.14)",
     bg: "radial-gradient(ellipse at center, rgba(80,0,0,0.5) 0%, #000 70%)",
+    glowClass: "char-glow-pulse-f",
+    glowFilter: "drop-shadow(0 0 10px darkred)",
   },
 } as const;
 
@@ -178,6 +191,7 @@ function SplitScreen({
   const router = useRouter();
   const char = GRADE_DATA[grade as keyof typeof GRADE_DATA] ?? GRADE_DATA["C"];
   const flavor = FLAVOR[grade] ?? FLAVOR["C"];
+  const CharSVG = CHAR_COMPONENTS[grade] ?? CHAR_COMPONENTS["C"];
 
   const gradeTextColor: Record<string, string> = {
     A: "#EEC050", B: "#94a3b8", C: "#9ca3af", D: "#d97706", F: "#dc2626",
@@ -262,18 +276,9 @@ function SplitScreen({
       >
         <LightRays color={char.rayColor} />
 
-        {/* Character image */}
-        <div
-          className="relative z-10 mb-5"
-          style={{ boxShadow: `0 0 50px ${char.glow}, 0 24px 60px rgba(0,0,0,0.8)`, borderRadius: "16px" }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={char.image}
-            alt={char.english}
-            className="rounded-2xl object-cover"
-            style={{ width: "clamp(140px,22vw,240px)", height: "clamp(180px,28vw,300px)" }}
-          />
+        {/* Character SVG */}
+        <div className={`relative z-10 mb-5 ${char.glowClass}`}>
+          <CharSVG style={{ width: "clamp(140px,22vw,240px)", height: "clamp(180px,28vw,300px)" }} />
         </div>
 
         {/* Chinese name */}
@@ -328,6 +333,7 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
 
   const char = GRADE_DATA[grade as keyof typeof GRADE_DATA] ?? GRADE_DATA["C"];
   const flavor = FLAVOR[grade] ?? FLAVOR["C"];
+  const CharSVG = CHAR_COMPONENTS[grade] ?? CHAR_COMPONENTS["C"];
 
   const skip = useCallback(() => setPhase("split"), []);
 
@@ -412,22 +418,12 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
           <div className="flex-1 flex flex-col items-center justify-center relative w-full">
             <LightRays color={char.rayColor} />
 
-            {/* Character image */}
+            {/* Character SVG */}
             <div
-              className="relative z-10 mb-4"
+              className={`relative z-10 mb-4 ${char.glowClass}`}
               style={{ animation: "charBurst 0.8s 0.1s cubic-bezier(0.22,1,0.36,1) both" }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={char.image}
-                alt={char.english}
-                className="rounded-2xl object-cover"
-                style={{
-                  width: "clamp(150px,22vw,240px)",
-                  height: "clamp(190px,28vw,300px)",
-                  boxShadow: `0 0 40px ${char.glow}, 0 20px 60px rgba(0,0,0,0.85)`,
-                }}
-              />
+              <CharSVG style={{ width: "clamp(150px,22vw,240px)", height: "clamp(190px,28vw,300px)" }} />
             </div>
 
             {/* Chinese name — slam letters */}
