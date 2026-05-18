@@ -22,7 +22,7 @@ Study Materials:
 ---`;
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = process.env.openrouterkey;
   if (!apiKey) {
     return Response.json({ error: "Server misconfigured: missing API key" }, { status: 500 });
   }
