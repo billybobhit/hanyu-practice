@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   let stream: AsyncGenerator<import("@google/genai").GenerateContentResponse>;
   try {
     stream = await ai.models.generateContentStream({
-      model: "gemini-2.0-flash",
+      model: "gemini-1.5-flash",
       contents,
       config: {
         systemInstruction: systemPrompt,

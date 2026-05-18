@@ -57,7 +57,7 @@ Grading criteria:
 Be honest and specific. A student who gives short answers or shows shallow comprehension should not get high scores.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash",
+    model: "gemini-1.5-flash",
     contents: prompt,
     config: { maxOutputTokens: 1024 },
   });
