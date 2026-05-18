@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useRef } from "react";
 import { parsePDF, parseImageFile, parseURL } from "@/lib/parser";
-import { getApiKey } from "@/lib/apikey";
 
 interface UploadZoneProps {
   onMaterialReady: (content: string, title: string) => void;
@@ -28,7 +27,7 @@ export default function UploadZone({ onMaterialReady }: UploadZoneProps) {
         if (file.type === "application/pdf") {
           content = await parsePDF(file);
         } else if (file.type.startsWith("image/")) {
-          content = await parseImageFile(file, getApiKey());
+          content = await parseImageFile(file);
         } else if (file.type === "text/plain") {
           content = await file.text();
         } else {

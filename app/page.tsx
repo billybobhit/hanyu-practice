@@ -1,34 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import UploadZone from "@/components/UploadZone";
-import ApiKeySetup from "@/components/ApiKeySetup";
 import {
   saveSession,
   setCurrentSessionId,
   generateSessionId,
   getSessionSummaries,
 } from "@/lib/storage";
-import { hasApiKey, clearApiKey } from "@/lib/apikey";
 
 export default function HomePage() {
   const router = useRouter();
   const [material, setMaterial] = useState<{ content: string; title: string } | null>(null);
   const [starting, setStarting] = useState(false);
-  const [keyReady, setKeyReady] = useState<boolean | null>(null); // null = loading
-
-  useEffect(() => {
-    setKeyReady(hasApiKey());
-  }, []);
-
-  if (keyReady === null) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="text-cream-600 text-sm">加载中...</div></div>;
-  }
-
-  if (!keyReady) {
-    return <ApiKeySetup onComplete={() => setKeyReady(true)} />;
-  }
 
   const handleMaterialReady = (content: string, title: string) => {
     setMaterial({ content, title });
@@ -226,15 +211,6 @@ export default function HomePage() {
             </div>
           </div>
         )}
-        {/* Footer */}
-        <div className="text-center mt-6 animate-ink-reveal" style={{ animationDelay: "0.35s" }}>
-          <button
-            onClick={() => { clearApiKey(); setKeyReady(false); }}
-            className="text-cream-700 hover:text-cream-500 text-xs transition-colors cursor-pointer"
-          >
-            更换 API 密钥
-          </button>
-        </div>
       </div>
     </div>
   );

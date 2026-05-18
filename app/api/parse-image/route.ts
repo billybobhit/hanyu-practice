@@ -3,9 +3,9 @@ import { NextRequest } from "next/server";
 import { OPENROUTER_VISION_MODEL } from "@/lib/openrouter-models";
 
 export async function POST(req: NextRequest) {
-  const apiKey = req.headers.get("x-api-key");
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    return Response.json({ error: "No API key" }, { status: 401 });
+    return Response.json({ error: "Server misconfigured: missing API key" }, { status: 500 });
   }
 
   const { base64, mediaType } = await req.json();
