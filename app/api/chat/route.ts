@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { NextRequest } from "next/server";
+import { OPENROUTER_TEXT_MODEL } from "@/lib/openrouter-models";
 
 const BASE_SYSTEM = `You are 汉语老师 (Master Chen), a strict but encouraging Chinese tutor conducting an immersive Mandarin conversation session. The student has provided study materials — your job is to test their deep comprehension through Socratic dialogue.
 
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
   let stream: ReturnType<typeof client.chat.completions.stream>;
   try {
     stream = client.chat.completions.stream({
-      model: "qwen/qwen3-8b:free",
+      model: OPENROUTER_TEXT_MODEL,
       max_tokens: 512,
       messages: [
         { role: "system", content: systemPrompt },

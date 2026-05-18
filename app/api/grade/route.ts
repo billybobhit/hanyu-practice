@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { NextRequest } from "next/server";
+import { OPENROUTER_TEXT_MODEL } from "@/lib/openrouter-models";
 
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-api-key");
@@ -62,7 +63,7 @@ Be honest and specific. A student who gives short answers or shows shallow compr
 
   try {
     const response = await client.chat.completions.create({
-      model: "qwen/qwen3-8b:free",
+      model: OPENROUTER_TEXT_MODEL,
       max_tokens: 1024,
       messages: [{ role: "user", content: prompt }],
     });
