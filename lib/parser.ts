@@ -21,7 +21,7 @@ export async function parsePDF(file: File): Promise<string> {
   return pages.join("\n\n").replace(/\s+/g, " ").trim();
 }
 
-export async function parseImageFile(file: File): Promise<string> {
+export async function parseImageFile(file: File, apiKey?: string | null): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -34,9 +34,12 @@ export async function parseImageFile(file: File): Promise<string> {
           | "image/gif"
           | "image/webp";
 
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (apiKey) headers["x-api-key"] = apiKey;
+
         const response = await fetch("/api/parse-image", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({ base64, mediaType }),
         });
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ChatBubble, { TypingIndicator } from "@/components/ChatBubble";
 import VoiceButton from "@/components/VoiceButton";
 import { getSession, saveSession, getCurrentSessionId } from "@/lib/storage";
+import { getApiKey } from "@/lib/apikey";
 import type { Message, Session } from "@/lib/types";
 
 export default function PracticePage() {
@@ -86,9 +87,13 @@ export default function PracticePage() {
       setIsLoading(true);
 
       try {
+        const apiKey = getApiKey();
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (apiKey) headers["x-api-key"] = apiKey;
+
         const response = await fetch("/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({
             messages: messages.map((m) => ({ role: m.role, content: m.content })),
             material: currentSession.materialContent,
@@ -181,9 +186,13 @@ export default function PracticePage() {
 
     setIsGrading(true);
     try {
+      const apiKey = getApiKey();
+      const gradeHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      if (apiKey) gradeHeaders["x-api-key"] = apiKey;
+
       const response = await fetch("/api/grade", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: gradeHeaders,
         body: JSON.stringify({
           messages: session.messages,
           material: session.materialContent,

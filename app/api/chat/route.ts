@@ -1,8 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 const BASE_SYSTEM = `You are 汉语老师 (Master Chen), a strict but encouraging Chinese tutor conducting an immersive Mandarin conversation session. The student has provided study materials — your job is to test their deep comprehension through Socratic dialogue.
 
 Rules:
@@ -23,6 +21,12 @@ Study Materials:
 ---`;
 
 export async function POST(req: NextRequest) {
+  const apiKey = req.headers.get("x-api-key") || process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return new Response("No API key provided", { status: 401 });
+  }
+  const client = new Anthropic({ apiKey });
+
   const { messages, material, pinyinMode } = await req.json();
 
   const pinyinInstruction = pinyinMode
