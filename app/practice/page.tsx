@@ -16,6 +16,7 @@ export default function PracticePage() {
   const [pinyinMode, setPinyinMode] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -101,7 +102,13 @@ export default function PracticePage() {
           }),
         });
 
-        if (!response.ok) throw new Error("Chat API error");
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          const msg = body.error || `API error ${response.status}`;
+          setApiError(msg);
+          return;
+        }
+        setApiError(null);
 
         const reader = response.body!.getReader();
         const decoder = new TextDecoder();
@@ -311,6 +318,23 @@ export default function PracticePage() {
         {isLoading && <TypingIndicator />}
         <div className="h-2" />
       </div>
+
+      {/* API error banner */}
+      {apiError && (
+        <div className="bg-vermillion-700/20 border-t border-vermillion-700/50 px-4 py-3 shrink-0 flex items-start gap-3">
+          <span className="text-vermillion-400 shrink-0">⚠️</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-vermillion-300 text-sm font-medium">API 错误</p>
+            <p className="text-vermillion-400 text-xs mt-0.5 break-words">{apiError}</p>
+          </div>
+          <button
+            onClick={() => setApiError(null)}
+            className="text-vermillion-500 hover:text-vermillion-300 text-xs cursor-pointer shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Input area */}
       <div className="glass border-t border-ink-600 p-4 shrink-0">

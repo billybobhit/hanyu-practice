@@ -23,7 +23,7 @@ Study Materials:
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-api-key");
   if (!apiKey) {
-    return new Response("No API key provided", { status: 401 });
+    return Response.json({ error: "No API key provided" }, { status: 401 });
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -47,14 +47,34 @@ export async function POST(req: NextRequest) {
     parts: [{ text: m.content }],
   }));
 
-  const stream = await ai.models.generateContentStream({
-    model: "gemini-2.0-flash",
-    contents,
-    config: {
-      systemInstruction: systemPrompt,
-      maxOutputTokens: 512,
-    },
-  });
+  let stream: AsyncGenerator<import("@google/genai").GenerateContentResponse>;
+  try {
+    stream = await ai.models.generateContentStream({
+      model: "gemini-2.0-flash",
+      contents,
+      config: {
+        systemInstruction: systemPrompt,
+        maxOutputTokens: 512,
+      },
+    });
+  } catch (err) {
+    let msg = err instanceof Error ? err.message : String(err);
+    // Gemini wraps errors as: { error: { message: "<inner-json-string>", code, status } }
+    // The inner message is itself a stringified JSON with the real human-readable error.
+    try {
+      const outer = JSON.parse(msg);
+      const innerStr = outer?.error?.message ?? msg;
+      try {
+        const inner = JSON.parse(innerStr);
+        msg = inner?.error?.message ?? innerStr;
+      } catch {
+        msg = innerStr;
+      }
+    } catch {
+      // msg stays as raw string
+    }
+    return Response.json({ error: msg }, { status: 502 });
+  }
 
   const readable = new ReadableStream({
     async start(controller) {
