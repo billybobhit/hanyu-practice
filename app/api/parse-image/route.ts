@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { NextRequest } from "next/server";
+import { OPENROUTER_VISION_MODEL } from "@/lib/openrouter-models";
 
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-api-key");
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const response = await client.chat.completions.create({
-      model: "google/gemma-3-27b-it:free",
+      model: OPENROUTER_VISION_MODEL,
       max_tokens: 2048,
       messages: [
         {
