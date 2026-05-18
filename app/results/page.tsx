@@ -35,6 +35,35 @@ export default function ResultsPage() {
   const [showReveal, setShowReveal] = useState(false);
 
   useEffect(() => {
+    // Dev preview mode: /results?preview=A
+    const params = new URLSearchParams(window.location.search);
+    const preview = params.get("preview")?.toUpperCase();
+    const validGrades = ["A", "B", "C", "D", "F"];
+    if (preview && validGrades.includes(preview)) {
+      const scoreMap: Record<string, number> = { A: 95, B: 83, C: 74, D: 63, F: 42 };
+      const score = scoreMap[preview] ?? 75;
+      setCurrentSession({
+        id: "dev-preview",
+        materialTitle: "Dev Preview",
+        materialContent: "",
+        messages: [],
+        startTime: Date.now(),
+        endTime: Date.now(),
+        grade: {
+          overallGrade: preview as "A" | "B" | "C" | "D" | "F",
+          overallScore: score,
+          vocabularyScore: score,
+          grammarScore: score,
+          comprehensionScore: score,
+          strengths: ["Dev preview mode"],
+          improvements: ["Dev preview mode"],
+          studyAreas: ["Dev preview mode"],
+        },
+      });
+      setShowReveal(true);
+      return;
+    }
+
     const fresh = sessionStorage.getItem("hanyu_fresh_grade");
     if (fresh) sessionStorage.removeItem("hanyu_fresh_grade");
 

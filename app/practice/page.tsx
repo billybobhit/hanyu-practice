@@ -16,9 +16,43 @@ export default function PracticePage() {
   const [autoSpeak, setAutoSpeak] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [devMode, setDevMode] = useState(false);
+  const [devInput, setDevInput] = useState("");
+  const [devMessages, setDevMessages] = useState<{ role: "sys" | "user"; text: string }[]>([
+    { role: "sys", text: "HanYu Dev Console active. What would you like to test?" },
+    { role: "sys", text: 'Try: "Give me an A" · "Show B" · "F grade" · or just type a letter.' },
+  ]);
+  const devInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  function parseGrade(text: string): string | null {
+    for (const g of ["A", "B", "C", "D", "F"]) {
+      if (text.toUpperCase().includes(g)) return g;
+    }
+    return null;
+  }
+
+  const handleDevCommand = () => {
+    const text = devInput.trim();
+    if (!text) return;
+    setDevMessages((prev) => [...prev, { role: "user", text }]);
+    setDevInput("");
+    const grade = parseGrade(text);
+    if (grade) {
+      setDevMessages((prev) => [...prev, { role: "sys", text: `Launching grade ${grade} preview...` }]);
+      setTimeout(() => {
+        setDevMode(false);
+        router.push(`/results?preview=${grade}`);
+      }, 700);
+    } else {
+      setDevMessages((prev) => [
+        ...prev,
+        { role: "sys", text: 'Unrecognized. Try "Give me an A" or just "B".' },
+      ]);
+    }
+  };
 
   useEffect(() => {
     const id = getCurrentSessionId();
@@ -157,6 +191,12 @@ export default function PracticePage() {
 
   const sendMessage = useCallback(async () => {
     if (!session || !input.trim() || isLoading) return;
+    if (input.trim().toLowerCase() === "hanyu dev") {
+      setInput("");
+      setDevMode(true);
+      setTimeout(() => devInputRef.current?.focus(), 50);
+      return;
+    }
 
     const userMsg: Message = {
       role: "user",
@@ -363,6 +403,58 @@ export default function PracticePage() {
           </button>
         </div>
       </div>
+
+      {/* Dev Console Overlay */}
+      {devMode && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-md bg-ink-950 border border-green-500/40 rounded-2xl overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div className="bg-green-950/60 border-b border-green-500/30 px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-green-400 text-xs font-mono tracking-widest uppercase">HanYu Dev Console</span>
+              </div>
+              <button
+                onClick={() => setDevMode(false)}
+                className="text-green-700 hover:text-green-400 text-xs font-mono transition-colors cursor-pointer"
+              >
+                [esc]
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="p-4 space-y-2 min-h-[120px] max-h-64 overflow-y-auto">
+              {devMessages.map((m, i) => (
+                <div key={i} className="font-mono text-sm flex gap-2">
+                  <span className={m.role === "sys" ? "text-green-600" : "text-green-300"}>
+                    {m.role === "sys" ? ">" : "$"}
+                  </span>
+                  <span className={m.role === "sys" ? "text-green-400" : "text-green-200"}>
+                    {m.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Input */}
+            <div className="border-t border-green-500/30 px-4 py-3 flex gap-2 items-center">
+              <span className="text-green-500 font-mono text-sm shrink-0">$</span>
+              <input
+                ref={devInputRef}
+                value={devInput}
+                onChange={(e) => setDevInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleDevCommand();
+                  if (e.key === "Escape") setDevMode(false);
+                }}
+                placeholder="give me an A..."
+                className="flex-1 bg-transparent text-green-200 font-mono text-sm outline-none placeholder-green-800"
+                autoFocus
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
