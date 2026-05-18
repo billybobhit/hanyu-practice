@@ -48,7 +48,7 @@ const GRADE_DATA = {
     bg: "radial-gradient(ellipse at center, rgba(60,35,0,0.45) 0%, #000 70%)",
   },
   F: {
-    image: null as string | null,
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Chinese_prisoners_1900.jpg/400px-Chinese_prisoners_1900.jpg" as string,
     emoji: "⛓️",
     chinese: "罪犯",
     english: "Criminal",
@@ -267,28 +267,13 @@ function SplitScreen({
           className="relative z-10 mb-5"
           style={{ boxShadow: `0 0 50px ${char.glow}, 0 24px 60px rgba(0,0,0,0.8)`, borderRadius: "16px" }}
         >
-          {char.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={char.image}
-              alt={char.english}
-              className="rounded-2xl object-cover"
-              style={{ width: "clamp(140px,22vw,240px)", height: "clamp(180px,28vw,300px)" }}
-            />
-          ) : (
-            <div
-              className="rounded-2xl flex items-center justify-center"
-              style={{
-                width: "clamp(140px,22vw,240px)",
-                height: "clamp(180px,28vw,300px)",
-                fontSize: "6rem",
-                background: "radial-gradient(circle, rgba(80,0,0,0.9), #000)",
-                border: `1px solid ${char.color}44`,
-              }}
-            >
-              {char.emoji}
-            </div>
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={char.image}
+            alt={char.english}
+            className="rounded-2xl object-cover"
+            style={{ width: "clamp(140px,22vw,240px)", height: "clamp(180px,28vw,300px)" }}
+          />
         </div>
 
         {/* Chinese name */}
@@ -432,33 +417,17 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
               className="relative z-10 mb-4"
               style={{ animation: "charBurst 0.8s 0.1s cubic-bezier(0.22,1,0.36,1) both" }}
             >
-              {char.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={char.image}
-                  alt={char.english}
-                  className="rounded-2xl object-cover"
-                  style={{
-                    width: "clamp(150px,22vw,240px)",
-                    height: "clamp(190px,28vw,300px)",
-                    boxShadow: `0 0 40px ${char.glow}, 0 20px 60px rgba(0,0,0,0.85)`,
-                  }}
-                />
-              ) : (
-                <div
-                  className="rounded-2xl flex items-center justify-center"
-                  style={{
-                    width: "clamp(150px,22vw,240px)",
-                    height: "clamp(190px,28vw,300px)",
-                    fontSize: "6rem",
-                    background: "radial-gradient(circle, rgba(80,0,0,0.9), #000)",
-                    boxShadow: `0 0 40px ${char.glow}`,
-                    border: `1px solid ${char.color}44`,
-                  }}
-                >
-                  {char.emoji}
-                </div>
-              )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={char.image}
+                alt={char.english}
+                className="rounded-2xl object-cover"
+                style={{
+                  width: "clamp(150px,22vw,240px)",
+                  height: "clamp(190px,28vw,300px)",
+                  boxShadow: `0 0 40px ${char.glow}, 0 20px 60px rgba(0,0,0,0.85)`,
+                }}
+              />
             </div>
 
             {/* Chinese name — slam letters */}
