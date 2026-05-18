@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { NextRequest } from "next/server";
-import { OPENROUTER_TEXT_MODEL } from "@/lib/openrouter-models";
+import { OPENROUTER_TEXT_FALLBACK_MODELS } from "@/lib/openrouter-models";
 
 const BASE_SYSTEM = `You are 汉语老师 (Master Chen), a strict but encouraging Chinese tutor conducting an immersive Mandarin conversation session. The student has provided study materials — your job is to test their deep comprehension through Socratic dialogue.
 
@@ -46,39 +46,51 @@ export async function POST(req: NextRequest) {
     material || "(No material provided — have a general Chinese conversation)"
   );
 
-  let stream: ReturnType<typeof client.chat.completions.stream>;
-  try {
-    stream = client.chat.completions.stream({
-      model: OPENROUTER_TEXT_MODEL,
-      max_tokens: 512,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages.map((m: { role: string; content: string }) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        })),
-      ],
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: msg }, { status: 502 });
-  }
+  const requestMessages = [
+    { role: "system" as const, content: systemPrompt },
+    ...messages.map((m: { role: string; content: string }) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    })),
+  ];
 
   const readable = new ReadableStream({
     async start(controller) {
-      try {
-        for await (const chunk of stream) {
-          const text = chunk.choices[0]?.delta?.content;
-          if (text) {
-            controller.enqueue(new TextEncoder().encode(text));
+      let hasSentContent = false;
+      let lastError: unknown;
+
+      for (const model of OPENROUTER_TEXT_FALLBACK_MODELS) {
+        try {
+          const stream = client.chat.completions.stream({
+            model,
+            max_tokens: 512,
+            messages: requestMessages,
+          });
+
+          for await (const chunk of stream) {
+            const text = chunk.choices[0]?.delta?.content;
+            if (text) {
+              hasSentContent = true;
+              controller.enqueue(new TextEncoder().encode(text));
+            }
+          }
+
+          controller.close();
+          return;
+        } catch (err) {
+          lastError = err;
+          if (hasSentContent) {
+            break;
           }
         }
-        controller.close();
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+      }
+
+      const msg = lastError instanceof Error ? lastError.message : String(lastError);
+      try {
         controller.enqueue(
           new TextEncoder().encode(`\n\n[ERROR: ${msg}]`)
         );
+      } finally {
         controller.close();
       }
     },

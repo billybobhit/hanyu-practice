@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { NextRequest } from "next/server";
-import { OPENROUTER_TEXT_MODEL } from "@/lib/openrouter-models";
+import { OPENROUTER_TEXT_FALLBACK_MODELS } from "@/lib/openrouter-models";
 
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-api-key");
@@ -62,13 +62,29 @@ Grading criteria:
 Be honest and specific. A student who gives short answers or shows shallow comprehension should not get high scores.`;
 
   try {
-    const response = await client.chat.completions.create({
-      model: OPENROUTER_TEXT_MODEL,
-      max_tokens: 1024,
-      messages: [{ role: "user", content: prompt }],
-    });
+    let text = "";
+    let lastError: unknown;
 
-    const text = response.choices[0]?.message?.content ?? "";
+    for (const model of OPENROUTER_TEXT_FALLBACK_MODELS) {
+      try {
+        const response = await client.chat.completions.create({
+          model,
+          max_tokens: 1024,
+          messages: [{ role: "user", content: prompt }],
+        });
+
+        text = response.choices[0]?.message?.content ?? "";
+        lastError = undefined;
+        break;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (lastError) {
+      throw lastError;
+    }
+
     const jsonMatch = text.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
