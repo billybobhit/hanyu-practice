@@ -274,16 +274,48 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
   const [preloadStatuses, setPreloadStatuses] = useState<Record<string, ImgStatus>>({
     A: "loading", B: "loading", C: "loading", D: "loading", F: "loading",
   });
+  const [selectedImageStatus, setSelectedImageStatus] = useState<ImgStatus>("loading");
 
   const char = GRADE_DATA[grade as keyof typeof GRADE_DATA] ?? GRADE_DATA["C"];
   const flavor = FLAVOR[grade] ?? FLAVOR["C"];
-  const preloadDone = Object.values(preloadStatuses).every(s => s !== "loading");
-  const imageLoaded = preloadStatuses[grade] === "loaded";
-  const imageError = preloadStatuses[grade] === "error";
+  const imageLoaded = selectedImageStatus === "loaded";
+  const imageError = selectedImageStatus === "error";
 
   const skip = useCallback(() => setPhase("split"), []);
 
-  // Preload all 5 images; start animation only when all settle (or 15s timeout)
+  // Preload the selected image before the cinematic reveal starts. Slow loads
+  // should wait here instead of showing the one-character failure fallback.
+  useEffect(() => {
+    setSelectedImageStatus("loading");
+
+    const img = new window.Image();
+    let cancelled = false;
+
+    const markLoaded = () => {
+      if (!cancelled) setSelectedImageStatus("loaded");
+    };
+    const markError = () => {
+      if (!cancelled) setSelectedImageStatus("error");
+    };
+
+    img.onload = () => {
+      if (typeof img.decode === "function") {
+        img.decode().then(markLoaded).catch(markLoaded);
+        return;
+      }
+      markLoaded();
+    };
+    img.onerror = markError;
+    img.src = char.imageUrl;
+
+    return () => {
+      cancelled = true;
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [char.imageUrl]);
+
+  // Warm the other grade images in the background for later sessions.
   useEffect(() => {
     const grades = ["A", "B", "C", "D", "F"] as const;
     const pending = new Set<string>(["A", "B", "C", "D", "F"]);
@@ -314,9 +346,9 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Start animation phases after preload completes
+  // Start animation phases after the selected image is ready or truly failed.
   useEffect(() => {
-    if (!preloadDone) return;
+    if (selectedImageStatus === "loading") return;
     requestAnimationFrame(() => setVisible(true));
     const timers = [
       setTimeout(() => setPhase("flash"), 300),
@@ -326,10 +358,10 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
       setTimeout(() => setPhase("split"), 6000),
     ];
     return () => timers.forEach(clearTimeout);
-  }, [preloadDone]);
+  }, [selectedImageStatus]);
 
-  // Preload gate — show spinner until all images settled
-  if (!preloadDone) {
+  // Preload gate — show spinner until the selected reveal image is paint-ready.
+  if (selectedImageStatus === "loading") {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5" style={{ background: char.bg, backgroundColor: "#000" }}>
         <div style={{ width: 64, height: 64, borderRadius: "50%", border: `4px solid ${char.color}22`, borderTopColor: char.color, borderRightColor: `${char.color}55`, animation: "inkSpin 1s linear infinite" }} />
