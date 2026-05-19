@@ -1,3 +1,5 @@
+export type Difficulty = "hard" | "medium" | "easy";
+
 export interface Message {
   role: "user" | "assistant";
   content: string;
@@ -8,6 +10,7 @@ export interface Session {
   id: string;
   materialTitle: string;
   materialContent: string;
+  difficulty: Difficulty;
   messages: Message[];
   startTime: number;
   endTime?: number;
@@ -23,6 +26,8 @@ export interface Grade {
   strengths: string[];
   improvements: string[];
   studyAreas: string[];
+  difficultyNotes?: string;
+  nextPracticePlan?: string[];
 }
 
 export interface SessionSummary {
@@ -33,4 +38,5 @@ export interface SessionSummary {
   overallGrade: string;
   overallScore: number;
   messageCount: number;
+  difficulty: Difficulty;
 }

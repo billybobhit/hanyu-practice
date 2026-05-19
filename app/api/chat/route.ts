@@ -1,20 +1,20 @@
 import OpenAI from "openai";
 import { NextRequest } from "next/server";
 import { OPENROUTER_TEXT_FALLBACK_MODELS } from "@/lib/openrouter-models";
+import type { Difficulty } from "@/lib/types";
 
 const BASE_SYSTEM = `You are 汉语老师 (Master Chen), a strict but encouraging Chinese tutor conducting an immersive Mandarin conversation session. The student has provided study materials — your job is to test their deep comprehension through Socratic dialogue.
 
-Rules:
-- Conduct the ENTIRE conversation in Mandarin Chinese only
+Core teaching rules:
 - Ask probing questions that move from recall → analysis → application → synthesis
-- When the student makes grammar errors, note them briefly: (应说"___") then continue naturally
-- When vocabulary is wrong, briefly correct: (这里用"___"更准确)
+- When the student makes grammar errors, correct them briefly and continue naturally
+- When vocabulary is wrong, briefly suggest a more accurate word
 - Vary your Socratic methods: hypotheticals, analogies, follow-up "why?", devil's advocate
 - Keep responses conversational: 2-3 sentences max per turn
 - Encourage good responses with brief affirmations before pushing deeper
-- Never switch to English
 
-{PINYIN_INSTRUCTION}
+Difficulty mode:
+{DIFFICULTY_INSTRUCTION}
 
 Study Materials:
 ---
@@ -32,15 +32,26 @@ export async function POST(req: NextRequest) {
     apiKey,
   });
 
-  const { messages, material, pinyinMode } = await req.json();
+  const { messages, material, difficulty, pinyinMode } = await req.json();
+  const selectedDifficulty: Difficulty =
+    difficulty === "easy" || difficulty === "medium" || difficulty === "hard"
+      ? difficulty
+      : pinyinMode
+        ? "medium"
+        : "hard";
 
-  const pinyinInstruction = pinyinMode
-    ? "- Include pinyin in parentheses after key vocabulary and your own sentences, e.g.: 你好(nǐ hǎo)"
-    : "";
+  const difficultyInstruction: Record<Difficulty, string> = {
+    hard:
+      "- HARD: Conduct the entire conversation in Mandarin Chinese only. Do not switch to English. Corrections should be brief and in Chinese.",
+    medium:
+      "- MEDIUM: Respond in Mandarin Chinese, but include pinyin in parentheses after every Chinese word or short phrase. Example: 你(nǐ) 今天(jīn tiān) 想(xiǎng) 讨论(tǎo lùn) 什么(shén me)？ Keep corrections simple.",
+    easy:
+      "- EASY: Respond in plain English. Teach Chinese concepts gently by introducing key Chinese words with pinyin and meaning, but explain questions and corrections in clear English.",
+  };
 
   const systemPrompt = BASE_SYSTEM.replace(
-    "{PINYIN_INSTRUCTION}",
-    pinyinInstruction
+    "{DIFFICULTY_INSTRUCTION}",
+    difficultyInstruction[selectedDifficulty]
   ).replace(
     "{MATERIAL}",
     material || "(No material provided — have a general Chinese conversation)"

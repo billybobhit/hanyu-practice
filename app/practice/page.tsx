@@ -5,14 +5,25 @@ import { useRouter } from "next/navigation";
 import ChatBubble, { TypingIndicator } from "@/components/ChatBubble";
 import VoiceButton from "@/components/VoiceButton";
 import { getSession, saveSession, getCurrentSessionId } from "@/lib/storage";
-import type { Message, Session } from "@/lib/types";
+import type { Difficulty, Message, Session } from "@/lib/types";
+
+const difficultyLabels: Record<Difficulty, string> = {
+  hard: "Hard",
+  medium: "Medium",
+  easy: "Easy",
+};
+
+const difficultyDescriptions: Record<Difficulty, string> = {
+  hard: "Mandarin-only tutor responses",
+  medium: "Chinese responses with pinyin",
+  easy: "Plain English tutor responses",
+};
 
 export default function PracticePage() {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [pinyinMode, setPinyinMode] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -92,24 +103,26 @@ export default function PracticePage() {
       if (!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text.replace(/\([^)]+\)/g, ""));
-      utterance.lang = "zh-CN";
+      utterance.lang = session?.difficulty === "easy" ? "en-US" : "zh-CN";
       utterance.rate = 0.85;
       const voices = window.speechSynthesis.getVoices();
-      const zhVoice = voices.find(
-        (v) => v.lang.includes("zh") && (v.lang.includes("CN") || v.lang.includes("TW"))
+      const preferredVoice = voices.find((v) =>
+        session?.difficulty === "easy"
+          ? v.lang.includes("en")
+          : v.lang.includes("zh") && (v.lang.includes("CN") || v.lang.includes("TW"))
       );
-      if (zhVoice) utterance.voice = zhVoice;
+      if (preferredVoice) utterance.voice = preferredVoice;
       synthRef.current = utterance;
       window.speechSynthesis.speak(utterance);
     },
-    []
+    [session?.difficulty]
   );
 
   const sendFirstMessage = async (s: Session) => {
     const messages: Message[] = [
       {
         role: "user",
-        content: "老师好，请开始我们的对话练习。",
+        content: "Please begin our practice session.",
         timestamp: Date.now(),
       },
     ];
@@ -127,7 +140,7 @@ export default function PracticePage() {
           body: JSON.stringify({
             messages: messages.map((m) => ({ role: m.role, content: m.content })),
             material: currentSession.materialContent,
-            pinyinMode,
+            difficulty: currentSession.difficulty ?? "hard",
           }),
         });
 
@@ -186,7 +199,7 @@ export default function PracticePage() {
         inputRef.current?.focus();
       }
     },
-    [pinyinMode, autoSpeak, speakText]
+    [autoSpeak, speakText]
   );
 
   const sendMessage = useCallback(async () => {
@@ -234,6 +247,7 @@ export default function PracticePage() {
         body: JSON.stringify({
           messages: session.messages,
           material: session.materialContent,
+          difficulty: session.difficulty ?? "hard",
         }),
       });
 
@@ -256,12 +270,13 @@ export default function PracticePage() {
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-cream-500 text-sm">加载中...</div>
+        <div className="text-cream-500 text-sm">Loading...</div>
       </div>
     );
   }
 
   const userMessages = session.messages.filter((m) => m.role === "user");
+  const difficulty = session.difficulty ?? "hard";
 
   return (
     <div className="h-screen flex flex-col bg-ink-900">
@@ -281,22 +296,16 @@ export default function PracticePage() {
           >
             {session.materialTitle}
           </h1>
-          <p className="text-cream-600 text-xs">{userMessages.length} 轮对话</p>
+          <p className="text-cream-600 text-xs">
+            {userMessages.length} turns · {difficultyLabels[difficulty]} mode
+          </p>
         </div>
 
         {/* Controls */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setPinyinMode((v) => !v)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              pinyinMode
-                ? "bg-gold-700 text-gold-200"
-                : "bg-ink-600 text-cream-400 hover:text-cream-200"
-            }`}
-            title="拼音模式"
-          >
-            拼
-          </button>
+          <div className="px-3 py-1.5 rounded-lg bg-gold-800/25 border border-gold-700/40 text-gold-200 text-xs font-medium">
+            {difficultyLabels[difficulty]}
+          </div>
 
           <button
             onClick={() => {
@@ -308,7 +317,7 @@ export default function PracticePage() {
                 ? "bg-vermillion-700 text-vermillion-200"
                 : "bg-ink-600 text-cream-400 hover:text-cream-200"
             }`}
-            title="自动朗读"
+            title="Auto speak"
           >
             🔊
           </button>
@@ -318,7 +327,7 @@ export default function PracticePage() {
             disabled={isGrading}
             className="px-3 py-1.5 bg-ink-600 hover:bg-ink-500 disabled:opacity-50 text-cream-300 hover:text-cream-100 rounded-lg text-xs font-medium transition-all cursor-pointer disabled:cursor-not-allowed"
           >
-            {isGrading ? "评分中..." : "结束"}
+            {isGrading ? "Grading..." : "End"}
           </button>
         </div>
       </header>
@@ -328,21 +337,26 @@ export default function PracticePage() {
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-6 space-y-4"
       >
-        {pinyinMode && (
-          <div className="text-center">
-            <span className="text-xs text-gold-600 bg-gold-800/20 border border-gold-800/30 rounded-full px-3 py-1">
-              拼音模式已开启 — AI会在回复中包含拼音
-            </span>
-          </div>
-        )}
+        <div className="text-center">
+          <span className="text-xs text-gold-600 bg-gold-800/20 border border-gold-800/30 rounded-full px-3 py-1">
+            {difficultyLabels[difficulty]}: {difficultyDescriptions[difficulty]}
+          </span>
+        </div>
 
         {session.messages
-          .filter((m) => !(m.role === "user" && m.content === "老师好，请开始我们的对话练习。"))
+          .filter(
+            (m) =>
+              !(
+                m.role === "user" &&
+                (m.content === "Please begin our practice session." ||
+                  m.content === "老师好，请开始我们的对话练习。")
+              )
+          )
           .map((msg) => (
             <ChatBubble
               key={msg.timestamp}
               message={msg}
-              pinyinMode={pinyinMode}
+              pinyinMode={difficulty === "medium"}
               onSpeak={msg.role === "assistant" ? speakText : undefined}
             />
           ))}
@@ -356,7 +370,7 @@ export default function PracticePage() {
         <div className="bg-vermillion-700/20 border-t border-vermillion-700/50 px-4 py-3 shrink-0 flex items-start gap-3">
           <span className="text-vermillion-400 shrink-0">⚠️</span>
           <div className="flex-1 min-w-0">
-            <p className="text-vermillion-300 text-sm font-medium">API 错误</p>
+            <p className="text-vermillion-300 text-sm font-medium">API Error</p>
             <p className="text-vermillion-400 text-xs mt-0.5 break-words">{apiError}</p>
           </div>
           <button
@@ -381,7 +395,7 @@ export default function PracticePage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="用中文输入... (Enter 发送, Shift+Enter 换行)"
+            placeholder="Type your response... (Enter to send, Shift+Enter for a new line)"
             rows={1}
             className="flex-1 bg-ink-700 border border-ink-500 focus:border-vermillion-600 rounded-xl px-4 py-2.5 text-cream-100 placeholder-cream-600 resize-none transition-colors text-sm leading-relaxed focus:outline-none"
             style={{ maxHeight: "120px", minHeight: "42px" }}

@@ -17,7 +17,11 @@ export function saveSession(session: Session): void {
 export function getSessions(): Session[] {
   try {
     const raw = localStorage.getItem(SESSIONS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const sessions = raw ? JSON.parse(raw) : [];
+    return sessions.map((session: Session) => ({
+      ...session,
+      difficulty: session.difficulty ?? "hard",
+    }));
   } catch {
     return [];
   }
@@ -43,6 +47,7 @@ export function getSessionSummaries(): SessionSummary[] {
       overallGrade: s.grade!.overallGrade,
       overallScore: s.grade!.overallScore,
       messageCount: s.messages.length,
+      difficulty: s.difficulty ?? "hard",
     }))
     .sort((a, b) => b.startTime - a.startTime);
 }

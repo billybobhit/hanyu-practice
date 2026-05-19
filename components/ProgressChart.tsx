@@ -17,7 +17,7 @@ interface ProgressChartProps {
 }
 
 function formatDate(ts: number) {
-  return new Date(ts).toLocaleDateString("zh-CN", { month: "short", day: "numeric" });
+  return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,7 +39,7 @@ export default function ProgressChart({ summaries }: ProgressChartProps) {
   if (summaries.length < 2) {
     return (
       <div className="flex items-center justify-center h-40 text-cream-500 text-sm">
-        完成更多练习以查看进度趋势
+        Complete more sessions to see your progress trend.
       </div>
     );
   }
@@ -48,7 +48,7 @@ export default function ProgressChart({ summaries }: ProgressChartProps) {
     .reverse()
     .map((s) => ({
       date: formatDate(s.startTime),
-      总分: s.overallScore,
+      Score: s.overallScore,
       grade: s.overallGrade,
     }));
 
@@ -74,7 +74,7 @@ export default function ProgressChart({ summaries }: ProgressChartProps) {
         />
         <Line
           type="monotone"
-          dataKey="总分"
+          dataKey="Score"
           stroke="#BA8820"
           strokeWidth={2}
           dot={{ fill: "#BA8820", r: 4, strokeWidth: 0 }}

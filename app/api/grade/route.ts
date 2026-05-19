@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextRequest } from "next/server";
 import { OPENROUTER_TEXT_FALLBACK_MODELS } from "@/lib/openrouter-models";
+import type { Difficulty } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.groqkey;
@@ -13,7 +14,11 @@ export async function POST(req: NextRequest) {
     apiKey,
   });
 
-  const { messages, material } = await req.json();
+  const { messages, material, difficulty } = await req.json();
+  const selectedDifficulty: Difficulty =
+    difficulty === "easy" || difficulty === "medium" || difficulty === "hard"
+      ? difficulty
+      : "hard";
 
   const userMessages = messages.filter(
     (m: { role: string }) => m.role === "user"
@@ -37,6 +42,9 @@ export async function POST(req: NextRequest) {
 Study Material Context:
 ${material || "(General conversation, no specific material)"}
 
+Difficulty:
+${selectedDifficulty.toUpperCase()}
+
 Full Conversation:
 ${conversation}
 
@@ -47,9 +55,11 @@ Grade the student on their Chinese language performance. Return ONLY valid JSON 
   "comprehensionScore": <integer 0-100>,
   "overallScore": <integer 0-100>,
   "overallGrade": <"A" | "B" | "C" | "D" | "F">,
-  "strengths": [<2-3 specific English strings about what they did well>],
-  "improvements": [<2-3 specific English strings about concrete areas to improve>],
-  "studyAreas": [<2-3 English strings: specific topics/grammar points to review>]
+  "strengths": [<3-4 detailed English strings about what they did well, citing concrete moments from the conversation when possible>],
+  "improvements": [<3-5 specific English strings about concrete areas to improve; each should include what to do next>],
+  "studyAreas": [<3-5 English strings: specific vocabulary themes, grammar points, comprehension habits, or pronunciation items to review>],
+  "difficultyNotes": <one English sentence explaining how the selected difficulty affected the evaluation>,
+  "nextPracticePlan": [<3 short English action items for the next session>]
 }
 
 Grading criteria:
@@ -58,8 +68,11 @@ Grading criteria:
 - comprehensionScore: depth of understanding of the material, quality of analysis
 - overallScore: weighted average (vocab 25%, grammar 35%, comprehension 40%)
 - overallGrade: A=90-100, B=80-89, C=70-79, D=60-69, F=below 60
+- EASY mode: reward comprehension and willingness to use Chinese terms, but do not over-penalize English scaffolding.
+- MEDIUM mode: evaluate Chinese output and pinyin-supported comprehension; reward correct Chinese terms even if pinyin is used heavily.
+- HARD mode: evaluate sustained Mandarin-only communication more strictly.
 
-Be honest and specific. A student who gives short answers or shows shallow comprehension should not get high scores.`;
+Be honest, specific, and useful. A student who gives short answers or shows shallow comprehension should not get high scores. Feedback must be in English and should give clear next steps.`;
 
   try {
     let text = "";

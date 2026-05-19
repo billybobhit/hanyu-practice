@@ -167,7 +167,7 @@ function CharPlaceholder({ color, chinese, fallbackChar, error }: {
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: "rgba(6,10,20,0.75)", borderRadius: "inherit", animation: "breathe 2s ease-in-out infinite" }}>
       <div style={{ width: 48, height: 48, borderRadius: "50%", border: `3px solid ${color}33`, borderTopColor: color, borderRightColor: `${color}88`, animation: "inkSpin 1s linear infinite" }} />
       <p className="text-base font-bold" style={{ color, fontFamily: "'Noto Serif SC', serif", textShadow: `0 0 16px ${color}` }}>{chinese}</p>
-      <p className="text-cream-600 text-xs tracking-widest" style={{ fontFamily: "'Noto Serif SC', serif" }}>生成中...</p>
+      <p className="text-cream-600 text-xs tracking-widest" style={{ fontFamily: "'Noto Serif SC', serif" }}>Loading...</p>
     </div>
   );
 }
@@ -193,7 +193,7 @@ function SplitScreen({ grade, gradeData, imagePreloaded, imagePreloadFailed, onC
         style={{ borderRight: `1px solid ${char.color}22`, boxShadow: `inset -1px 0 0 ${char.color}33, 4px 0 24px rgba(0,0,0,0.4)`, animation: "slideFromLeft 0.9s cubic-bezier(0.22,1,0.36,1) both" }}
       >
         <div className="font-bold leading-none mb-1 select-none" style={{ fontSize: "clamp(5rem,14vw,9rem)", fontFamily: "'Cormorant Garamond', serif", color: textColor, textShadow: `0 0 30px ${char.glow}, 0 0 60px ${char.glow}` }}>{grade}</div>
-        <div className="text-cream-600 text-xs uppercase tracking-widest mb-6">总体评分</div>
+        <div className="text-cream-600 text-xs uppercase tracking-widest mb-6">Overall Grade</div>
 
         {gradeData && (
           <>
@@ -202,19 +202,19 @@ function SplitScreen({ grade, gradeData, imagePreloaded, imagePreloadFailed, onC
               <span className="text-cream-600 text-sm">/ 100</span>
             </div>
             <div className="space-y-3 mb-6">
-              <SplitScoreBar label="词汇准确度" score={gradeData.vocabularyScore} color={textColor} />
-              <SplitScoreBar label="语法正确性" score={gradeData.grammarScore} color={textColor} />
-              <SplitScoreBar label="理解深度" score={gradeData.comprehensionScore} color={textColor} />
+              <SplitScoreBar label="Vocabulary Accuracy" score={gradeData.vocabularyScore} color={textColor} />
+              <SplitScoreBar label="Grammar Control" score={gradeData.grammarScore} color={textColor} />
+              <SplitScoreBar label="Comprehension Depth" score={gradeData.comprehensionScore} color={textColor} />
             </div>
             {gradeData.strengths.length > 0 && (
               <div className="mb-4">
-                <p className="text-xs uppercase tracking-widest text-gold-600 mb-1.5">做得好 ✓</p>
+                <p className="text-xs uppercase tracking-widest text-gold-600 mb-1.5">Strengths ✓</p>
                 {gradeData.strengths.map((s, i) => <p key={i} className="text-cream-300 text-xs leading-relaxed">· {s}</p>)}
               </div>
             )}
             {gradeData.improvements.length > 0 && (
               <div className="mb-5">
-                <p className="text-xs uppercase tracking-widest text-vermillion-500 mb-1.5">需要改进 →</p>
+                <p className="text-xs uppercase tracking-widest text-vermillion-500 mb-1.5">Things to Improve →</p>
                 {gradeData.improvements.map((s, i) => <p key={i} className="text-cream-400 text-xs leading-relaxed">· {s}</p>)}
               </div>
             )}
@@ -222,7 +222,7 @@ function SplitScreen({ grade, gradeData, imagePreloaded, imagePreloadFailed, onC
         )}
 
         <button onClick={onComplete} className="text-xs text-cream-700 hover:text-cream-400 transition-colors cursor-pointer underline mt-auto pt-4" style={{ fontFamily: "'Noto Serif SC', serif" }}>
-          查看完整报告 →
+          View full report →
         </button>
       </div>
 
@@ -252,7 +252,7 @@ function SplitScreen({ grade, gradeData, imagePreloaded, imagePreloadFailed, onC
             <p className="text-cream-500 text-xs italic mt-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>{flavor.en}</p>
           </div>
           <button onClick={() => router.push("/")} className="px-7 py-3 bg-vermillion-600 hover:bg-vermillion-500 text-cream-100 rounded-xl font-medium transition-all cursor-pointer text-sm" style={{ fontFamily: "'Noto Serif SC', serif" }}>
-            练习更多 →
+            Practice more →
           </button>
         </div>
       </div>
@@ -365,7 +365,7 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5" style={{ background: char.bg, backgroundColor: "#000" }}>
         <div style={{ width: 64, height: 64, borderRadius: "50%", border: `4px solid ${char.color}22`, borderTopColor: char.color, borderRightColor: `${char.color}55`, animation: "inkSpin 1s linear infinite" }} />
-        <p style={{ fontFamily: "'Noto Serif SC', serif", color: char.color, fontSize: "0.875rem", letterSpacing: "0.3em", opacity: 0.7 }}>正在召唤...</p>
+        <p style={{ fontFamily: "'Noto Serif SC', serif", color: char.color, fontSize: "0.875rem", letterSpacing: "0.3em", opacity: 0.7 }}>Summoning...</p>
       </div>
     );
   }
@@ -412,7 +412,7 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
 
         {phase === "grade" && (
           <div className="text-cream-400 text-base tracking-[0.3em] z-10 mt-6" style={{ fontFamily: "'Noto Serif SC', serif", animation: "fadeInUp 0.6s 0.9s ease-out both" }}>
-            你的等级是...
+            Your rank is...
           </div>
         )}
 
@@ -456,7 +456,7 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
       </div>
 
       <button onClick={skip} className="absolute bottom-7 right-7 text-cream-600 hover:text-cream-300 text-sm transition-colors cursor-pointer z-30" style={{ fontFamily: "'Noto Serif SC', serif" }}>
-        跳过 →
+        Skip →
       </button>
     </div>
   );

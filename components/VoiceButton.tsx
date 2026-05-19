@@ -60,7 +60,7 @@ export default function VoiceButton({ onTranscript, disabled }: VoiceButtonProps
     <button
       onClick={toggleRecording}
       disabled={disabled}
-      title={isRecording ? "点击停止录音" : "点击开始录音 (zh-CN)"}
+      title={isRecording ? "Stop recording" : "Start recording"}
       className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
         isRecording
           ? "bg-vermillion-600 text-cream-100 animate-record-pulse"

@@ -72,7 +72,7 @@ export default function UploadZone({ onMaterialReady }: UploadZoneProps) {
 
   const handleTextSubmit = () => {
     if (!pastedText.trim()) return;
-    onMaterialReady(pastedText.trim(), "粘贴的材料");
+    onMaterialReady(pastedText.trim(), "Pasted material");
   };
 
   return (
@@ -89,7 +89,7 @@ export default function UploadZone({ onMaterialReady }: UploadZoneProps) {
                 : "text-cream-400 hover:text-cream-200"
             }`}
           >
-            {t === "upload" ? "📎 文件" : t === "text" ? "✏️ 文字" : "🔗 链接"}
+            {t === "upload" ? "📎 File" : t === "text" ? "✏️ Text" : "🔗 Link"}
           </button>
         ))}
       </div>
@@ -118,9 +118,9 @@ export default function UploadZone({ onMaterialReady }: UploadZoneProps) {
             {loading ? "⏳" : dragging ? "📂" : "📚"}
           </div>
           <p className="text-cream-200 font-medium mb-1">
-            {loading ? "处理中..." : "拖拽文件到此处，或点击选择"}
+            {loading ? "Processing..." : "Drop a file here, or click to choose"}
           </p>
-          <p className="text-cream-400 text-sm">支持 PDF、图片、文本文件</p>
+          <p className="text-cream-400 text-sm">Supports PDF, image, and text files</p>
         </div>
       )}
 
@@ -130,7 +130,7 @@ export default function UploadZone({ onMaterialReady }: UploadZoneProps) {
           <textarea
             value={pastedText}
             onChange={(e) => setPastedText(e.target.value)}
-            placeholder="在此粘贴或输入学习材料..."
+            placeholder="Paste or type study material here..."
             className="w-full h-48 bg-ink-800 border border-ink-500 rounded-xl p-4 text-cream-100 placeholder-cream-600 resize-none focus:outline-none focus:border-vermillion-600 transition-colors text-sm leading-relaxed"
           />
           <button
@@ -138,7 +138,7 @@ export default function UploadZone({ onMaterialReady }: UploadZoneProps) {
             disabled={!pastedText.trim()}
             className="w-full py-3 bg-vermillion-600 hover:bg-vermillion-500 disabled:bg-ink-500 disabled:cursor-not-allowed text-cream-100 rounded-xl font-medium transition-all duration-200 cursor-pointer"
           >
-            使用此材料
+            Use this material
           </button>
         </div>
       )}
@@ -159,7 +159,7 @@ export default function UploadZone({ onMaterialReady }: UploadZoneProps) {
             disabled={!urlInput.trim() || loading}
             className="w-full py-3 bg-vermillion-600 hover:bg-vermillion-500 disabled:bg-ink-500 disabled:cursor-not-allowed text-cream-100 rounded-xl font-medium transition-all duration-200 cursor-pointer"
           >
-            {loading ? "获取中..." : "获取内容"}
+            {loading ? "Fetching..." : "Fetch content"}
           </button>
         </div>
       )}

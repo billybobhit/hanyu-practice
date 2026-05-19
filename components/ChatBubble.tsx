@@ -58,7 +58,7 @@ export default function ChatBubble({ message, pinyinMode, onSpeak }: ChatBubbleP
             <button
               onClick={() => onSpeak(message.content)}
               className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full bg-ink-400 hover:bg-gold-700 text-xs flex items-center justify-center transition-colors cursor-pointer opacity-70 hover:opacity-100"
-              title="朗读"
+              title="Read aloud"
             >
               🔊
             </button>

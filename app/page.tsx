@@ -9,10 +9,34 @@ import {
   generateSessionId,
   getSessionSummaries,
 } from "@/lib/storage";
+import type { Difficulty } from "@/lib/types";
+
+const difficultyOptions: Array<{
+  key: Difficulty;
+  title: string;
+  description: string;
+}> = [
+  {
+    key: "easy",
+    title: "Easy",
+    description: "Plain English responses with gentle Chinese support.",
+  },
+  {
+    key: "medium",
+    title: "Medium",
+    description: "Chinese responses with pinyin after every word or phrase.",
+  },
+  {
+    key: "hard",
+    title: "Hard",
+    description: "Full Mandarin conversation, just like the current mode.",
+  },
+];
 
 export default function HomePage() {
   const router = useRouter();
   const [material, setMaterial] = useState<{ content: string; title: string } | null>(null);
+  const [difficulty, setDifficulty] = useState<Difficulty>("hard");
   const [starting, setStarting] = useState(false);
 
   const handleMaterialReady = (content: string, title: string) => {
@@ -28,6 +52,7 @@ export default function HomePage() {
       id,
       materialTitle: material.title,
       materialContent: material.content,
+      difficulty,
       messages: [],
       startTime: Date.now(),
     };
@@ -83,7 +108,7 @@ export default function HomePage() {
             HanYu — Chinese Practice
           </p>
           <p className="text-cream-500 text-sm max-w-sm mx-auto leading-relaxed mt-3">
-            上传学习材料，与AI导师展开深度苏格拉底式对话，掌握汉语精髓
+            Upload study material, choose your challenge level, and practice Chinese through guided conversation.
           </p>
         </header>
 
@@ -98,7 +123,7 @@ export default function HomePage() {
                 <span className="w-6 h-6 bg-vermillion-700 rounded-md flex items-center justify-center text-xs">
                   1
                 </span>
-                上传学习材料
+                Add study material
               </h2>
               <UploadZone onMaterialReady={handleMaterialReady} />
             </>
@@ -108,18 +133,18 @@ export default function HomePage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-cream-500 text-xs uppercase tracking-widest mb-1">
-                    材料已就绪
+                    Material ready
                   </p>
                   <h3 className="text-cream-100 font-semibold text-lg">{material.title}</h3>
                   <p className="text-cream-500 text-sm mt-0.5">
-                    {material.content.length.toLocaleString()} 个字符
+                    {material.content.length.toLocaleString()} characters
                   </p>
                 </div>
                 <button
                   onClick={() => setMaterial(null)}
                   className="text-cream-600 hover:text-cream-400 text-sm cursor-pointer transition-colors"
                 >
-                  更换
+                  Change
                 </button>
               </div>
 
@@ -131,13 +156,46 @@ export default function HomePage() {
                 </p>
               </div>
 
+              <div>
+                <p className="text-cream-500 text-xs uppercase tracking-widest mb-3">
+                  Choose difficulty
+                </p>
+                <div className="grid gap-2">
+                  {difficultyOptions.map((option) => (
+                    <button
+                      key={option.key}
+                      onClick={() => setDifficulty(option.key)}
+                      className={`text-left rounded-xl border px-4 py-3 transition-all cursor-pointer ${
+                        difficulty === option.key
+                          ? "border-gold-600 bg-gold-800/20"
+                          : "border-ink-600 bg-ink-900/70 hover:border-ink-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-cream-100 text-sm font-semibold">
+                          {option.title}
+                        </span>
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full ${
+                            difficulty === option.key ? "bg-gold-400" : "bg-ink-400"
+                          }`}
+                        />
+                      </div>
+                      <p className="text-cream-500 text-xs leading-relaxed mt-1">
+                        {option.description}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <button
                 onClick={startSession}
                 disabled={starting}
                 className="w-full py-4 bg-vermillion-600 hover:bg-vermillion-500 disabled:bg-ink-500 disabled:cursor-not-allowed text-cream-100 rounded-xl font-semibold text-lg transition-all duration-300 cursor-pointer group relative overflow-hidden"
               >
                 <span className="relative z-10">
-                  {starting ? "开始中..." : "开始对话练习 →"}
+                  {starting ? "Starting..." : "Start practice →"}
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
               </button>
@@ -151,9 +209,9 @@ export default function HomePage() {
           style={{ animationDelay: "0.2s" }}
         >
           {[
-            { icon: "🎙️", label: "语音对话", desc: "中文语音输入与朗读" },
-            { icon: "📊", label: "智能评分", desc: "词汇·语法·理解力" },
-            { icon: "📈", label: "进度追踪", desc: "记录每次练习成果" },
+            { icon: "🎙️", label: "Voice", desc: "Speak and listen" },
+            { icon: "📊", label: "Grading", desc: "Vocabulary, grammar, insight" },
+            { icon: "📈", label: "Progress", desc: "Track every session" },
           ].map((f) => (
             <div
               key={f.label}
@@ -170,9 +228,9 @@ export default function HomePage() {
         {summaries.length > 0 && (
           <div className="animate-ink-reveal" style={{ animationDelay: "0.3s" }}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-cream-400 text-sm font-medium">最近练习</h3>
+              <h3 className="text-cream-400 text-sm font-medium">Recent Sessions</h3>
               <a href="/results" className="text-gold-500 hover:text-gold-400 text-xs transition-colors">
-                查看全部 →
+                View all →
               </a>
             </div>
             <div className="space-y-2">
@@ -184,8 +242,8 @@ export default function HomePage() {
                   <div>
                     <p className="text-cream-200 text-sm font-medium">{s.materialTitle}</p>
                     <p className="text-cream-600 text-xs">
-                      {new Date(s.startTime).toLocaleDateString("zh-CN")} ·{" "}
-                      {s.messageCount} 轮对话
+                      {new Date(s.startTime).toLocaleDateString("en-US")} ·{" "}
+                      {s.messageCount} turns · {s.difficulty}
                     </p>
                   </div>
                   <div

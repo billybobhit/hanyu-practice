@@ -23,8 +23,8 @@ const gradeColor: Record<string, string> = {
 
 function formatDuration(start: number, end: number) {
   const mins = Math.floor((end - start) / 60000);
-  if (mins < 1) return "< 1 分钟";
-  return `${mins} 分钟`;
+  if (mins < 1) return "< 1 min";
+  return `${mins} min`;
 }
 
 export default function ResultsPage() {
@@ -46,6 +46,7 @@ export default function ResultsPage() {
         id: "dev-preview",
         materialTitle: "Dev Preview",
         materialContent: "",
+        difficulty: "hard",
         messages: [],
         startTime: Date.now(),
         endTime: Date.now(),
@@ -58,6 +59,8 @@ export default function ResultsPage() {
           strengths: ["Dev preview mode"],
           improvements: ["Dev preview mode"],
           studyAreas: ["Dev preview mode"],
+          difficultyNotes: "Dev preview mode.",
+          nextPracticePlan: ["Review the animation preview."],
         },
       });
       setShowReveal(true);
@@ -104,14 +107,14 @@ export default function ResultsPage() {
             className="text-cream-100 font-semibold text-lg"
             style={{ fontFamily: "'Noto Serif SC', serif" }}
           >
-            学习报告
+            Practice Report
           </h1>
         </div>
         <button
           onClick={() => router.push("/")}
           className="px-4 py-2 bg-vermillion-600 hover:bg-vermillion-500 text-cream-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
         >
-          再次练习
+          Practice Again
         </button>
       </header>
 
@@ -119,8 +122,8 @@ export default function ResultsPage() {
         {/* Tabs */}
         <div className="flex gap-1 bg-ink-800 rounded-xl p-1">
           {[
-            { key: "current" as const, label: "本次成绩" },
-            { key: "history" as const, label: `历史记录 (${summaries.length})` },
+            { key: "current" as const, label: "Current Score" },
+            { key: "history" as const, label: `History (${summaries.length})` },
           ].map((t) => (
             <button
               key={t.key}
@@ -155,7 +158,7 @@ export default function ResultsPage() {
                     <p className="text-gold-400 text-xl font-bold">
                       {currentSession.messages.filter((m) => m.role === "user").length}
                     </p>
-                    <p className="text-cream-500 text-xs mt-1">用户回复</p>
+                    <p className="text-cream-500 text-xs mt-1">Your Replies</p>
                   </div>
                   <div className="bg-ink-800 border border-ink-600 rounded-xl p-4 text-center">
                     <p className="text-gold-400 text-xl font-bold">
@@ -163,20 +166,27 @@ export default function ResultsPage() {
                         ? formatDuration(currentSession.startTime, currentSession.endTime)
                         : "—"}
                     </p>
-                    <p className="text-cream-500 text-xs mt-1">练习时长</p>
+                    <p className="text-cream-500 text-xs mt-1">Practice Time</p>
+                  </div>
+                  <div className="bg-ink-800 border border-ink-600 rounded-xl p-4 text-center col-span-2">
+                    <p className="text-gold-400 text-xl font-bold capitalize">
+                      {currentSession.difficulty ?? "hard"}
+                    </p>
+                    <p className="text-cream-500 text-xs mt-1">Difficulty</p>
                   </div>
                 </div>
 
                 {/* Conversation preview */}
                 <div>
-                  <h3 className="text-cream-400 text-sm font-medium mb-3">对话回顾</h3>
+                  <h3 className="text-cream-400 text-sm font-medium mb-3">Conversation Review</h3>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {currentSession.messages
                       .filter(
                         (m) =>
                           !(
                             m.role === "user" &&
-                            m.content === "老师好，请开始我们的对话练习。"
+                            m.content === "老师好，请开始我们的对话练习。" ||
+                            m.content === "Please begin our practice session."
                           )
                       )
                       .map((msg) => (
@@ -203,9 +213,9 @@ export default function ResultsPage() {
             ) : currentSession ? (
               <div className="bg-ink-800 border border-ink-500 rounded-2xl p-8 text-center">
                 <p className="text-5xl mb-4">📝</p>
-                <p className="text-cream-300 font-medium mb-2">本次练习未评分</p>
+                <p className="text-cream-300 font-medium mb-2">This session has not been graded</p>
                 <p className="text-cream-500 text-sm">
-                  需要至少 3 轮对话才能生成评分报告
+                  You need at least 3 conversation turns to generate a report.
                 </p>
                 <button
                   onClick={() => {
@@ -213,14 +223,14 @@ export default function ResultsPage() {
                   }}
                   className="mt-4 px-6 py-2 bg-vermillion-600 hover:bg-vermillion-500 text-cream-100 rounded-xl text-sm transition-all cursor-pointer"
                 >
-                  继续练习
+                  Continue Practice
                 </button>
               </div>
             ) : (
               <div className="bg-ink-800 border border-ink-500 rounded-2xl p-8 text-center">
                 <p className="text-5xl mb-4">🎋</p>
-                <p className="text-cream-300 font-medium">尚无练习记录</p>
-                <p className="text-cream-500 text-sm mt-1">上传材料开始你的第一次练习</p>
+                <p className="text-cream-300 font-medium">No practice history yet</p>
+                <p className="text-cream-500 text-sm mt-1">Upload material to begin your first session.</p>
               </div>
             )}
           </div>
@@ -232,7 +242,7 @@ export default function ResultsPage() {
             {/* Progress chart */}
             {summaries.length >= 2 && (
               <div className="bg-ink-800 border border-ink-600 rounded-2xl p-5">
-                <h3 className="text-cream-300 text-sm font-medium mb-4">总分趋势</h3>
+                <h3 className="text-cream-300 text-sm font-medium mb-4">Score Trend</h3>
                 <ProgressChart summaries={summaries} />
               </div>
             )}
@@ -241,7 +251,7 @@ export default function ResultsPage() {
             {summaries.length === 0 ? (
               <div className="bg-ink-800 border border-ink-500 rounded-2xl p-8 text-center">
                 <p className="text-4xl mb-3">📚</p>
-                <p className="text-cream-400 text-sm">完成练习后历史记录将显示在这里</p>
+                <p className="text-cream-400 text-sm">Completed sessions will appear here.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -268,8 +278,8 @@ export default function ResultsPage() {
                         {s.materialTitle}
                       </p>
                       <p className="text-cream-600 text-xs mt-0.5">
-                        {new Date(s.startTime).toLocaleDateString("zh-CN")} ·{" "}
-                        {s.messageCount} 轮 · {s.overallScore} 分
+                        {new Date(s.startTime).toLocaleDateString("en-US")} ·{" "}
+                        {s.messageCount} turns · {s.overallScore} pts · {s.difficulty}
                       </p>
                     </div>
 
@@ -277,7 +287,7 @@ export default function ResultsPage() {
                     <button
                       onClick={() => handleDelete(s.id)}
                       className="text-cream-600 hover:text-vermillion-400 transition-colors cursor-pointer text-xs shrink-0"
-                      title="删除记录"
+                      title="Delete session"
                     >
                       ✕
                     </button>

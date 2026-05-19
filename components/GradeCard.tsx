@@ -17,11 +17,11 @@ const gradeColors: Record<string, string> = {
 };
 
 const gradeLabel: Record<string, string> = {
-  A: "优秀",
-  B: "良好",
-  C: "及格",
-  D: "需改进",
-  F: "不及格",
+  A: "Excellent",
+  B: "Strong",
+  C: "Passing",
+  D: "Needs Work",
+  F: "Needs Review",
 };
 
 function ScoreBar({ label, score, color }: { label: string; score: number; color: string }) {
@@ -52,7 +52,7 @@ export default function GradeCard({ grade, materialTitle, messageCount }: GradeC
       {/* Header */}
       <div className="bg-ink-800 border-b border-ink-600 px-6 py-4 flex items-center justify-between">
         <div>
-          <p className="text-cream-400 text-xs uppercase tracking-widest mb-0.5">学习材料</p>
+          <p className="text-cream-400 text-xs uppercase tracking-widest mb-0.5">Study Material</p>
           <h3 className="text-cream-100 font-medium truncate max-w-48">{materialTitle}</h3>
         </div>
         <div className="text-center">
@@ -68,11 +68,11 @@ export default function GradeCard({ grade, materialTitle, messageCount }: GradeC
         <div className="flex gap-4 text-center">
           <div className="flex-1 bg-ink-800 rounded-xl py-3">
             <div className="text-gold-400 text-2xl font-bold">{grade.overallScore}</div>
-            <div className="text-cream-500 text-xs">总分</div>
+            <div className="text-cream-500 text-xs">Overall Score</div>
           </div>
           <div className="flex-1 bg-ink-800 rounded-xl py-3">
             <div className="text-gold-400 text-2xl font-bold">{messageCount}</div>
-            <div className="text-cream-500 text-xs">对话轮次</div>
+            <div className="text-cream-500 text-xs">Conversation Turns</div>
           </div>
         </div>
 
@@ -85,7 +85,7 @@ export default function GradeCard({ grade, materialTitle, messageCount }: GradeC
         {/* Feedback */}
         {grade.strengths.length > 0 && (
           <div>
-            <h4 className="text-gold-500 text-xs uppercase tracking-widest mb-2">做得好 ✓</h4>
+            <h4 className="text-gold-500 text-xs uppercase tracking-widest mb-2">Strengths ✓</h4>
             <ul className="space-y-1">
               {grade.strengths.map((s, i) => (
                 <li key={i} className="text-cream-300 text-sm flex gap-2">
@@ -99,7 +99,7 @@ export default function GradeCard({ grade, materialTitle, messageCount }: GradeC
 
         {grade.improvements.length > 0 && (
           <div>
-            <h4 className="text-vermillion-400 text-xs uppercase tracking-widest mb-2">需要改进 →</h4>
+            <h4 className="text-vermillion-400 text-xs uppercase tracking-widest mb-2">Things to Improve →</h4>
             <ul className="space-y-1">
               {grade.improvements.map((s, i) => (
                 <li key={i} className="text-cream-300 text-sm flex gap-2">
@@ -113,7 +113,7 @@ export default function GradeCard({ grade, materialTitle, messageCount }: GradeC
 
         {grade.studyAreas.length > 0 && (
           <div>
-            <h4 className="text-ink-100 text-xs uppercase tracking-widest mb-2">建议学习</h4>
+            <h4 className="text-ink-100 text-xs uppercase tracking-widest mb-2">Study Areas</h4>
             <div className="flex flex-wrap gap-2">
               {grade.studyAreas.map((area, i) => (
                 <span
@@ -124,6 +124,26 @@ export default function GradeCard({ grade, materialTitle, messageCount }: GradeC
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {grade.difficultyNotes && (
+          <div>
+            <h4 className="text-gold-500 text-xs uppercase tracking-widest mb-2">Difficulty Notes</h4>
+            <p className="text-cream-300 text-sm leading-relaxed">{grade.difficultyNotes}</p>
+          </div>
+        )}
+
+        {grade.nextPracticePlan && grade.nextPracticePlan.length > 0 && (
+          <div>
+            <h4 className="text-ink-100 text-xs uppercase tracking-widest mb-2">Next Practice Plan</h4>
+            <ol className="space-y-1 list-decimal list-inside">
+              {grade.nextPracticePlan.map((step, i) => (
+                <li key={i} className="text-cream-300 text-sm">
+                  {step}
+                </li>
+              ))}
+            </ol>
           </div>
         )}
       </div>
