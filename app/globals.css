@@ -266,17 +266,23 @@ ruby rt {
   outline-offset: 2px;
 }
 
-/* Character glow animations */
-@keyframes charGlowPulseA {
-  0%, 100% { filter: drop-shadow(0 0 12px #EEC050); }
-  50%       { filter: drop-shadow(0 0 22px #EEC050) drop-shadow(0 0 44px orange); }
+/* Loading spinner */
+@keyframes inkSpin { to { transform: rotate(360deg); } }
+
+/* Pollinations image glow by grade */
+@keyframes imgGlowA {
+  0%, 100% { filter: drop-shadow(0 0 15px gold); }
+  50%       { filter: drop-shadow(0 0 30px gold) drop-shadow(0 0 60px orange); }
 }
-@keyframes charGlowPulseF {
-  0%, 100% { filter: drop-shadow(0 0 6px darkred); }
-  50%       { filter: drop-shadow(0 0 16px darkred) drop-shadow(0 0 32px rgba(120,0,0,0.6)); }
+@keyframes imgGlowF {
+  0%, 100% { filter: drop-shadow(0 0 10px darkred); }
+  50%       { filter: drop-shadow(0 0 20px darkred) drop-shadow(0 0 40px #330000); }
 }
-.char-glow-pulse-a { animation: charGlowPulseA 2s ease-in-out infinite; }
-.char-glow-pulse-f { animation: charGlowPulseF 2.5s ease-in-out infinite; }
+.img-glow-a { animation: imgGlowA 2s ease-in-out infinite; }
+.img-glow-b { filter: drop-shadow(0 0 20px silver) drop-shadow(0 0 40px #4488ff); }
+.img-glow-c { filter: drop-shadow(0 0 10px #888); }
+.img-glow-d { filter: saturate(0.7); }
+.img-glow-f { animation: imgGlowF 2.5s ease-in-out infinite; }
 
 /* Noise texture */
 .noise::after {

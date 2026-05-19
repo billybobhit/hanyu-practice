@@ -3,72 +3,72 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Grade } from "@/lib/types";
-import SunWukong from "@/components/characters/SunWukong";
-import QinShiHuang from "@/components/characters/QinShiHuang";
-import ImperialSoldier from "@/components/characters/ImperialSoldier";
-import Peasant from "@/components/characters/Peasant";
-import Criminal from "@/components/characters/Criminal";
 
 type Phase = "blackout" | "flash" | "grade" | "char" | "split";
 
-const CHAR_COMPONENTS: Record<string, React.ComponentType<{ style?: React.CSSProperties }>> = {
-  A: SunWukong,
-  B: QinShiHuang,
-  C: ImperialSoldier,
-  D: Peasant,
-  F: Criminal,
-};
+const makeUrl = (prompt: string) =>
+  `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=768&nologo=true`;
 
 const GRADE_DATA = {
   A: {
+    imageUrl: makeUrl(
+      "Sun Wukong Monkey King, Black Myth Wukong style, dark fantasy, dramatic cinematic portrait, golden armor, ruyi jingu bang staff, fierce warrior expression, glowing golden aura, dark moody background, hyperrealistic digital art, 8k, dramatic lighting, epic"
+    ),
+    imgClass: "img-glow-a",
     chinese: "孫悟空",
     english: "Sun Wukong",
     color: "#EEC050",
     glow: "rgba(238,192,80,0.7)",
     rayColor: "rgba(238,192,80,0.18)",
     bg: "radial-gradient(ellipse at center, rgba(120,10,10,0.45) 0%, #000 70%)",
-    glowClass: "char-glow-pulse-a",
-    glowFilter: "drop-shadow(0 0 20px #EEC050) drop-shadow(0 0 40px orange)",
   },
   B: {
+    imageUrl: makeUrl(
+      "Qin Shi Huang First Emperor of China, dark fantasy portrait, imperial black and gold dragon robe, commanding expression, dramatic throne room lighting, cinematic, hyperrealistic, epic emperor, dark moody atmosphere, 8k digital art"
+    ),
+    imgClass: "img-glow-b",
     chinese: "秦始皇",
     english: "Qin Shi Huang",
     color: "#94a3b8",
     glow: "rgba(148,163,184,0.7)",
     rayColor: "rgba(148,163,184,0.14)",
     bg: "radial-gradient(ellipse at center, rgba(80,0,20,0.45) 0%, #000 70%)",
-    glowClass: "",
-    glowFilter: "drop-shadow(0 0 15px #94a3b8)",
   },
   C: {
+    imageUrl: makeUrl(
+      "Ancient Chinese terracotta warrior soldier, dark fantasy style, stone armor, spear, dramatic lighting, cinematic portrait, moody atmosphere, hyperrealistic digital art, epic warrior"
+    ),
+    imgClass: "img-glow-c",
     chinese: "帝國士兵",
     english: "Imperial Soldier",
     color: "#9ca3af",
     glow: "rgba(156,163,175,0.6)",
     rayColor: "rgba(156,163,175,0.1)",
     bg: "radial-gradient(ellipse at center, rgba(50,50,60,0.45) 0%, #000 70%)",
-    glowClass: "",
-    glowFilter: "drop-shadow(0 0 8px #9ca3af)",
   },
   D: {
+    imageUrl: makeUrl(
+      "Ancient Chinese peasant farmer, straw hat, worn clothing, dramatic portrait, muted earth tones, cinematic lighting, hyperrealistic, somber mood, dark background"
+    ),
+    imgClass: "img-glow-d",
     chinese: "農民",
     english: "Peasant",
     color: "#d97706",
     glow: "rgba(217,119,6,0.65)",
     rayColor: "rgba(217,119,6,0.12)",
     bg: "radial-gradient(ellipse at center, rgba(60,35,0,0.45) 0%, #000 70%)",
-    glowClass: "",
-    glowFilter: "none",
   },
   F: {
+    imageUrl: makeUrl(
+      "Ancient Chinese prisoner in chains, shackled wrists, dark dungeon lighting, dramatic shadows, cinematic portrait, somber and ominous, hyperrealistic digital art, dark atmosphere"
+    ),
+    imgClass: "img-glow-f",
     chinese: "罪犯",
     english: "Criminal",
     color: "#dc2626",
     glow: "rgba(220,38,38,0.75)",
     rayColor: "rgba(220,38,38,0.14)",
     bg: "radial-gradient(ellipse at center, rgba(80,0,0,0.5) 0%, #000 70%)",
-    glowClass: "char-glow-pulse-f",
-    glowFilter: "drop-shadow(0 0 10px darkred)",
   },
 } as const;
 
@@ -92,7 +92,6 @@ function Particles({ color }: { color: string }) {
       delay: (i % 7) * 0.05,
     };
   });
-
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 2 }}>
       {items.map((p, i) => (
@@ -166,7 +165,7 @@ function SlamLetters({
   );
 }
 
-// ── Score bar for split panel ─────────────────────────────────────────────────
+// ── Score bar ─────────────────────────────────────────────────────────────────
 function SplitScoreBar({ label, score, color }: { label: string; score: number; color: string }) {
   return (
     <div className="space-y-1">
@@ -184,15 +183,39 @@ function SplitScoreBar({ label, score, color }: { label: string; score: number; 
   );
 }
 
+// ── Loading placeholder ───────────────────────────────────────────────────────
+function ImageLoader({ color, chinese }: { color: string; chinese: string }) {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-5">
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          border: `3px solid ${color}33`,
+          borderTopColor: color,
+          borderRightColor: `${color}88`,
+          animation: "inkSpin 1s linear infinite",
+        }}
+      />
+      <p
+        className="text-xl font-bold animate-pulse"
+        style={{ color, fontFamily: "'Noto Serif SC', serif", textShadow: `0 0 16px ${color}` }}
+      >
+        {chinese}
+      </p>
+      <p className="text-cream-600 text-xs tracking-widest" style={{ fontFamily: "'Noto Serif SC', serif" }}>
+        召唤中...
+      </p>
+    </div>
+  );
+}
+
 // ── Split screen (Phase 3) ────────────────────────────────────────────────────
-function SplitScreen({
-  grade, gradeData, onComplete,
-}: { grade: string; gradeData?: Grade; onComplete: () => void }) {
+function SplitScreen({ grade, gradeData, onComplete }: { grade: string; gradeData?: Grade; onComplete: () => void }) {
   const router = useRouter();
   const char = GRADE_DATA[grade as keyof typeof GRADE_DATA] ?? GRADE_DATA["C"];
   const flavor = FLAVOR[grade] ?? FLAVOR["C"];
-  const CharSVG = CHAR_COMPONENTS[grade] ?? CHAR_COMPONENTS["C"];
-
   const gradeTextColor: Record<string, string> = {
     A: "#EEC050", B: "#94a3b8", C: "#9ca3af", D: "#d97706", F: "#dc2626",
   };
@@ -209,11 +232,10 @@ function SplitScreen({
           animation: "slideFromLeft 0.9s cubic-bezier(0.22,1,0.36,1) both",
         }}
       >
-        {/* Grade letter */}
         <div
           className="font-bold leading-none mb-1 select-none"
           style={{
-            fontSize: "clamp(5rem, 14vw, 9rem)",
+            fontSize: "clamp(5rem,14vw,9rem)",
             fontFamily: "'Cormorant Garamond', serif",
             color: textColor,
             textShadow: `0 0 30px ${char.glow}, 0 0 60px ${char.glow}`,
@@ -225,20 +247,15 @@ function SplitScreen({
 
         {gradeData && (
           <>
-            {/* Overall score */}
             <div className="flex items-baseline gap-2 mb-5">
               <span style={{ color: textColor }} className="text-4xl font-bold">{gradeData.overallScore}</span>
               <span className="text-cream-600 text-sm">/ 100</span>
             </div>
-
-            {/* Score bars */}
             <div className="space-y-3 mb-6">
               <SplitScoreBar label="词汇准确度" score={gradeData.vocabularyScore} color={textColor} />
               <SplitScoreBar label="语法正确性" score={gradeData.grammarScore} color={textColor} />
               <SplitScoreBar label="理解深度" score={gradeData.comprehensionScore} color={textColor} />
             </div>
-
-            {/* Strengths */}
             {gradeData.strengths.length > 0 && (
               <div className="mb-4">
                 <p className="text-xs uppercase tracking-widest text-gold-600 mb-1.5">做得好 ✓</p>
@@ -247,8 +264,6 @@ function SplitScreen({
                 ))}
               </div>
             )}
-
-            {/* Improvements */}
             {gradeData.improvements.length > 0 && (
               <div className="mb-5">
                 <p className="text-xs uppercase tracking-widest text-vermillion-500 mb-1.5">需要改进 →</p>
@@ -269,51 +284,58 @@ function SplitScreen({
         </button>
       </div>
 
-      {/* RIGHT: character */}
+      {/* RIGHT: character image fills panel */}
       <div
-        className="flex-1 flex flex-col items-center justify-center px-6 py-8 relative overflow-hidden"
-        style={{ animation: "slideFromRight 0.9s cubic-bezier(0.22,1,0.36,1) both" }}
+        className="flex-1 relative overflow-hidden"
+        style={{ animation: "slideFromRight 0.9s cubic-bezier(0.22,1,0.36,1) both", minHeight: "50vh" }}
       >
         <LightRays color={char.rayColor} />
 
-        {/* Character SVG */}
-        <div className={`relative z-10 mb-5 ${char.glowClass}`}>
-          <CharSVG style={{ width: "clamp(140px,22vw,240px)", height: "clamp(180px,28vw,300px)" }} />
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={char.imageUrl}
+          alt={char.english}
+          className={char.imgClass}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            objectPosition: "top",
+          }}
+        />
 
-        {/* Chinese name */}
+        {/* Bottom gradient overlay */}
         <div
-          className="z-10 text-2xl font-bold text-center mb-0.5"
-          style={{ fontFamily: "'Noto Serif SC', serif", color: char.color, textShadow: `0 0 16px ${char.glow}` }}
+          className="absolute bottom-0 left-0 right-0 z-10 flex flex-col items-center px-6 pt-16 pb-8"
+          style={{ background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.97))" }}
         >
-          {char.chinese}
+          <div
+            className="text-2xl font-bold text-center mb-0.5"
+            style={{ fontFamily: "'Noto Serif SC', serif", color: char.color, textShadow: `0 0 16px ${char.glow}` }}
+          >
+            {char.chinese}
+          </div>
+          <div className="text-base text-cream-400 italic mb-4" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            {char.english}
+          </div>
+          <div className="text-center max-w-xs mb-6">
+            <p className="text-cream-200 text-sm leading-loose" style={{ fontFamily: "'Noto Serif SC', serif" }}>
+              {flavor.zh}
+            </p>
+            <p className="text-cream-500 text-xs italic mt-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              {flavor.en}
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/")}
+            className="px-7 py-3 bg-vermillion-600 hover:bg-vermillion-500 text-cream-100 rounded-xl font-medium transition-all cursor-pointer text-sm"
+            style={{ fontFamily: "'Noto Serif SC', serif" }}
+          >
+            练习更多 →
+          </button>
         </div>
-
-        {/* English name */}
-        <div
-          className="z-10 text-base text-cream-400 italic mb-5"
-          style={{ fontFamily: "'Cormorant Garamond', serif" }}
-        >
-          {char.english}
-        </div>
-
-        {/* Flavor */}
-        <div className="z-10 text-center max-w-xs px-4 mb-7">
-          <p className="text-cream-200 text-sm leading-loose" style={{ fontFamily: "'Noto Serif SC', serif" }}>
-            {flavor.zh}
-          </p>
-          <p className="text-cream-500 text-xs italic mt-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-            {flavor.en}
-          </p>
-        </div>
-
-        <button
-          onClick={() => router.push("/")}
-          className="z-10 px-7 py-3 bg-vermillion-600 hover:bg-vermillion-500 text-cream-100 rounded-xl font-medium transition-all cursor-pointer text-sm"
-          style={{ fontFamily: "'Noto Serif SC', serif" }}
-        >
-          练习更多 →
-        </button>
       </div>
     </div>
   );
@@ -330,10 +352,10 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
   const [phase, setPhase] = useState<Phase>("blackout");
   const [rumbling, setRumbling] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const char = GRADE_DATA[grade as keyof typeof GRADE_DATA] ?? GRADE_DATA["C"];
   const flavor = FLAVOR[grade] ?? FLAVOR["C"];
-  const CharSVG = CHAR_COMPONENTS[grade] ?? CHAR_COMPONENTS["C"];
 
   const skip = useCallback(() => setPhase("split"), []);
 
@@ -366,6 +388,16 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
         transition: "opacity 0.35s ease",
       }}
     >
+      {/* Preload image immediately so it's ready by char phase */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={char.imageUrl}
+        alt=""
+        aria-hidden
+        onLoad={() => setImageLoaded(true)}
+        style={{ display: "none" }}
+      />
+
       {/* White flash */}
       {phase === "flash" && (
         <div
@@ -403,7 +435,7 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
           </div>
         )}
 
-        {/* "你的等级是..." (grade phase) */}
+        {/* "你的等级是..." label */}
         {phase === "grade" && (
           <div
             className="text-cream-400 text-base tracking-[0.3em] z-10 mt-6"
@@ -413,62 +445,90 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
           </div>
         )}
 
-        {/* Character cinematic */}
+        {/* Character cinematic — Phase 2 */}
         {isChar && (
-          <div className="flex-1 flex flex-col items-center justify-center relative w-full">
+          <div className="flex-1 flex items-center justify-center relative w-full">
             <LightRays color={char.rayColor} />
 
-            {/* Character SVG */}
+            {/* Large portrait image */}
             <div
-              className={`relative z-10 mb-4 ${char.glowClass}`}
-              style={{ animation: "charBurst 0.8s 0.1s cubic-bezier(0.22,1,0.36,1) both" }}
-            >
-              <CharSVG style={{ width: "clamp(150px,22vw,240px)", height: "clamp(190px,28vw,300px)" }} />
-            </div>
-
-            {/* Chinese name — slam letters */}
-            <SlamLetters
-              text={char.chinese}
-              delayBase={0.35}
+              className="relative z-10 overflow-hidden rounded-2xl"
               style={{
-                fontFamily: "'Noto Serif SC', serif",
-                fontSize: "1.75rem",
-                fontWeight: 700,
-                color: char.color,
-                textShadow: `0 0 20px ${char.glow}`,
-                position: "relative",
-                zIndex: 10,
-                marginBottom: "0.2rem",
+                height: "70vh",
+                width: "min(85vw, 420px)",
+                animation: imageLoaded ? "charBurst 0.8s 0.1s cubic-bezier(0.22,1,0.36,1) both" : undefined,
               }}
-            />
-
-            {/* English name — slam letters */}
-            <SlamLetters
-              text={char.english}
-              delayBase={0.55}
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: "1.1rem",
-                fontStyle: "italic",
-                color: "#EDE4D4",
-                opacity: 0.8,
-                position: "relative",
-                zIndex: 10,
-                marginBottom: "1.25rem",
-              }}
-            />
-
-            {/* Flavor text */}
-            <div
-              className="z-10 text-center max-w-xs px-6"
-              style={{ animation: "flavorScrollUp 0.8s 1.3s ease-out both" }}
             >
-              <p className="text-cream-200 text-sm leading-loose" style={{ fontFamily: "'Noto Serif SC', serif" }}>
-                {flavor.zh}
-              </p>
-              <p className="text-cream-500 text-xs italic mt-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                {flavor.en}
-              </p>
+              {/* Loading placeholder */}
+              {!imageLoaded && <ImageLoader color={char.color} chinese={char.chinese} />}
+
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={char.imageUrl}
+                alt={char.english}
+                className={char.imgClass}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "top",
+                  display: imageLoaded ? "block" : "none",
+                }}
+              />
+
+              {/* Vignette */}
+              {imageLoaded && (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: "radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.92) 100%)",
+                  }}
+                />
+              )}
+
+              {/* Name + flavor overlaid at bottom */}
+              {imageLoaded && (
+                <div
+                  className="absolute bottom-0 left-0 right-0 text-center"
+                  style={{
+                    background: "linear-gradient(transparent, rgba(0,0,0,0.96))",
+                    padding: "3rem 1.25rem 1.5rem",
+                  }}
+                >
+                  <SlamLetters
+                    text={char.chinese}
+                    delayBase={0.35}
+                    style={{
+                      fontFamily: "'Noto Serif SC', serif",
+                      fontSize: "1.75rem",
+                      fontWeight: 700,
+                      color: char.color,
+                      textShadow: `0 0 20px ${char.glow}`,
+                      marginBottom: "0.15rem",
+                    }}
+                  />
+                  <SlamLetters
+                    text={char.english}
+                    delayBase={0.55}
+                    style={{
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontSize: "1.05rem",
+                      fontStyle: "italic",
+                      color: "#EDE4D4",
+                      opacity: 0.75,
+                      marginBottom: "0.75rem",
+                    }}
+                  />
+                  <div style={{ animation: "flavorScrollUp 0.8s 1.3s ease-out both" }}>
+                    <p className="text-cream-200 text-xs leading-loose" style={{ fontFamily: "'Noto Serif SC', serif" }}>
+                      {flavor.zh}
+                    </p>
+                    <p className="text-cream-500 text-xs italic mt-0.5" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                      {flavor.en}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
