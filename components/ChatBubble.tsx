@@ -9,6 +9,52 @@ interface ChatBubbleProps {
   onSpeak?: (text: string) => void;
 }
 
+type PinyinToken =
+  | { type: "pinyin"; hanzi: string; pinyin: string }
+  | { type: "text"; text: string };
+
+function parsePinyinTokens(text: string): PinyinToken[] {
+  const tokens: PinyinToken[] = [];
+  const regex = /([\u3400-\u9fff，。！？、；：“”‘’（）《》]+)\(([^)]+)\)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      tokens.push({ type: "text", text: text.slice(lastIndex, match.index) });
+    }
+    tokens.push({ type: "pinyin", hanzi: match[1], pinyin: match[2] });
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    tokens.push({ type: "text", text: text.slice(lastIndex) });
+  }
+
+  return tokens;
+}
+
+function PinyinText({ text }: { text: string }) {
+  const tokens = parsePinyinTokens(text);
+
+  return (
+    <span className="pinyin-text">
+      {tokens.map((token, i) => {
+        if (token.type === "text") {
+          return <span key={i}>{token.text}</span>;
+        }
+
+        return (
+          <span key={i} className="pinyin-token">
+            <span className="pinyin-top">{token.pinyin}</span>
+            <span className="pinyin-bottom">{token.hanzi}</span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 export default function ChatBubble({ message, pinyinMode, onSpeak }: ChatBubbleProps) {
   const isUser = message.role === "user";
   const ref = useRef<HTMLDivElement>(null);
@@ -49,9 +95,7 @@ export default function ChatBubble({ message, pinyinMode, onSpeak }: ChatBubbleP
               : "bg-ink-700 border border-ink-500 text-cream-100 rounded-tl-sm"
           }`}
         >
-          <span className={pinyinMode ? "ruby-enabled" : ""}>
-            {message.content}
-          </span>
+          {pinyinMode && !isUser ? <PinyinText text={message.content} /> : message.content}
 
           {/* Speak button for assistant messages */}
           {!isUser && onSpeak && (

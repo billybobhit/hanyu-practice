@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     hard:
       "- HARD: Conduct the entire conversation in Mandarin Chinese only. Do not switch to English. Corrections should be brief and in Chinese.",
     medium:
-      "- MEDIUM: Respond in Mandarin Chinese, but include pinyin in parentheses after every Chinese word or short phrase. Example: 你(nǐ) 今天(jīn tiān) 想(xiǎng) 讨论(tǎo lùn) 什么(shén me)？ Keep corrections simple.",
+      "- MEDIUM: Respond in Mandarin Chinese and include pinyin in parentheses immediately after each Chinese word or short phrase so the UI can stack pinyin above the Chinese text. Format every Chinese segment as 汉字(pinyin), with spaces between segments. Example: 你(nǐ) 今天(jīn tiān) 想(xiǎng) 讨论(tǎo lùn) 什么(shén me)？ Do not put pinyin on separate lines. Keep corrections simple.",
     easy:
       "- EASY: Respond in plain English. Teach Chinese concepts gently by introducing key Chinese words with pinyin and meaning, but explain questions and corrections in clear English.",
   };
