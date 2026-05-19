@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Grade } from "@/lib/types";
 
 type Phase = "blackout" | "flash" | "grade" | "char" | "split";
+type ImgStatus = "loading" | "loaded" | "error";
 
 const makeUrl = (prompt: string, seed: number) =>
   `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=768&nologo=true&seed=${seed}`;
@@ -15,6 +16,7 @@ const GRADE_DATA = {
       "ancient chinese monkey king deity warrior, golden crown and battle armor, wielding golden ruyi staff, fierce expression, glowing golden divine aura, dark dramatic fantasy background, cinematic portrait, hyperrealistic 8k digital art, epic",
       8001
     ),
+    fallbackChar: "孫",
     chinese: "孫悟空",
     english: "Sun Wukong",
     color: "#EEC050",
@@ -24,10 +26,9 @@ const GRADE_DATA = {
     imgClass: "img-glow-a",
   },
   B: {
-    imageUrl: makeUrl(
-      "ancient chinese emperor first unifier of China, powerful ruler in black and gold dragon imperial robes, tall ornate ceremonial crown, commanding regal expression, dramatic dark throne room lighting, cinematic portrait, hyperrealistic 8k digital art",
-      8102
-    ),
+    imageUrl:
+      "https://image.pollinations.ai/prompt/ancient%20Chinese%20emperor%20Qin%20Shi%20Huang%20standing%20in%20black%20dragon%20imperial%20robe%20gold%20crown%20commanding%20stern%20expression%20full%20body%20cinematic%20portrait%20dark%20fantasy%20hyperrealistic%20digital%20painting%208k%20dramatic%20throne%20room%20lighting%20red%20and%20gold%20palace%20background%20epic%20emperor%20concept%20art?width=512&height=768&nologo=true&seed=77",
+    fallbackChar: "秦",
     chinese: "秦始皇",
     english: "Qin Shi Huang",
     color: "#94a3b8",
@@ -41,6 +42,7 @@ const GRADE_DATA = {
       "ancient chinese terracotta warrior soldier, clay stone battle armor, holding long spear, dramatic cinematic portrait, moody dark atmosphere, hyperrealistic digital art, epic warrior",
       8003
     ),
+    fallbackChar: "兵",
     chinese: "帝國士兵",
     english: "Imperial Soldier",
     color: "#9ca3af",
@@ -50,10 +52,9 @@ const GRADE_DATA = {
     imgClass: "img-glow-c",
   },
   D: {
-    imageUrl: makeUrl(
-      "ancient chinese peasant farmer, large conical straw hat, humble worn robes, tired weathered face, dramatic somber portrait, muted earth tones, dark background, cinematic lighting, hyperrealistic digital art",
-      8004
-    ),
+    imageUrl:
+      "https://image.pollinations.ai/prompt/ancient%20Chinese%20peasant%20man%20full%20body%20portrait%20straw%20hat%20dirty%20worn%20linen%20clothing%20carrying%20heavy%20wooden%20yoke%20buckets%20muddy%20rice%20field%20background%20cinematic%20dramatic%20lighting%20hyperrealistic%20digital%20painting%208k%20somber%20tired%20expression%20dark%20moody%20sky%20concept%20art?width=512&height=768&nologo=true&seed=55",
+    fallbackChar: "農",
     chinese: "農民",
     english: "Peasant",
     color: "#d97706",
@@ -63,10 +64,9 @@ const GRADE_DATA = {
     imgClass: "img-glow-d",
   },
   F: {
-    imageUrl: makeUrl(
-      "ancient chinese prisoner in heavy iron chains, shackled wrists, bowing head, dark dungeon stone cell, dramatic shadows, somber ominous portrait, hyperrealistic digital art, dark atmosphere",
-      8005
-    ),
+    imageUrl:
+      "https://image.pollinations.ai/prompt/ancient%20Chinese%20prisoner%20man%20full%20body%20iron%20shackles%20chains%20on%20wrists%20ragged%20torn%20clothing%20dark%20dungeon%20stone%20background%20cinematic%20dramatic%20lighting%20hyperrealistic%20digital%20painting%208k%20desperate%20haunted%20expression%20dark%20red%20torchlight%20shadows%20concept%20art?width=512&height=768&nologo=true&seed=13",
+    fallbackChar: "囚",
     chinese: "罪犯",
     english: "Criminal",
     color: "#dc2626",
@@ -141,67 +141,46 @@ function SplitScoreBar({ label, score, color }: { label: string; score: number; 
   );
 }
 
-// ── Loading / error placeholder ───────────────────────────────────────────────
-function CharPlaceholder({ color, chinese, error }: { color: string; chinese: string; error: boolean }) {
-  return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-ink-900/60 rounded-2xl">
-      {error ? (
-        <>
-          <div className="text-5xl mb-2" style={{ color }}>☯</div>
-          <p className="text-xl font-bold" style={{ color, fontFamily: "'Noto Serif SC', serif", textShadow: `0 0 16px ${color}` }}>{chinese}</p>
-        </>
-      ) : (
-        <>
-          <div style={{ width: 52, height: 52, borderRadius: "50%", border: `3px solid ${color}33`, borderTopColor: color, borderRightColor: `${color}88`, animation: "inkSpin 1s linear infinite" }} />
-          <p className="text-xl font-bold" style={{ color, fontFamily: "'Noto Serif SC', serif", textShadow: `0 0 16px ${color}` }}>{chinese}</p>
-          <p className="text-cream-600 text-xs tracking-widest" style={{ fontFamily: "'Noto Serif SC', serif" }}>召唤中...</p>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ── Character image (shared) ──────────────────────────────────────────────────
-function CharImage({
-  src, alt, imgClass, loaded, error,
-  onLoad, onError,
-  containerStyle,
-}: {
-  src: string; alt: string; imgClass: string;
-  loaded: boolean; error: boolean;
-  onLoad: () => void; onError: () => void;
-  containerStyle?: React.CSSProperties;
+// ── Placeholder — spinner while loading, styled char on failure ───────────────
+function CharPlaceholder({ color, chinese, fallbackChar, error }: {
+  color: string; chinese: string; fallbackChar: string; error: boolean;
 }) {
+  if (error) {
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ background: "rgba(6,10,20,0.9)", borderRadius: "inherit" }}>
+        <div style={{
+          fontFamily: "'Noto Serif SC', serif",
+          fontSize: "clamp(5rem,22vw,9rem)",
+          fontWeight: 700,
+          lineHeight: 1,
+          color,
+          textShadow: `0 0 40px ${color}, 0 0 100px ${color}55`,
+          animation: "characterFadeIn 0.8s ease-out both",
+        }}>
+          {fallbackChar}
+        </div>
+        <p className="text-sm font-bold tracking-widest" style={{ color, fontFamily: "'Noto Serif SC', serif" }}>{chinese}</p>
+      </div>
+    );
+  }
   return (
-    <div className="relative overflow-hidden rounded-2xl" style={containerStyle}>
-      {!loaded && !error && <CharPlaceholder color="#888" chinese={alt} error={false} />}
-      {error && <CharPlaceholder color="#888" chinese={alt} error={true} />}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={alt}
-        className={imgClass}
-        onLoad={onLoad}
-        onError={onError}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          objectPosition: "top center",
-          display: loaded ? "block" : "none",
-        }}
-      />
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: "rgba(6,10,20,0.75)", borderRadius: "inherit", animation: "breathe 2s ease-in-out infinite" }}>
+      <div style={{ width: 48, height: 48, borderRadius: "50%", border: `3px solid ${color}33`, borderTopColor: color, borderRightColor: `${color}88`, animation: "inkSpin 1s linear infinite" }} />
+      <p className="text-base font-bold" style={{ color, fontFamily: "'Noto Serif SC', serif", textShadow: `0 0 16px ${color}` }}>{chinese}</p>
+      <p className="text-cream-600 text-xs tracking-widest" style={{ fontFamily: "'Noto Serif SC', serif" }}>生成中...</p>
     </div>
   );
 }
 
 // ── Split screen (Phase 3) ────────────────────────────────────────────────────
-function SplitScreen({ grade, gradeData, onComplete }: { grade: string; gradeData?: Grade; onComplete: () => void }) {
+function SplitScreen({ grade, gradeData, imagePreloaded, imagePreloadFailed, onComplete }: {
+  grade: string; gradeData?: Grade; imagePreloaded: boolean; imagePreloadFailed: boolean; onComplete: () => void;
+}) {
   const router = useRouter();
   const char = GRADE_DATA[grade as keyof typeof GRADE_DATA] ?? GRADE_DATA["C"];
   const flavor = FLAVOR[grade] ?? FLAVOR["C"];
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
+  const [loaded, setLoaded] = useState(imagePreloaded);
+  const [error, setError] = useState(imagePreloadFailed);
 
   const gradeTextColor: Record<string, string> = { A: "#EEC050", B: "#94a3b8", C: "#9ca3af", D: "#d97706", F: "#dc2626" };
   const textColor = gradeTextColor[grade] ?? "#EDE4D4";
@@ -251,22 +230,20 @@ function SplitScreen({ grade, gradeData, onComplete }: { grade: string; gradeDat
       <div className="flex-1 relative overflow-hidden" style={{ animation: "slideFromRight 0.9s cubic-bezier(0.22,1,0.36,1) both", minHeight: "40vh" }}>
         <LightRays color={char.rayColor} />
 
-        {/* Portrait fills panel height, centered, natural width */}
         <div className="absolute inset-0 flex items-start justify-center" style={{ backgroundColor: "#050508" }}>
-          {!loaded && !error && <CharPlaceholder color={char.color} chinese={char.chinese} error={false} />}
-          {error && <CharPlaceholder color={char.color} chinese={char.chinese} error={true} />}
+          {!loaded && !error && <CharPlaceholder color={char.color} chinese={char.chinese} fallbackChar={char.fallbackChar} error={false} />}
+          {error && <CharPlaceholder color={char.color} chinese={char.chinese} fallbackChar={char.fallbackChar} error={true} />}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={char.imageUrl}
             alt={char.english}
             className={char.imgClass}
             onLoad={() => setLoaded(true)}
-            onError={() => setError(true)}
+            onError={() => { setLoaded(false); setError(true); }}
             style={{ height: "100%", width: "auto", objectFit: "contain", objectPosition: "top center", display: loaded ? "block" : "none" }}
           />
         </div>
 
-        {/* Bottom overlay — name / flavor / button */}
         <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col items-center px-6 pt-16 pb-8" style={{ background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.75) 40%, rgba(0,0,0,0.97))" }}>
           <div className="text-2xl font-bold text-center mb-0.5" style={{ fontFamily: "'Noto Serif SC', serif", color: char.color, textShadow: `0 0 16px ${char.glow}` }}>{char.chinese}</div>
           <div className="text-base text-cream-400 italic mb-4" style={{ fontFamily: "'Cormorant Garamond', serif" }}>{char.english}</div>
@@ -294,23 +271,52 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
   const [phase, setPhase] = useState<Phase>("blackout");
   const [rumbling, setRumbling] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
+  const [preloadStatuses, setPreloadStatuses] = useState<Record<string, ImgStatus>>({
+    A: "loading", B: "loading", C: "loading", D: "loading", F: "loading",
+  });
 
   const char = GRADE_DATA[grade as keyof typeof GRADE_DATA] ?? GRADE_DATA["C"];
   const flavor = FLAVOR[grade] ?? FLAVOR["C"];
+  const preloadDone = Object.values(preloadStatuses).every(s => s !== "loading");
+  const imageLoaded = preloadStatuses[grade] === "loaded";
+  const imageError = preloadStatuses[grade] === "error";
 
   const skip = useCallback(() => setPhase("split"), []);
 
-  // Preload image via JS so it's ready before the char phase
+  // Preload all 5 images; start animation only when all settle (or 15s timeout)
   useEffect(() => {
-    const img = new window.Image();
-    img.src = char.imageUrl;
-    img.onload = () => setImageLoaded(true);
-    img.onerror = () => setImageError(true);
-  }, [char.imageUrl]);
+    const grades = ["A", "B", "C", "D", "F"] as const;
+    const pending = new Set<string>(["A", "B", "C", "D", "F"]);
+    const statuses: Record<string, ImgStatus> = { A: "loading", B: "loading", C: "loading", D: "loading", F: "loading" };
 
+    const resolve = (g: string, status: "loaded" | "error") => {
+      if (!pending.has(g)) return;
+      statuses[g] = status;
+      pending.delete(g);
+      if (pending.size === 0) setPreloadStatuses({ ...statuses });
+    };
+
+    const imgs = grades.map(g => {
+      const img = new window.Image();
+      img.src = GRADE_DATA[g].imageUrl;
+      img.onload = () => resolve(g, "loaded");
+      img.onerror = () => resolve(g, "error");
+      return img;
+    });
+
+    const timeout = setTimeout(() => {
+      [...pending].forEach(g => resolve(g, "error"));
+    }, 15000);
+
+    return () => {
+      clearTimeout(timeout);
+      imgs.forEach(img => { img.onload = null; img.onerror = null; });
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Start animation phases after preload completes
   useEffect(() => {
+    if (!preloadDone) return;
     requestAnimationFrame(() => setVisible(true));
     const timers = [
       setTimeout(() => setPhase("flash"), 300),
@@ -320,10 +326,20 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
       setTimeout(() => setPhase("split"), 6000),
     ];
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [preloadDone]);
+
+  // Preload gate — show spinner until all images settled
+  if (!preloadDone) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5" style={{ background: char.bg, backgroundColor: "#000" }}>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", border: `4px solid ${char.color}22`, borderTopColor: char.color, borderRightColor: `${char.color}55`, animation: "inkSpin 1s linear infinite" }} />
+        <p style={{ fontFamily: "'Noto Serif SC', serif", color: char.color, fontSize: "0.875rem", letterSpacing: "0.3em", opacity: 0.7 }}>正在召唤...</p>
+      </div>
+    );
+  }
 
   if (phase === "split") {
-    return <SplitScreen grade={grade} gradeData={gradeData} onComplete={onComplete} />;
+    return <SplitScreen grade={grade} gradeData={gradeData} imagePreloaded={imageLoaded} imagePreloadFailed={imageError} onComplete={onComplete} />;
   }
 
   const showGrade = phase !== "blackout" && phase !== "flash";
@@ -344,7 +360,6 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
         className={`w-full h-full flex flex-col items-center relative${rumbling ? " animate-screen-rumble" : ""}`}
         style={{ justifyContent: isChar ? "flex-start" : "center" }}
       >
-        {/* Grade letter */}
         {showGrade && (
           <div
             className="font-bold leading-none select-none relative z-10"
@@ -369,40 +384,30 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
           </div>
         )}
 
-        {/* Phase 2 — character cinematic */}
         {isChar && (
           <div className="flex-1 flex items-center justify-center relative w-full">
             <LightRays color={char.rayColor} />
 
-            {/* Portrait container — fixed 2:3 aspect ratio, no stretching */}
             <div
               className="relative z-10"
-              style={{
-                width: "min(85vw, 380px)",
-                aspectRatio: "2 / 3",
-                maxHeight: "72vh",
-                animation: (imageLoaded || imageError) ? "charBurst 0.8s 0.1s cubic-bezier(0.22,1,0.36,1) both" : undefined,
-              }}
+              style={{ width: "min(85vw, 380px)", aspectRatio: "2 / 3", maxHeight: "72vh", animation: "charBurst 0.8s 0.1s cubic-bezier(0.22,1,0.36,1) both" }}
             >
-              {/* Loading / error */}
-              {!imageLoaded && !imageError && <CharPlaceholder color={char.color} chinese={char.chinese} error={false} />}
-              {imageError && <CharPlaceholder color={char.color} chinese={char.chinese} error={true} />}
+              {!imageLoaded && !imageError && <CharPlaceholder color={char.color} chinese={char.chinese} fallbackChar={char.fallbackChar} error={false} />}
+              {imageError && <CharPlaceholder color={char.color} chinese={char.chinese} fallbackChar={char.fallbackChar} error={true} />}
 
-              {/* Portrait image */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={char.imageUrl}
                 alt={char.english}
                 className={`${char.imgClass} rounded-2xl`}
+                onError={() => {/* handled by preload */}}
                 style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: imageLoaded ? "block" : "none" }}
               />
 
-              {/* Vignette */}
               {imageLoaded && (
                 <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.45) 70%, rgba(0,0,0,0.88) 100%)" }} />
               )}
 
-              {/* Name + flavor overlaid at bottom of image */}
               {(imageLoaded || imageError) && (
                 <div className="absolute bottom-0 left-0 right-0 rounded-b-2xl text-center" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.97))", padding: "2.5rem 1rem 1.25rem" }}>
                   <SlamLetters text={char.chinese} delayBase={0.35} style={{ fontFamily: "'Noto Serif SC', serif", fontSize: "1.6rem", fontWeight: 700, color: char.color, textShadow: `0 0 20px ${char.glow}`, marginBottom: "0.1rem" }} />
