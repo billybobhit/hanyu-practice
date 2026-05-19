@@ -25,8 +25,8 @@ const GRADE_DATA = {
   },
   B: {
     imageUrl: makeUrl(
-      "Qin Shi Huang first emperor of China portrait, ancient chinese emperor, black and gold dragon robe, tall imperial crown, commanding regal expression, dramatic throne room lighting, cinematic dark fantasy, hyperrealistic 8k digital art",
-      8002
+      "ancient chinese emperor first unifier of China, powerful ruler in black and gold dragon imperial robes, tall ornate ceremonial crown, commanding regal expression, dramatic dark throne room lighting, cinematic portrait, hyperrealistic 8k digital art",
+      8102
     ),
     chinese: "秦始皇",
     english: "Qin Shi Huang",
