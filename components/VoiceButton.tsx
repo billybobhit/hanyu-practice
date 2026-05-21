@@ -12,6 +12,7 @@ export default function VoiceButton({ onTranscript, disabled }: VoiceButtonProps
   const [supported, setSupported] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
+  const shouldRecordRef = useRef(false);
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,6 +22,7 @@ export default function VoiceButton({ onTranscript, disabled }: VoiceButtonProps
 
   const toggleRecording = () => {
     if (isRecording) {
+      shouldRecordRef.current = false;
       recognitionRef.current?.stop();
       setIsRecording(false);
       return;
@@ -36,7 +38,7 @@ export default function VoiceButton({ onTranscript, disabled }: VoiceButtonProps
     const recognition = new SpeechRecognitionCtor();
     recognitionRef.current = recognition;
     recognition.lang = "zh-CN";
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
@@ -44,13 +46,23 @@ export default function VoiceButton({ onTranscript, disabled }: VoiceButtonProps
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
+      const result = event.results[event.results.length - 1];
+      const transcript = result[0].transcript;
       if (transcript) onTranscript(transcript);
     };
 
-    recognition.onerror = () => setIsRecording(false);
-    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = () => {
+      if (!shouldRecordRef.current) setIsRecording(false);
+    };
+    recognition.onend = () => {
+      if (shouldRecordRef.current) {
+        recognition.start();
+      } else {
+        setIsRecording(false);
+      }
+    };
 
+    shouldRecordRef.current = true;
     recognition.start();
   };
 
