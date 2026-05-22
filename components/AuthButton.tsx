@@ -87,7 +87,7 @@ export default function AuthButton() {
             href="/progress"
             className="block px-4 py-3 text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
           >
-            My Progress
+            My Rank
           </a>
           <a
             href="/history"
