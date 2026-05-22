@@ -60,7 +60,7 @@ export default function SimulateRankModal({ onClose }: SimulateRankModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-start justify-center overflow-visible bg-[rgba(0,0,0,0.8)] px-4 pb-4 pt-16"
+      className="fixed inset-0 z-[1000] flex items-center justify-center overflow-visible bg-[rgba(0,0,0,0.8)] p-4"
       onClick={onClose}
     >
       <div
