@@ -313,7 +313,7 @@ export default function EloProgressAnimation({
         {phase === "hold" && (
           <button
             onClick={onComplete}
-            className="w-full cursor-pointer rounded-xl border border-ink-500 bg-ink-700 py-3 text-sm text-cream-300 transition-all hover:border-ink-400 hover:text-cream-100"
+            className="w-full cursor-pointer rounded-full bg-gold-600 px-6 py-3.5 text-sm font-bold text-ink-900 shadow-[0_0_18px_rgba(238,192,80,0.4)] transition-all hover:bg-gold-500 hover:shadow-[0_0_28px_rgba(238,192,80,0.6)]"
             style={{ animation: "fadeInUp 0.4s ease-out both" }}
           >
             View Full Report →

@@ -189,40 +189,47 @@ function SplitScreen({ grade, gradeData, imagePreloaded, imagePreloadFailed, onC
     <div className="fixed inset-0 z-50 flex flex-col sm:flex-row" style={{ backgroundColor: "#060A14", background: char.bg }}>
       {/* LEFT: grade + scores */}
       <div
-        className="flex-1 flex flex-col justify-center px-6 sm:px-10 py-8 overflow-y-auto"
+        className="flex-1 flex flex-col px-6 sm:px-10 py-8"
         style={{ borderRight: `1px solid ${char.color}22`, boxShadow: `inset -1px 0 0 ${char.color}33, 4px 0 24px rgba(0,0,0,0.4)`, animation: "slideFromLeft 0.9s cubic-bezier(0.22,1,0.36,1) both" }}
       >
-        <div className="font-bold leading-none mb-1 select-none" style={{ fontSize: "clamp(5rem,14vw,9rem)", fontFamily: "'Cormorant Garamond', serif", color: textColor, textShadow: `0 0 30px ${char.glow}, 0 0 60px ${char.glow}` }}>{grade}</div>
-        <div className="text-cream-600 text-xs uppercase tracking-widest mb-6">Overall Grade</div>
+        {/* scrollable content */}
+        <div className="flex-1 overflow-y-auto min-h-0 flex flex-col justify-center">
+          <div className="font-bold leading-none mb-1 select-none" style={{ fontSize: "clamp(5rem,14vw,9rem)", fontFamily: "'Cormorant Garamond', serif", color: textColor, textShadow: `0 0 30px ${char.glow}, 0 0 60px ${char.glow}` }}>{grade}</div>
+          <div className="text-cream-600 text-xs uppercase tracking-widest mb-6">Overall Grade</div>
 
-        {gradeData && (
-          <>
-            <div className="flex items-baseline gap-2 mb-5">
-              <span style={{ color: textColor }} className="text-4xl font-bold">{gradeData.overallScore}</span>
-              <span className="text-cream-600 text-sm">/ 100</span>
-            </div>
-            <div className="space-y-3 mb-6">
-              <SplitScoreBar label="Vocabulary Accuracy" score={gradeData.vocabularyScore} color={textColor} />
-              <SplitScoreBar label="Grammar Control" score={gradeData.grammarScore} color={textColor} />
-              <SplitScoreBar label="Comprehension Depth" score={gradeData.comprehensionScore} color={textColor} />
-            </div>
-            {gradeData.strengths.length > 0 && (
-              <div className="mb-4">
-                <p className="text-xs uppercase tracking-widest text-gold-600 mb-1.5">Strengths ✓</p>
-                {gradeData.strengths.map((s, i) => <p key={i} className="text-cream-300 text-xs leading-relaxed">· {s}</p>)}
+          {gradeData && (
+            <>
+              <div className="flex items-baseline gap-2 mb-5">
+                <span style={{ color: textColor }} className="text-4xl font-bold">{gradeData.overallScore}</span>
+                <span className="text-cream-600 text-sm">/ 100</span>
               </div>
-            )}
-            {gradeData.improvements.length > 0 && (
-              <div className="mb-5">
-                <p className="text-xs uppercase tracking-widest text-vermillion-500 mb-1.5">Things to Improve →</p>
-                {gradeData.improvements.map((s, i) => <p key={i} className="text-cream-400 text-xs leading-relaxed">· {s}</p>)}
+              <div className="space-y-3 mb-6">
+                <SplitScoreBar label="Vocabulary Accuracy" score={gradeData.vocabularyScore} color={textColor} />
+                <SplitScoreBar label="Grammar Control" score={gradeData.grammarScore} color={textColor} />
+                <SplitScoreBar label="Comprehension Depth" score={gradeData.comprehensionScore} color={textColor} />
               </div>
-            )}
-          </>
-        )}
+              {gradeData.strengths.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs uppercase tracking-widest text-gold-600 mb-1.5">Strengths ✓</p>
+                  {gradeData.strengths.map((s, i) => <p key={i} className="text-cream-300 text-xs leading-relaxed">· {s}</p>)}
+                </div>
+              )}
+              {gradeData.improvements.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-xs uppercase tracking-widest text-vermillion-500 mb-1.5">Things to Improve →</p>
+                  {gradeData.improvements.map((s, i) => <p key={i} className="text-cream-400 text-xs leading-relaxed">· {s}</p>)}
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
-        <button onClick={onComplete} className="text-xs text-cream-700 hover:text-cream-400 transition-colors cursor-pointer underline mt-auto pt-4" style={{ fontFamily: "'Noto Serif SC', serif" }}>
-          View full report →
+        {/* always-visible footer button */}
+        <button
+          onClick={onComplete}
+          className="mt-6 w-full flex-shrink-0 cursor-pointer rounded-full bg-gold-600 px-6 py-3.5 text-sm font-bold text-ink-900 shadow-[0_0_18px_rgba(238,192,80,0.4)] transition-all hover:bg-gold-500 hover:shadow-[0_0_28px_rgba(238,192,80,0.6)]"
+        >
+          View Full Report →
         </button>
       </div>
 

@@ -5,6 +5,8 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { syncSessionsWithCloud } from "@/lib/supabase/session-sync";
 import LoginModal from "@/components/LoginModal";
+import RankBadge from "@/components/RankBadge";
+import { getUserProgress } from "@/lib/storage";
 
 function getFirstName(user: User) {
   const metadataName =
@@ -20,11 +22,14 @@ export default function AuthButton() {
   const [showLogin, setShowLogin] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [supabase] = useState(() => createClient());
+  const [elo, setElo] = useState(0);
 
   useEffect(() => {
     if (!supabase) {
       return;
     }
+
+    setElo(getUserProgress().currentElo);
 
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ?? null);
@@ -64,7 +69,8 @@ export default function AuthButton() {
   const firstName = getFirstName(user);
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center gap-2">
+      <RankBadge elo={elo} size="sm" />
       <button
         onClick={() => setShowMenu((value) => !value)}
         className="flex cursor-pointer items-center gap-2 rounded-full bg-ink-800 py-1 pl-1 pr-3 text-sm text-cream-200 transition-colors hover:bg-ink-700"
