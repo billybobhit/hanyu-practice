@@ -36,14 +36,14 @@ export default function SimulateRankModal({ onClose }: SimulateRankModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pb-6 pt-24 backdrop-blur-sm sm:items-center sm:py-8"
+      className="fixed inset-0 z-[200] flex items-start justify-center overflow-hidden bg-black/60 px-4 pb-6 pt-28 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-sm rounded-2xl border border-gold-700/50 bg-ink-800 p-6 shadow-2xl"
+        className="relative max-h-[calc(100dvh-8.5rem)] w-full max-w-sm overflow-hidden rounded-2xl border border-gold-700/50 bg-ink-800 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between border-b border-ink-600/70 px-5 py-4">
           <h2 className="text-cream-100 font-semibold">⚡ Simulate Rank</h2>
           <button
             onClick={onClose}
@@ -54,7 +54,7 @@ export default function SimulateRankModal({ onClose }: SimulateRankModalProps) {
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="max-h-[calc(100dvh-13.5rem)] space-y-4 overflow-y-auto p-5">
           <div>
             <label className="text-cream-500 text-xs uppercase tracking-[0.15em] block mb-1.5">Rank</label>
             <select
