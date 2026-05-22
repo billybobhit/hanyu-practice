@@ -1,275 +1,236 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import UploadZone from "@/components/UploadZone";
-import {
-  saveSession,
-  setCurrentSessionId,
-  generateSessionId,
-  getSessionSummaries,
-} from "@/lib/storage";
-import type { Difficulty } from "@/lib/types";
 
-const difficultyOptions: Array<{
-  key: Difficulty;
-  title: string;
-  description: string;
-}> = [
+const languages = [
   {
-    key: "easy",
-    title: "Easy",
-    description: "Plain English responses with gentle Chinese support.",
+    title: "Traditional Chinese",
+    subtitle: "Practice with Traditional characters",
+    path: "/zh-tw",
   },
   {
-    key: "medium",
-    title: "Medium",
-    description: "Chinese responses with pinyin after every word or phrase.",
-  },
-  {
-    key: "hard",
-    title: "Hard",
-    description: "Full Mandarin conversation, just like the current mode.",
+    title: "Simplified Chinese",
+    subtitle: "Practice with Simplified characters",
+    path: "/zh-cn",
   },
 ];
 
 export default function HomePage() {
   const router = useRouter();
-  const [material, setMaterial] = useState<{ content: string; title: string } | null>(null);
-  const [difficulty, setDifficulty] = useState<Difficulty>("hard");
-  const [starting, setStarting] = useState(false);
+  const featuresRef = useRef<HTMLElement>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(true);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
 
-  const handleMaterialReady = (content: string, title: string) => {
-    setMaterial({ content, title });
+  useEffect(() => {
+    setBannerDismissed(localStorage.getItem("hanyu_login_banner_dismissed") === "1");
+  }, []);
+
+  const dismissBanner = () => {
+    localStorage.setItem("hanyu_login_banner_dismissed", "1");
+    setBannerDismissed(true);
   };
-
-  const startSession = () => {
-    if (!material) return;
-    setStarting(true);
-
-    const id = generateSessionId();
-    const session = {
-      id,
-      materialTitle: material.title,
-      materialContent: material.content,
-      difficulty,
-      messages: [],
-      startTime: Date.now(),
-    };
-
-    saveSession(session);
-    setCurrentSessionId(id);
-    router.push("/practice");
-  };
-
-  const summaries = getSessionSummaries().slice(0, 3);
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div
-          className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.04]"
-          style={{ background: "radial-gradient(circle, #CC2218, transparent 70%)" }}
-        />
-        <div
-          className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full opacity-[0.03]"
-          style={{ background: "radial-gradient(circle, #BA8820, transparent 70%)" }}
-        />
-        {/* Decorative grid */}
-        <div
-          className="absolute inset-0 opacity-[0.015]"
-          style={{
-            backgroundImage:
-              "linear-gradient(#EDE4D4 1px, transparent 1px), linear-gradient(90deg, #EDE4D4 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
-      </div>
+    <main className="min-h-screen bg-ink-900 pt-16">
+      <section className="relative flex min-h-screen items-center justify-center overflow-hidden px-6">
+        <div className="pointer-events-none absolute inset-0">
+          <div
+            className="absolute -right-40 -top-40 h-[600px] w-[600px] rounded-full opacity-[0.04]"
+            style={{ background: "radial-gradient(circle, #CC2218, transparent 70%)" }}
+          />
+          <div
+            className="absolute -bottom-40 -left-40 h-[500px] w-[500px] rounded-full opacity-[0.03]"
+            style={{ background: "radial-gradient(circle, #BA8820, transparent 70%)" }}
+          />
+          <div
+            className="absolute inset-0 opacity-[0.015]"
+            style={{
+              backgroundImage:
+                "linear-gradient(#EDE4D4 1px, transparent 1px), linear-gradient(90deg, #EDE4D4 1px, transparent 1px)",
+              backgroundSize: "60px 60px",
+            }}
+          />
+        </div>
 
-      <div className="relative max-w-2xl mx-auto px-6 py-16">
-        {/* Header */}
-        <header className="text-center mb-14 animate-ink-reveal">
-          {/* Seal decoration */}
-          <div className="inline-flex items-center justify-center w-16 h-16 border-2 border-vermillion-600 rounded-sm mb-6 rotate-3 opacity-80">
-            <span className="text-2xl text-vermillion-500 -rotate-3">印</span>
+        <div className="relative z-10 mx-auto max-w-3xl px-6 text-center animate-ink-reveal">
+          <div className="mb-6 inline-flex items-center rounded-full border border-ink-500 bg-ink-800 px-4 py-1 text-xs text-cream-400">
+            <span className="mr-2">🏆</span>
+            AI Language Practice
           </div>
 
           <h1
-            className="text-5xl font-bold text-cream-100 mb-2 tracking-wider"
-            style={{ fontFamily: "'Noto Serif SC', serif" }}
+            className="text-5xl font-bold leading-tight text-cream-100 md:text-7xl"
+            style={{ fontFamily: "'Cormorant Garamond', serif" }}
           >
-            漢語練習
+            Master Any Language
           </h1>
-          <p
-            className="text-xl text-cream-400 mb-1 tracking-wide"
-            style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic" }}
-          >
-            HanYu — Chinese Practice
+
+          <p className="mx-auto mt-4 max-w-xl text-xl leading-relaxed text-cream-400">
+            Upload your study materials. Have deep AI conversations. Get graded
+            and earn your rank.
           </p>
-          <p className="text-cream-500 text-sm max-w-sm mx-auto leading-relaxed mt-3">
-            Upload study material, choose your challenge level, and practice Chinese through guided conversation.
-          </p>
-        </header>
 
-        {/* Main card */}
-        <div
-          className="bg-ink-800 border border-ink-500 rounded-2xl p-8 mb-6 animate-ink-reveal"
-          style={{ animationDelay: "0.1s" }}
-        >
-          {!material ? (
-            <>
-              <h2 className="text-cream-200 font-semibold mb-5 flex items-center gap-2">
-                <span className="w-6 h-6 bg-vermillion-700 rounded-md flex items-center justify-center text-xs">
-                  1
-                </span>
-                Add study material
-              </h2>
-              <UploadZone onMaterialReady={handleMaterialReady} />
-            </>
-          ) : (
-            <div className="space-y-5">
-              {/* Material preview */}
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-cream-500 text-xs uppercase tracking-widest mb-1">
-                    Material ready
-                  </p>
-                  <h3 className="text-cream-100 font-semibold text-lg">{material.title}</h3>
-                  <p className="text-cream-500 text-sm mt-0.5">
-                    {material.content.length.toLocaleString()} characters
-                  </p>
-                </div>
-                <button
-                  onClick={() => setMaterial(null)}
-                  className="text-cream-600 hover:text-cream-400 text-sm cursor-pointer transition-colors"
-                >
-                  Change
-                </button>
-              </div>
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <button
+              onClick={() => setShowLanguageModal(true)}
+              className="cursor-pointer rounded-xl bg-vermillion-600 px-8 py-4 text-lg font-semibold text-cream-100 transition-colors hover:bg-vermillion-500"
+            >
+              Start Practicing →
+            </button>
+            <button
+              onClick={() => featuresRef.current?.scrollIntoView({ behavior: "smooth" })}
+              className="cursor-pointer rounded-xl border border-ink-500 px-8 py-4 text-lg text-cream-400 transition-colors hover:border-cream-400 hover:text-cream-100"
+            >
+              Learn More
+            </button>
+          </div>
 
-              {/* Content preview */}
-              <div className="bg-ink-900 border border-ink-600 rounded-xl p-4 max-h-32 overflow-y-auto">
-                <p className="text-cream-400 text-xs leading-relaxed whitespace-pre-wrap">
-                  {material.content.slice(0, 500)}
-                  {material.content.length > 500 && "…"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-cream-500 text-xs uppercase tracking-widest mb-3">
-                  Choose difficulty
-                </p>
-                <div className="grid gap-2">
-                  {difficultyOptions.map((option) => (
-                    <button
-                      key={option.key}
-                      onClick={() => setDifficulty(option.key)}
-                      className={`text-left rounded-xl border px-4 py-3 transition-all cursor-pointer ${
-                        difficulty === option.key
-                          ? "border-gold-600 bg-gold-800/20"
-                          : "border-ink-600 bg-ink-900/70 hover:border-ink-300"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-cream-100 text-sm font-semibold">
-                          {option.title}
-                        </span>
-                        <span
-                          className={`w-2.5 h-2.5 rounded-full ${
-                            difficulty === option.key ? "bg-gold-400" : "bg-ink-400"
-                          }`}
-                        />
-                      </div>
-                      <p className="text-cream-500 text-xs leading-relaxed mt-1">
-                        {option.description}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
+          {!bannerDismissed && (
+            <div className="mx-auto mt-6 flex max-w-xl items-center justify-between gap-4 rounded-xl border border-gold-700 bg-ink-800 px-6 py-3 text-sm text-gold-400">
+              <span>🏆 Login to save your progress and earn your rank!</span>
               <button
-                onClick={startSession}
-                disabled={starting}
-                className="w-full py-4 bg-vermillion-600 hover:bg-vermillion-500 disabled:bg-ink-500 disabled:cursor-not-allowed text-cream-100 rounded-xl font-semibold text-lg transition-all duration-300 cursor-pointer group relative overflow-hidden"
+                onClick={dismissBanner}
+                className="cursor-pointer text-gold-600 transition-colors hover:text-gold-300"
+                aria-label="Dismiss progress reminder"
               >
-                <span className="relative z-10">
-                  {starting ? "Starting..." : "Start practice →"}
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                X
               </button>
             </div>
           )}
         </div>
+      </section>
 
-        {/* Features row */}
-        <div
-          className="grid grid-cols-3 gap-3 mb-8 animate-ink-reveal"
-          style={{ animationDelay: "0.2s" }}
-        >
+      <section ref={featuresRef} id="features" className="px-6 py-24">
+        <h2 className="mb-4 text-center text-3xl font-bold text-cream-100">
+          Everything you need to master a language
+        </h2>
+        <p className="mb-12 text-center text-cream-400">
+          Powered by AI, designed for real learning
+        </p>
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
           {[
-            { icon: "🎙️", label: "Voice", desc: "Speak and listen" },
-            { icon: "📊", label: "Grading", desc: "Vocabulary, grammar, insight" },
-            { icon: "📈", label: "Progress", desc: "Track every session" },
-          ].map((f) => (
-            <div
-              key={f.label}
-              className="bg-ink-800/50 border border-ink-600 rounded-xl p-4 text-center"
+            {
+              icon: "📚",
+              title: "Smart Material Upload",
+              body: "Drop in PDFs, images, text, or URLs. Our AI reads everything.",
+            },
+            {
+              icon: "🎙",
+              title: "Voice Conversation",
+              body: "Speak and listen naturally. Practice pronunciation in real time.",
+            },
+            {
+              icon: "🏆",
+              title: "Earn Your Rank",
+              body: "Progress from Criminal to Sun Wukong based on your performance.",
+            },
+          ].map((feature) => (
+            <article
+              key={feature.title}
+              className="rounded-2xl border border-ink-500 bg-ink-800 p-8"
             >
-              <div className="text-2xl mb-2">{f.icon}</div>
-              <div className="text-cream-300 text-xs font-medium">{f.label}</div>
-              <div className="text-cream-600 text-xs mt-0.5">{f.desc}</div>
+              <div className="mb-4 text-4xl">{feature.icon}</div>
+              <h3 className="mb-2 text-xl font-semibold text-cream-100">
+                {feature.title}
+              </h3>
+              <p className="leading-relaxed text-cream-500">{feature.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-ink-900/50 px-6 py-24">
+        <h2 className="mb-12 text-center text-3xl font-bold text-cream-100">
+          How it works
+        </h2>
+        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-8 md:grid-cols-3">
+          {[
+            {
+              number: "01",
+              title: "Upload Materials",
+              body: "Add your study notes, textbook pages, or any learning content",
+            },
+            {
+              number: "02",
+              title: "Practice Conversation",
+              body: "Your AI tutor asks deep questions to test your understanding",
+            },
+            {
+              number: "03",
+              title: "Earn Your Rank",
+              body: "Get graded and unlock characters from Criminal to Sun Wukong",
+            },
+          ].map((step) => (
+            <div key={step.number} className="text-center">
+              <div className="mb-4 text-3xl font-bold text-vermillion-500">
+                {step.number}
+              </div>
+              <h3 className="mb-3 text-lg font-semibold text-cream-100">
+                {step.title}
+              </h3>
+              <p className="text-sm leading-6 text-cream-500">{step.body}</p>
             </div>
           ))}
         </div>
+      </section>
 
-        {/* Recent sessions */}
-        {summaries.length > 0 && (
-          <div className="animate-ink-reveal" style={{ animationDelay: "0.3s" }}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-cream-400 text-sm font-medium">Recent Sessions</h3>
-              <a href="/results" className="text-gold-500 hover:text-gold-400 text-xs transition-colors">
-                View all →
-              </a>
-            </div>
-            <div className="space-y-2">
-              {summaries.map((s) => (
-                <div
-                  key={s.id}
-                  className="flex items-center justify-between bg-ink-800/40 border border-ink-600 rounded-xl px-4 py-3"
+      <footer className="border-t border-ink-600 px-6 py-12 text-sm text-cream-600">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 text-center md:flex-row">
+          <span>HanYu © 2026</span>
+          <span>Built for learners worldwide</span>
+          <div className="flex gap-5">
+            <a href="#" className="transition-colors hover:text-cream-300">
+              Privacy
+            </a>
+            <a href="#" className="transition-colors hover:text-cream-300">
+              Terms
+            </a>
+          </div>
+        </div>
+      </footer>
+
+      {showLanguageModal && (
+        <div
+          className="fixed inset-0 z-[55] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setShowLanguageModal(false)}
+        >
+          <div
+            className="relative w-full max-w-md rounded-2xl border border-ink-600 bg-ink-900 p-8"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowLanguageModal(false)}
+              className="absolute right-4 top-4 cursor-pointer text-cream-600 transition-colors hover:text-cream-300"
+              aria-label="Close language chooser"
+            >
+              X
+            </button>
+            <h3
+              className="mb-6 text-center text-xl font-semibold text-cream-100"
+              style={{ fontFamily: "'Cormorant Garamond', serif" }}
+            >
+              Choose Your Chinese
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              {languages.map((language) => (
+                <button
+                  key={language.path}
+                  onClick={() => router.push(language.path)}
+                  className="cursor-pointer rounded-xl border border-ink-500 bg-ink-800 p-6 text-center transition-all hover:border-vermillion-600"
                 >
-                  <div>
-                    <p className="text-cream-200 text-sm font-medium">{s.materialTitle}</p>
-                    <p className="text-cream-600 text-xs">
-                      {new Date(s.startTime).toLocaleDateString("en-US")} ·{" "}
-                      {s.messageCount} turns · {s.difficulty}
-                    </p>
+                  <div className="text-sm font-medium text-cream-100">
+                    {language.title}
                   </div>
-                  <div
-                    className="text-2xl font-bold"
-                    style={{
-                      fontFamily: "'Cormorant Garamond', serif",
-                      color:
-                        s.overallGrade === "A"
-                          ? "#EEC050"
-                          : s.overallGrade === "B"
-                          ? "#86efac"
-                          : s.overallGrade === "C"
-                          ? "#fde047"
-                          : s.overallGrade === "D"
-                          ? "#fb923c"
-                          : "#F55040",
-                    }}
-                  >
-                    {s.overallGrade}
+                  <div className="mt-2 text-xs leading-5 text-cream-500">
+                    {language.subtitle}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </main>
   );
 }

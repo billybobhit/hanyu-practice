@@ -219,7 +219,7 @@ export default function ResultsPage() {
                 </p>
                 <button
                   onClick={() => {
-                    router.push("/practice");
+                    router.push("/zh-cn/practice");
                   }}
                   className="mt-4 px-6 py-2 bg-vermillion-600 hover:bg-vermillion-500 text-cream-100 rounded-xl text-sm transition-all cursor-pointer"
                 >

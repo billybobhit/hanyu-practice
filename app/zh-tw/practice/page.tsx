@@ -55,7 +55,7 @@ export default function PracticePage() {
       setDevMessages((prev) => [...prev, { role: "sys", text: `Launching grade ${grade} preview...` }]);
       setTimeout(() => {
         setDevMode(false);
-        router.push(`/results?preview=${grade}`);
+        router.push(`/zh-tw/results?preview=${grade}`);
       }, 700);
     } else {
       setDevMessages((prev) => [
@@ -134,7 +134,7 @@ export default function PracticePage() {
       setIsLoading(true);
 
       try {
-        const response = await fetch("/api/chat", {
+        const response = await fetch("/zh-tw/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -235,13 +235,13 @@ export default function PracticePage() {
 
   const endSession = async () => {
     if (!session || session.messages.length < 3) {
-      router.push("/results");
+      router.push("/zh-tw/results");
       return;
     }
 
     setIsGrading(true);
     try {
-      const response = await fetch("/api/grade", {
+      const response = await fetch("/zh-tw/api/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -259,11 +259,11 @@ export default function PracticePage() {
       };
       saveSession(endedSession);
       sessionStorage.setItem("hanyu_fresh_grade", "1");
-      router.push("/results");
+      router.push("/zh-tw/results");
     } catch {
       const endedSession = { ...session, endTime: Date.now() };
       saveSession(endedSession);
-      router.push("/results");
+      router.push("/zh-tw/results");
     }
   };
 
