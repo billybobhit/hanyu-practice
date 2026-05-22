@@ -60,11 +60,11 @@ export default function SimulateRankModal({ onClose }: SimulateRankModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[1000] flex items-start justify-center overflow-visible bg-[rgba(0,0,0,0.8)] px-4 pb-4 pt-16"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-sm translate-y-12 rounded-2xl border border-gold-700/50 bg-ink-800 p-6 shadow-2xl"
+        className="relative w-full max-w-sm rounded-2xl border border-gold-700/50 bg-ink-800 p-6 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
