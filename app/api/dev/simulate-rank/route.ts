@@ -1,0 +1,53 @@
+import { NextRequest } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { syncUserRank } from "@/lib/supabase/rankSync";
+import { RANK_THRESHOLDS } from "@/lib/elo";
+
+export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("is_dev")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!profile?.is_dev) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { rankName, languageCode } = await req.json();
+
+  const rank = RANK_THRESHOLDS.find(
+    (r) => r.name.toLowerCase() === String(rankName).toLowerCase()
+  );
+  if (!rank) return Response.json({ error: "Unknown rank" }, { status: 400 });
+
+  const validLanguages = ["zh-tw", "zh-cn"];
+  if (!validLanguages.includes(languageCode)) {
+    return Response.json({ error: "Invalid language" }, { status: 400 });
+  }
+
+  await supabase.from("user_language_elo").upsert(
+    {
+      user_id: user.id,
+      language_code: languageCode,
+      elo: rank.minElo,
+      has_completed_placement: true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,language_code" }
+  );
+
+  const bestRank = await syncUserRank(user.id, supabase);
+
+  return Response.json({
+    ok: true,
+    rankSet: rank.name,
+    eloSet: rank.minElo,
+    languageCode,
+    bestRankName: bestRank?.rankName,
+  });
+}

@@ -7,6 +7,9 @@ import { syncSessionsWithCloud } from "@/lib/supabase/session-sync";
 import LoginModal from "@/components/LoginModal";
 import RankBadge from "@/components/RankBadge";
 import { getUserProgress } from "@/lib/storage";
+import SimulateRankModal from "@/components/dev/SimulateRankModal";
+import RawEloModal from "@/components/dev/RawEloModal";
+import { DEV_MODE_KEY, DEV_MODE_EVENT, setDevMode, getDevMode } from "@/lib/dev";
 
 function getFirstName(user: User) {
   const metadataName =
@@ -23,33 +26,56 @@ export default function AuthButton() {
   const [showMenu, setShowMenu] = useState(false);
   const [supabase] = useState(() => createClient());
   const [elo, setElo] = useState(0);
+  const [isDevUser, setIsDevUser] = useState(false);
+  const [devModeOn, setDevModeOn] = useState(false);
+  const [showSimulate, setShowSimulate] = useState(false);
+  const [showRawElo, setShowRawElo] = useState(false);
 
   useEffect(() => {
-    if (!supabase) {
-      return;
-    }
+    if (!supabase) return;
 
     setElo(getUserProgress().currentElo);
+    setDevModeOn(getDevMode());
 
-    supabase.auth.getUser().then(({ data }) => {
+    const syncDevMode = () => setDevModeOn(localStorage.getItem(DEV_MODE_KEY) === "true");
+    window.addEventListener(DEV_MODE_EVENT, syncDevMode);
+
+    supabase.auth.getUser().then(async ({ data }) => {
       setUser(data.user ?? null);
       if (data.user) {
         void syncSessionsWithCloud(supabase);
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("is_dev")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+        setIsDevUser(!!profile?.is_dev);
       }
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
       setShowLogin(false);
       setShowMenu(false);
       if (session?.user) {
         void syncSessionsWithCloud(supabase);
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("is_dev")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        setIsDevUser(!!profile?.is_dev);
+      } else {
+        setIsDevUser(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener(DEV_MODE_EVENT, syncDevMode);
+    };
   }, [supabase]);
 
   if (!user) {
@@ -69,40 +95,95 @@ export default function AuthButton() {
   const firstName = getFirstName(user);
 
   return (
-    <div className="relative flex items-center gap-2">
-      <RankBadge elo={elo} size="sm" />
-      <button
-        onClick={() => setShowMenu((value) => !value)}
-        className="flex cursor-pointer items-center gap-2 rounded-full bg-ink-800 py-1 pl-1 pr-3 text-sm text-cream-200 transition-colors hover:bg-ink-700"
-      >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-vermillion-700 text-sm font-semibold text-cream-100">
-          {firstName[0]?.toUpperCase()}
-        </span>
-        <span className="hidden sm:inline">{firstName}</span>
-      </button>
+    <>
+      <div className="relative flex items-center gap-2">
+        <RankBadge elo={elo} size="sm" />
+        <button
+          onClick={() => setShowMenu((value) => !value)}
+          className="flex cursor-pointer items-center gap-2 rounded-full bg-ink-800 py-1 pl-1 pr-3 text-sm text-cream-200 transition-colors hover:bg-ink-700"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-vermillion-700 text-sm font-semibold text-cream-100">
+            {firstName[0]?.toUpperCase()}
+          </span>
+          <span className="hidden sm:inline">{firstName}</span>
+          {isDevUser && (
+            <span className="hidden sm:inline text-gold-400 text-xs font-bold">⚡</span>
+          )}
+        </button>
 
-      {showMenu && (
-        <div className="absolute right-0 top-full mt-2 w-52 overflow-hidden rounded-xl border border-ink-500 bg-ink-800 shadow-xl">
-          <a
-            href="/progress"
-            className="block px-4 py-3 text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
-          >
-            My Rank
-          </a>
-          <a
-            href="/history"
-            className="block px-4 py-3 text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
-          >
-            Conversation History
-          </a>
-          <button
-            onClick={() => supabase?.auth.signOut()}
-            className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
-          >
-            Sign Out
-          </button>
-        </div>
-      )}
-    </div>
+        {showMenu && (
+          <div className="absolute right-0 top-full mt-2 w-52 overflow-hidden rounded-xl border border-ink-500 bg-ink-800 shadow-xl">
+            <a
+              href="/progress"
+              className="block px-4 py-3 text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
+            >
+              My Rank
+            </a>
+            <a
+              href="/history"
+              className="block px-4 py-3 text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
+            >
+              Conversation History
+            </a>
+            <button
+              onClick={() => supabase?.auth.signOut()}
+              className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
+            >
+              Sign Out
+            </button>
+
+            {isDevUser && (
+              <>
+                <div className="border-t border-ink-600 px-4 py-2">
+                  <p className="text-gold-500 text-xs font-bold tracking-widest uppercase">⚡ Developer Tools</p>
+                </div>
+                <button
+                  onClick={() => { setShowMenu(false); setShowSimulate(true); }}
+                  className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
+                >
+                  Simulate Rank
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowMenu(false);
+                    if (!supabase) return;
+                    await fetch("/api/dev/reset-placement", { method: "POST" });
+                  }}
+                  className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
+                >
+                  Force Placement Reset
+                </button>
+                <button
+                  onClick={() => { setShowMenu(false); setShowRawElo(true); }}
+                  className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
+                >
+                  View Raw ELO
+                </button>
+                <a
+                  href="/dev/test-grade-reveal"
+                  className="block px-4 py-3 text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
+                >
+                  Test Grade Reveal
+                </a>
+                <button
+                  onClick={() => {
+                    setDevModeOn((prev) => {
+                      setDevMode(!prev);
+                      return !prev;
+                    });
+                  }}
+                  className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
+                >
+                  {devModeOn ? "Dev Mode: ON ✓" : "Dev Mode: OFF"}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {showSimulate && <SimulateRankModal onClose={() => setShowSimulate(false)} />}
+      {showRawElo && <RawEloModal onClose={() => setShowRawElo(false)} />}
+    </>
   );
 }
