@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { syncSessionsWithCloud } from "@/lib/supabase/session-sync";
@@ -166,7 +167,7 @@ export default function AuthButton() {
         >
           Login
         </button>
-        {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
+        {showLogin && createPortal(<LoginModal onClose={() => setShowLogin(false)} />, document.body)}
       </>
     );
   }
@@ -266,8 +267,8 @@ export default function AuthButton() {
         )}
       </div>
 
-      {showSimulate && <SimulateRankModal onClose={() => setShowSimulate(false)} />}
-      {showRawElo && <RawEloModal onClose={() => setShowRawElo(false)} />}
+      {showSimulate && createPortal(<SimulateRankModal onClose={() => setShowSimulate(false)} />, document.body)}
+      {showRawElo && createPortal(<RawEloModal onClose={() => setShowRawElo(false)} />, document.body)}
     </>
   );
 }
