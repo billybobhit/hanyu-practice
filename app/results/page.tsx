@@ -172,6 +172,19 @@ export default function ResultsPage() {
                   }
                 />
 
+                {currentSession.grade.referenceLevel && (
+                  <div className="rounded-2xl border border-ink-600 bg-ink-800 px-5 py-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-gold-500 mb-1">Performance Level</p>
+                    <p className="text-cream-200 text-sm">{currentSession.grade.referenceLevel}</p>
+                  </div>
+                )}
+                {currentSession.grade.rankFeedback && (
+                  <div className="rounded-2xl border border-ink-600 bg-ink-800 px-5 py-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-vermillion-500 mb-1">To Improve</p>
+                    <p className="text-cream-300 text-sm">{currentSession.grade.rankFeedback}</p>
+                  </div>
+                )}
+
                 <EloChangeSummary event={currentSession.rankEvent} />
                 <RankProgress
                   elo={getProgressFromSessions(getSessions()).currentElo}

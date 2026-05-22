@@ -250,6 +250,9 @@ export default function PracticePage() {
 
     setIsGrading(true);
     try {
+      const previousProgress = getProgressFromSessions(
+        getSessions().filter((s) => s.id !== session.id)
+      );
       const response = await fetch("/api/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -257,6 +260,8 @@ export default function PracticePage() {
           messages: session.messages,
           material: session.materialContent,
           difficulty: session.difficulty ?? "hard",
+          userRank: previousProgress.currentRank.name,
+          userElo: previousProgress.currentElo,
         }),
       });
 
@@ -266,9 +271,6 @@ export default function PracticePage() {
         endTime: Date.now(),
         grade,
       };
-      const previousProgress = getProgressFromSessions(
-        getSessions().filter((s) => s.id !== session.id)
-      );
       endedSession.rankEvent = applyEloChange(
         previousProgress.currentElo,
         grade.overallGrade,

@@ -29,6 +29,8 @@ export interface Grade {
   studyAreas: string[];
   difficultyNotes?: string;
   nextPracticePlan?: string[];
+  rankFeedback?: string;
+  referenceLevel?: string;
 }
 
 export interface SessionSummary {
