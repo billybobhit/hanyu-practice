@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getUserProgress, saveSession, generateSessionId } from "@/lib/storage";
+import { getRankForElo } from "@/lib/ranks";
 import PlacementResult from "@/components/PlacementResult";
+import type { RankEvent } from "@/lib/types";
 
 interface Message {
   role: "user" | "assistant";
@@ -12,9 +15,8 @@ interface Message {
 
 interface PlacementGradeResult {
   grade: string;
-  startingElo: number;
-  rankName: string;
   referenceLevel?: string;
+  rankEvent: RankEvent;
 }
 
 export default function ZhCnPlacementPage() {
@@ -135,11 +137,43 @@ export default function ZhCnPlacementPage() {
         body: JSON.stringify({ messages, languageCode: "zh-cn" }),
       });
       const data = await res.json();
+      const startingElo: number = data.startingElo ?? 0;
+      const currentElo = getUserProgress().currentElo;
+      const rankEvent: RankEvent = {
+        eloBefore: currentElo,
+        eloAfter: currentElo + startingElo,
+        eloChange: startingElo,
+        rankBefore: getRankForElo(currentElo).name,
+        rankAfter: getRankForElo(currentElo + startingElo).name,
+      };
+      const overallScore = data.overallScore ?? 65;
+      saveSession({
+        id: generateSessionId(),
+        materialTitle: "Placement Assessment · Simplified Chinese",
+        materialContent: "",
+        difficulty: "hard",
+        messages: [],
+        startTime: Date.now(),
+        endTime: Date.now(),
+        grade: {
+          overallGrade: data.overallGrade ?? "C",
+          overallScore,
+          vocabularyScore: overallScore,
+          grammarScore: overallScore,
+          comprehensionScore: overallScore,
+          strengths: [],
+          improvements: [],
+          studyAreas: [],
+          difficultyNotes: "",
+          nextPracticePlan: [],
+          referenceLevel: data.referenceLevel,
+        },
+        rankEvent,
+      });
       setResult({
         grade: data.overallGrade ?? "C",
-        startingElo: data.startingElo ?? 0,
-        rankName: data.rankName ?? "Noob",
         referenceLevel: data.referenceLevel,
+        rankEvent,
       });
     } catch {
       setIsGrading(false);
@@ -158,9 +192,8 @@ export default function ZhCnPlacementPage() {
     return (
       <PlacementResult
         grade={result.grade}
-        startingElo={result.startingElo}
-        rankName={result.rankName}
         referenceLevel={result.referenceLevel}
+        rankEvent={result.rankEvent}
         onComplete={() => router.push("/zh-cn")}
       />
     );

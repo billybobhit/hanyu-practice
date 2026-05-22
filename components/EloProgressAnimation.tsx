@@ -9,6 +9,7 @@ type AnimPhase =
   | "intro"
   | "eloReveal"
   | "filling"
+  | "rankSlam"
   | "rankFlash"
   | "rankFill"
   | "hold";
@@ -17,6 +18,21 @@ interface EloProgressAnimationProps {
   event: RankEvent;
   onComplete: () => void;
 }
+
+// Glow color that matches each rank's aesthetic
+const SLAM_GLOW: Record<string, string> = {
+  Noob:         "rgba(180,180,180,0.08)",
+  Beginner:     "rgba(180,180,180,0.12)",
+  Intermediate: "rgba(200,200,200,0.18)",
+  Advanced:     "rgba(238,192,80,0.28)",
+  Pro:          "rgba(238,192,80,0.35)",
+  Iron:         "rgba(161,161,170,0.5)",
+  Gold:         "rgba(238,192,80,0.58)",
+  Diamond:      "rgba(103,232,249,0.62)",
+  Ethereal:     "rgba(217,70,239,0.66)",
+  Master:       "rgba(238,192,80,0.72)",
+  Eternal:      "rgba(103,232,249,0.78)",
+};
 
 function RankParticles({ color, count }: { color: string; count: number }) {
   const items = Array.from({ length: count }, (_, i) => {
@@ -30,10 +46,7 @@ function RankParticles({ color, count }: { color: string; count: number }) {
     };
   });
   return (
-    <div
-      className="pointer-events-none absolute inset-0 overflow-hidden"
-      style={{ zIndex: 2 }}
-    >
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: 2 }}>
       {items.map((p, i) => (
         <div
           key={i}
@@ -56,10 +69,7 @@ function RankParticles({ color, count }: { color: string; count: number }) {
   );
 }
 
-export default function EloProgressAnimation({
-  event,
-  onComplete,
-}: EloProgressAnimationProps) {
+export default function EloProgressAnimation({ event, onComplete }: EloProgressAnimationProps) {
   const oldProgress = getRankProgress(event.eloBefore);
   const newProgress = getRankProgress(event.eloAfter);
 
@@ -67,11 +77,9 @@ export default function EloProgressAnimation({
   const rankUp = rankChanged && event.eloAfter >= event.eloBefore;
   const rankDown = rankChanged && event.eloAfter < event.eloBefore;
 
-  const newRankConfig =
-    RANKS.find((r) => r.name === event.rankAfter) ?? RANKS[0];
+  const newRankConfig = RANKS.find((r) => r.name === event.rankAfter) ?? RANKS[0];
   const isPremium = newRankConfig.minElo >= 3300;
-  const isElite =
-    newRankConfig.name === "Master" || newRankConfig.name === "Eternal";
+  const isElite = newRankConfig.name === "Master" || newRankConfig.name === "Eternal";
   const isMax = newProgress.isMaxRank;
 
   const [phase, setPhase] = useState<AnimPhase>("intro");
@@ -82,6 +90,7 @@ export default function EloProgressAnimation({
 
   const eloPositive = event.eloChange >= 0;
   const eloColor = eloPositive ? "#86efac" : "#F55040";
+  const slamGlow = SLAM_GLOW[event.rankAfter] ?? "rgba(180,180,180,0.15)";
 
   useEffect(() => {
     const prefersReduced =
@@ -99,48 +108,43 @@ export default function EloProgressAnimation({
     const t: ReturnType<typeof setTimeout>[] = [];
 
     t.push(setTimeout(() => setPhase("eloReveal"), 500));
-
-    t.push(
-      setTimeout(() => {
-        setPhase("filling");
-        if (!rankChanged) {
-          setBarPercent(isMax ? 100 : newProgress.percentToNextRank);
-        } else if (rankUp) {
-          setBarPercent(100);
-        } else {
-          setBarPercent(0);
-        }
-      }, 1100)
-    );
+    t.push(setTimeout(() => {
+      setPhase("filling");
+      if (!rankChanged) {
+        setBarPercent(isMax ? 100 : newProgress.percentToNextRank);
+      } else if (rankUp) {
+        setBarPercent(100);
+      } else {
+        setBarPercent(0);
+      }
+    }, 1100));
 
     if (!rankChanged) {
       t.push(setTimeout(() => setPhase("hold"), 2700));
+    } else if (rankUp) {
+      // Rank-up path: filling → rankSlam → rankFlash → rankFill → hold
+      t.push(setTimeout(() => setPhase("rankSlam"), 2400));
+      t.push(setTimeout(() => {
+        setPhase("rankFlash");
+        setActiveBadgeRank(event.rankAfter);
+        setShowRankChangeBanner(true);
+        if (isPremium) setShowParticles(true);
+        setBarPercent(0);
+      }, 3700));
+      t.push(setTimeout(() => {
+        setPhase("rankFill");
+        setBarPercent(isMax ? 100 : newProgress.percentToNextRank);
+      }, 4150));
+      t.push(setTimeout(() => setPhase("hold"), 5600));
     } else {
-      t.push(
-        setTimeout(() => {
-          setPhase("rankFlash");
-          setActiveBadgeRank(event.rankAfter);
-          setShowRankChangeBanner(true);
-          if (isPremium && rankUp) setShowParticles(true);
-          if (rankDown) {
-            setBarPercent(isMax ? 100 : newProgress.percentToNextRank);
-          } else {
-            setBarPercent(0);
-          }
-        }, 2500)
-      );
-
-      if (rankUp) {
-        t.push(
-          setTimeout(() => {
-            setPhase("rankFill");
-            setBarPercent(isMax ? 100 : newProgress.percentToNextRank);
-          }, 2950)
-        );
-        t.push(setTimeout(() => setPhase("hold"), 4400));
-      } else {
-        t.push(setTimeout(() => setPhase("hold"), 3600));
-      }
+      // Rank-down path: filling → rankFlash → hold
+      t.push(setTimeout(() => {
+        setPhase("rankFlash");
+        setActiveBadgeRank(event.rankAfter);
+        setShowRankChangeBanner(true);
+        setBarPercent(isMax ? 100 : newProgress.percentToNextRank);
+      }, 2500));
+      t.push(setTimeout(() => setPhase("hold"), 3600));
     }
 
     return () => t.forEach(clearTimeout);
@@ -153,16 +157,13 @@ export default function EloProgressAnimation({
         ? "width 0.9s cubic-bezier(0.22,1,0.36,1)"
         : "none";
 
-  const activeRankConfig =
-    RANKS.find((r) => r.name === activeBadgeRank) ?? RANKS[0];
-  const nextRankForActive =
-    RANKS.find((r) => r.minElo > activeRankConfig.minElo) ?? null;
+  const activeRankConfig = RANKS.find((r) => r.name === activeBadgeRank) ?? RANKS[0];
+  const nextRankForActive = RANKS.find((r) => r.minElo > activeRankConfig.minElo) ?? null;
   const isActiveMax = !nextRankForActive;
 
   const showingRankUp = showRankChangeBanner && rankUp;
   const showingRankDown = showRankChangeBanner && rankDown;
 
-  // Bar gradient — prismatic for elite, gold for premium, standard otherwise
   const barGradient =
     isElite && phase !== "intro" && phase !== "eloReveal" && phase !== "filling"
       ? "linear-gradient(90deg, #d946ef, #67e8f9, #EEC050)"
@@ -170,10 +171,8 @@ export default function EloProgressAnimation({
         ? "linear-gradient(90deg, #EEC050aa, #EEC050)"
         : "linear-gradient(90deg, #F55040, #EEC050cc, #EEC050)";
 
-  // Background — subtle glow for elite new rank
   const bgGlow =
-    (phase === "rankFlash" || phase === "rankFill" || phase === "hold") &&
-    isElite
+    (phase === "rankFlash" || phase === "rankFill" || phase === "hold") && isElite
       ? newRankConfig.name === "Eternal"
         ? "radial-gradient(ellipse at center, rgba(103,232,249,0.12) 0%, #060A14 65%)"
         : "radial-gradient(ellipse at center, rgba(238,192,80,0.12) 0%, #060A14 65%)"
@@ -184,6 +183,62 @@ export default function EloProgressAnimation({
       className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
       style={{ background: bgGlow ?? "#060A14" }}
     >
+      {/* ── Rank-up slam overlay ── */}
+      {phase === "rankSlam" && (
+        <div
+          className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5"
+          style={{
+            background: "#000",
+            animation: "screenShake 0.35s 0.3s ease-out both",
+          }}
+        >
+          {/* Glow bloom */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: `radial-gradient(ellipse at center, ${slamGlow} 0%, transparent 65%)`,
+              animation: "slamGlow 0.9s ease-out both",
+            }}
+          />
+          {/* Badge slam */}
+          <div
+            style={{
+              animation: "rankSlamIn 0.85s cubic-bezier(0.12,0.8,0.32,1) both",
+              position: "relative",
+              zIndex: 2,
+              filter: `drop-shadow(0 0 28px ${slamGlow}) drop-shadow(0 0 56px ${slamGlow})`,
+            }}
+          >
+            <RankBadge rank={event.rankAfter} size="xl" />
+          </div>
+          {/* Rank name */}
+          <p
+            className="text-3xl font-bold text-cream-100"
+            style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              animation: "fadeInUp 0.4s 0.65s ease-out both",
+              opacity: 0,
+              position: "relative",
+              zIndex: 2,
+              textShadow: `0 0 18px ${slamGlow}`,
+            }}
+          >
+            {event.rankAfter}
+          </p>
+          <p
+            className="text-xs uppercase tracking-[0.3em] text-gold-400"
+            style={{
+              animation: "fadeInUp 0.4s 0.85s ease-out both",
+              opacity: 0,
+              position: "relative",
+              zIndex: 2,
+            }}
+          >
+            ✦ Rank Up ✦
+          </p>
+        </div>
+      )}
+
       {showParticles && isPremium && (
         <RankParticles
           color={isElite ? (newRankConfig.name === "Eternal" ? "#67e8f9" : "#EEC050") : "#EEC050"}
@@ -213,10 +268,7 @@ export default function EloProgressAnimation({
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
                 textShadow:
-                  isElite &&
-                  (phase === "rankFlash" ||
-                    phase === "rankFill" ||
-                    phase === "hold")
+                  isElite && (phase === "rankFlash" || phase === "rankFill" || phase === "hold")
                     ? `0 0 24px ${newRankConfig.name === "Eternal" ? "#67e8f9" : "#EEC050"}`
                     : undefined,
               }}
@@ -230,20 +282,14 @@ export default function EloProgressAnimation({
         <div className="text-center">
           <p
             className="text-5xl font-bold tabular-nums"
-            style={{
-              color: "#EDE4D4",
-              fontFamily: "'Cormorant Garamond', serif",
-            }}
+            style={{ color: "#EDE4D4", fontFamily: "'Cormorant Garamond', serif" }}
           >
             {event.eloBefore.toLocaleString()}
           </p>
           <p className="mt-1 text-xs tracking-widest text-cream-600">ELO</p>
 
           {phase !== "intro" && (
-            <div
-              className="mt-3"
-              style={{ animation: "fadeInUp 0.4s ease-out both" }}
-            >
+            <div className="mt-3" style={{ animation: "fadeInUp 0.4s ease-out both" }}>
               <span
                 className="text-3xl font-bold"
                 style={{ color: eloColor, fontFamily: "'Cormorant Garamond', serif" }}
@@ -251,9 +297,7 @@ export default function EloProgressAnimation({
                 {eloPositive ? "+" : ""}
                 {event.eloChange} ELO
               </span>
-              <p className="mt-1 text-xs text-cream-600">
-                → {event.eloAfter.toLocaleString()} ELO
-              </p>
+              <p className="mt-1 text-xs text-cream-600">→ {event.eloAfter.toLocaleString()} ELO</p>
             </div>
           )}
         </div>
@@ -292,9 +336,7 @@ export default function EloProgressAnimation({
               {isElite ? " ✦" : ""}
             </p>
             {isMax && (
-              <p className="mt-1 text-xs text-gold-500">
-                You have reached the highest rank.
-              </p>
+              <p className="mt-1 text-xs text-gold-500">You have reached the highest rank.</p>
             )}
           </div>
         )}
@@ -321,7 +363,7 @@ export default function EloProgressAnimation({
         )}
       </div>
 
-      {phase !== "hold" && (
+      {phase !== "hold" && phase !== "rankSlam" && (
         <button
           onClick={onComplete}
           className="absolute bottom-7 right-7 z-30 cursor-pointer text-sm text-cream-600 transition-colors hover:text-cream-300"

@@ -132,6 +132,20 @@ body {
   100% { transform: translateY(0)    scaleY(1); opacity: 1; }
 }
 
+@keyframes rankSlamIn {
+  0%   { transform: scale(0.05) translateY(-280px); opacity: 0; }
+  55%  { transform: scale(1.28) translateY(8px);    opacity: 1; }
+  70%  { transform: scale(0.92) translateY(-3px); }
+  83%  { transform: scale(1.07) translateY(0); }
+  100% { transform: scale(1)    translateY(0); }
+}
+
+@keyframes slamGlow {
+  0%   { opacity: 0; transform: scale(0.6); }
+  40%  { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0.7; transform: scale(1); }
+}
+
 @keyframes flavorScrollUp {
   from { transform: translateY(60px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }

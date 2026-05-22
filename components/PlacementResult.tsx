@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import RankBadge from "@/components/RankBadge";
+import EloProgressAnimation from "@/components/EloProgressAnimation";
+import type { RankEvent } from "@/lib/types";
 
-type Phase = "analyzing" | "grade" | "rank" | "hold";
+type Phase = "analyzing" | "grade" | "elo";
 
 const gradeColor: Record<string, string> = {
   A: "#EEC050",
@@ -15,35 +16,35 @@ const gradeColor: Record<string, string> = {
 
 interface PlacementResultProps {
   grade: string;
-  startingElo: number;
-  rankName: string;
   referenceLevel?: string;
+  rankEvent: RankEvent;
   onComplete: () => void;
 }
 
 export default function PlacementResult({
   grade,
-  startingElo,
-  rankName,
   referenceLevel,
+  rankEvent,
   onComplete,
 }: PlacementResultProps) {
   const [phase, setPhase] = useState<Phase>("analyzing");
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setPhase("hold");
+      setPhase("elo");
       return;
     }
-    const t1 = setTimeout(() => setPhase("grade"), 1800);
-    const t2 = setTimeout(() => setPhase("rank"), 3800);
-    const t3 = setTimeout(() => setPhase("hold"), 6300);
+    const t1 = setTimeout(() => setPhase("grade"), 1600);
+    const t2 = setTimeout(() => setPhase("elo"), 4200);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
-      clearTimeout(t3);
     };
   }, []);
+
+  if (phase === "elo") {
+    return <EloProgressAnimation event={rankEvent} onComplete={onComplete} />;
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-ink-950/95 backdrop-blur-md">
@@ -69,7 +70,7 @@ export default function PlacementResult({
       )}
 
       {/* Phase 2: Grade reveal */}
-      {(phase === "grade" || phase === "rank" || phase === "hold") && (
+      {phase === "grade" && (
         <div className="flex flex-col items-center gap-6">
           <p className="text-cream-500 text-xs uppercase tracking-[0.2em] mb-2">Placement Result</p>
           <div
@@ -77,7 +78,7 @@ export default function PlacementResult({
             style={{
               fontFamily: "'Cormorant Garamond', serif",
               color: gradeColor[grade] ?? "#EDE4D4",
-              animation: phase === "grade" ? "gradeDropIn 0.6s cubic-bezier(0.22,1,0.36,1) both, letterSlam 0.12s 0.55s ease-out both" : "none",
+              animation: "gradeDropIn 0.6s cubic-bezier(0.22,1,0.36,1) both, letterSlam 0.12s 0.55s ease-out both",
             }}
           >
             {grade}
@@ -87,42 +88,13 @@ export default function PlacementResult({
               {referenceLevel}
             </p>
           )}
-        </div>
-      )}
-
-      {/* Phase 3: Rank reveal */}
-      {(phase === "rank" || phase === "hold") && (
-        <div className="flex flex-col items-center gap-4 mt-10 animate-fade-up">
-          <p className="text-cream-500 text-xs uppercase tracking-[0.2em]">Your Starting Rank</p>
-          <RankBadge elo={startingElo} size="lg" />
-          <p
-            className="text-2xl font-semibold text-cream-100"
-            style={{ fontFamily: "'Cormorant Garamond', serif" }}
+          <button
+            onClick={() => setPhase("elo")}
+            className="mt-4 cursor-pointer rounded-full bg-gold-600 px-6 py-2.5 text-sm font-bold text-ink-900 transition-all hover:bg-gold-500 animate-fade-up"
           >
-            {rankName}
-          </p>
-          <p className="text-cream-600 text-xs">{startingElo} ELO</p>
+            Continue →
+          </button>
         </div>
-      )}
-
-      {/* Hold: CTA */}
-      {phase === "hold" && (
-        <button
-          onClick={onComplete}
-          className="mt-10 cursor-pointer rounded-full bg-gold-600 px-8 py-3.5 text-sm font-bold text-ink-900 shadow-[0_0_18px_rgba(238,192,80,0.4)] transition-all hover:bg-gold-500 hover:shadow-[0_0_28px_rgba(238,192,80,0.6)] animate-fade-up"
-        >
-          Begin Practicing →
-        </button>
-      )}
-
-      {/* Skip */}
-      {phase !== "hold" && (
-        <button
-          onClick={() => setPhase("hold")}
-          className="absolute bottom-8 right-8 text-cream-700 hover:text-cream-500 text-xs cursor-pointer transition-colors"
-        >
-          Skip
-        </button>
       )}
     </div>
   );

@@ -3,13 +3,14 @@ import { getRankForElo, type RankName, RANKS } from "@/lib/ranks";
 interface RankBadgeProps {
   rank?: RankName | string;
   elo?: number;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
 const sizeClasses = {
   sm: "h-9 w-9 text-xs",
   md: "h-14 w-14 text-sm",
   lg: "h-20 w-20 text-xl",
+  xl: "h-36 w-36 text-4xl",
 };
 
 export default function RankBadge({ rank, elo = 0, size = "md" }: RankBadgeProps) {
