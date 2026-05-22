@@ -180,13 +180,13 @@ export default function EloProgressAnimation({ event, onComplete }: EloProgressA
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
+      className="fixed inset-0 z-[1000] flex flex-col items-center justify-center px-6"
       style={{ background: bgGlow ?? "#060A14" }}
     >
       {/* ── Rank-up slam overlay ── */}
       {phase === "rankSlam" && (
         <div
-          className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5"
+          className="fixed inset-0 z-[1010] flex flex-col items-center justify-center gap-5"
           style={{
             background: "#000",
             animation: "screenShake 0.35s 0.3s ease-out both",
