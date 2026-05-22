@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isDev } from "@/lib/dev";
 
 export async function POST() {
   const supabase = await createClient();
@@ -11,7 +12,7 @@ export async function POST() {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!profile?.is_dev) {
+  if (!profile?.is_dev && !isDev(user.email)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

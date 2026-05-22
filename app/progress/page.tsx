@@ -5,15 +5,37 @@ import RankBadge from "@/components/RankBadge";
 import RankProgress from "@/components/RankProgress";
 import { RANKS } from "@/lib/ranks";
 import { getSessionSummaries, getUserProgress } from "@/lib/storage";
+import { createClient } from "@/lib/supabase/client";
+import { getBestAccountElo } from "@/lib/supabase/client-rank";
+import { RANK_UPDATED_EVENT, type RankUpdatedDetail } from "@/lib/rank-events";
 import type { SessionSummary } from "@/lib/types";
 
 export default function ProgressPage() {
-  const [elo, setElo] = useState(0);
-  const [summaries, setSummaries] = useState<SessionSummary[]>([]);
+  const [elo, setElo] = useState(() =>
+    typeof window === "undefined" ? 0 : getUserProgress().currentElo
+  );
+  const [summaries, setSummaries] = useState<SessionSummary[]>(() =>
+    typeof window === "undefined" ? [] : getSessionSummaries()
+  );
 
   useEffect(() => {
-    setElo(getUserProgress().currentElo);
-    setSummaries(getSessionSummaries());
+    const refresh = async () => {
+      const supabase = createClient();
+      if (!supabase) return;
+      const accountElo = await getBestAccountElo(supabase);
+      if (accountElo !== null) setElo(accountElo);
+    };
+
+    const syncRank = (event: Event) => {
+      const detail = (event as CustomEvent<RankUpdatedDetail>).detail;
+      if (typeof detail?.elo === "number") setElo(detail.elo);
+      setSummaries(getSessionSummaries());
+      void refresh();
+    };
+
+    void refresh();
+    window.addEventListener(RANK_UPDATED_EVENT, syncRank);
+    return () => window.removeEventListener(RANK_UPDATED_EVENT, syncRank);
   }, []);
 
   return (

@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { RANK_THRESHOLDS } from "@/lib/elo";
+import { dispatchRankUpdated } from "@/lib/rank-events";
+import type { RankEvent } from "@/lib/types";
+import EloProgressAnimation from "@/components/EloProgressAnimation";
 
 interface SimulateRankModalProps {
   onClose: () => void;
@@ -13,6 +16,7 @@ export default function SimulateRankModal({ onClose }: SimulateRankModalProps) {
   const [loading, setLoading] = useState(false);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rankEvent, setRankEvent] = useState<RankEvent | null>(null);
 
   const apply = async () => {
     setLoading(true);
@@ -26,6 +30,14 @@ export default function SimulateRankModal({ onClose }: SimulateRankModalProps) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed");
+      if (data.rankEvent) {
+        dispatchRankUpdated({
+          elo: data.rankEvent.eloAfter,
+          languageCode: data.languageCode,
+          rankEvent: data.rankEvent,
+        });
+        setRankEvent(data.rankEvent);
+      }
       setConfirm(`✓ Rank set to ${data.rankSet} (${data.eloSet} ELO) for ${languageCode}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
@@ -33,6 +45,18 @@ export default function SimulateRankModal({ onClose }: SimulateRankModalProps) {
       setLoading(false);
     }
   };
+
+  if (rankEvent) {
+    return (
+      <EloProgressAnimation
+        event={rankEvent}
+        onComplete={() => {
+          dispatchRankUpdated({ elo: rankEvent.eloAfter, languageCode, rankEvent });
+          onClose();
+        }}
+      />
+    );
+  }
 
   return (
     <div

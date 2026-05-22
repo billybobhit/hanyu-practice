@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { syncSessionsWithCloud } from "@/lib/supabase/session-sync";
 import LoginModal from "@/components/LoginModal";
 import RankBadge from "@/components/RankBadge";
 import { getUserProgress } from "@/lib/storage";
+import { RANK_UPDATED_EVENT, type RankUpdatedDetail } from "@/lib/rank-events";
+import { getBestAccountElo } from "@/lib/supabase/client-rank";
 import SimulateRankModal from "@/components/dev/SimulateRankModal";
 import RawEloModal from "@/components/dev/RawEloModal";
 import {
@@ -51,13 +53,17 @@ export default function AuthButton() {
   const [showLogin, setShowLogin] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [supabase] = useState(() => createClient());
-  const [elo, setElo] = useState(0);
+  const [elo, setElo] = useState(() =>
+    typeof window === "undefined" ? 0 : getUserProgress().currentElo
+  );
   const [isDevUser, setIsDevUser] = useState(false);
-  const [devModeOn, setDevModeOn] = useState(false);
+  const [devModeOn, setDevModeOn] = useState(() =>
+    typeof window === "undefined" ? false : getDevMode()
+  );
   const [showSimulate, setShowSimulate] = useState(false);
   const [showRawElo, setShowRawElo] = useState(false);
 
-  const loadDevAccess = async (activeUser: User) => {
+  const loadDevAccess = useCallback(async (activeUser: User) => {
     const allowlisted = isDev(activeUser.email);
 
     const { data: profile } = await supabase!
@@ -66,8 +72,23 @@ export default function AuthButton() {
       .eq("user_id", activeUser.id)
       .maybeSingle();
 
-    setIsDevUser(allowlisted || !!profile?.is_dev);
-  };
+    const allowed = allowlisted || !!profile?.is_dev;
+    setIsDevUser(allowed);
+
+    if (allowed) {
+      setDevMode(true);
+      setDevModeOn(true);
+    } else {
+      setDevMode(false);
+      setDevModeOn(false);
+    }
+  }, [supabase]);
+
+  const refreshElo = useCallback(async () => {
+    if (!supabase) return;
+    const accountElo = await getBestAccountElo(supabase);
+    if (accountElo !== null) setElo(accountElo);
+  }, [supabase]);
 
   const handleSignOut = async () => {
     setShowMenu(false);
@@ -93,17 +114,24 @@ export default function AuthButton() {
   useEffect(() => {
     if (!supabase) return;
 
-    setElo(getUserProgress().currentElo);
-    setDevModeOn(getDevMode());
-
     const syncDevMode = () => setDevModeOn(localStorage.getItem(DEV_MODE_KEY) === "true");
+    const syncRank = (event: Event) => {
+      const detail = (event as CustomEvent<RankUpdatedDetail>).detail;
+      if (typeof detail?.elo === "number") {
+        setElo(detail.elo);
+        return;
+      }
+      void refreshElo();
+    };
     window.addEventListener(DEV_MODE_EVENT, syncDevMode);
+    window.addEventListener(RANK_UPDATED_EVENT, syncRank);
 
     supabase.auth.getUser().then(async ({ data }) => {
       setUser(data.user ?? null);
       if (data.user) {
         void syncSessionsWithCloud(supabase);
         await loadDevAccess(data.user);
+        await refreshElo();
       }
     });
 
@@ -116,6 +144,7 @@ export default function AuthButton() {
       if (session?.user) {
         void syncSessionsWithCloud(supabase);
         await loadDevAccess(session.user);
+        await refreshElo();
       } else {
         setIsDevUser(false);
       }
@@ -124,8 +153,9 @@ export default function AuthButton() {
     return () => {
       subscription.unsubscribe();
       window.removeEventListener(DEV_MODE_EVENT, syncDevMode);
+      window.removeEventListener(RANK_UPDATED_EVENT, syncRank);
     };
-  }, [supabase]);
+  }, [loadDevAccess, refreshElo, supabase]);
 
   if (!user) {
     return (

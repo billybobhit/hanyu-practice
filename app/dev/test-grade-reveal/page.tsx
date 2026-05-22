@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { isDev } from "@/lib/dev";
 import { getRankForElo } from "@/lib/ranks";
 import { RANK_THRESHOLDS } from "@/lib/elo";
 import GradeReveal from "@/components/GradeReveal";
@@ -32,7 +33,7 @@ export default function TestGradeRevealPage() {
         .select("is_dev")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (!data?.is_dev) { router.replace("/"); return; }
+      if (!data?.is_dev && !isDev(user.email)) { router.replace("/"); return; }
       setChecking(false);
     }
     void check();

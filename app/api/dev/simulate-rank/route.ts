@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { syncUserRank } from "@/lib/supabase/rankSync";
 import { RANK_THRESHOLDS } from "@/lib/elo";
+import { isDev } from "@/lib/dev";
+import { getRankForElo } from "@/lib/ranks";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -14,7 +16,7 @@ export async function POST(req: NextRequest) {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!profile?.is_dev) {
+  if (!profile?.is_dev && !isDev(user.email)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -30,11 +32,21 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Invalid language" }, { status: 400 });
   }
 
+  const { data: existing } = await supabase
+    .from("user_language_elo")
+    .select("elo")
+    .eq("user_id", user.id)
+    .eq("language_code", languageCode)
+    .maybeSingle();
+
+  const eloBefore = Math.max(0, Number(existing?.elo) || 0);
+  const eloAfter = rank.minElo;
+
   await supabase.from("user_language_elo").upsert(
     {
       user_id: user.id,
       language_code: languageCode,
-      elo: rank.minElo,
+      elo: eloAfter,
       has_completed_placement: true,
       updated_at: new Date().toISOString(),
     },
@@ -46,8 +58,15 @@ export async function POST(req: NextRequest) {
   return Response.json({
     ok: true,
     rankSet: rank.name,
-    eloSet: rank.minElo,
+    eloSet: eloAfter,
     languageCode,
     bestRankName: bestRank?.rankName,
+    rankEvent: {
+      eloBefore,
+      eloAfter,
+      eloChange: eloAfter - eloBefore,
+      rankBefore: getRankForElo(eloBefore).name,
+      rankAfter: getRankForElo(eloAfter).name,
+    },
   });
 }

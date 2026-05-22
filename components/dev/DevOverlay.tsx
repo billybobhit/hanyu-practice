@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getUserProgress } from "@/lib/storage";
 import { eloToRank } from "@/lib/elo";
+import { RANK_UPDATED_EVENT, type RankUpdatedDetail } from "@/lib/rank-events";
 import { DEV_MODE_KEY, DEV_MODE_EVENT, isDev } from "@/lib/dev";
 
 interface LanguageElo {
@@ -17,9 +18,11 @@ export default function DevOverlay() {
   const [visible, setVisible] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [langElos, setLangElos] = useState<LanguageElo[]>([]);
+  const [accountElo, setAccountElo] = useState<number | null>(null);
 
   const localElo = typeof window !== "undefined" ? getUserProgress().currentElo : 0;
-  const displayedRank = eloToRank(localElo);
+  const displayedElo = accountElo ?? localElo;
+  const displayedRank = eloToRank(displayedElo);
 
   const activeLanguage = pathname.startsWith("/zh-tw")
     ? "zh-tw"
@@ -79,9 +82,19 @@ export default function DevOverlay() {
         .from("user_language_elo")
         .select("language_code, elo")
         .eq("user_id", user.id);
-      if (data) setLangElos(data);
+      if (data) {
+        setLangElos(data);
+        setAccountElo(data.length ? Math.max(...data.map((row) => row.elo)) : null);
+      }
     }
     void fetchLangElos();
+    const syncRank = (event: Event) => {
+      const detail = (event as CustomEvent<RankUpdatedDetail>).detail;
+      if (typeof detail?.elo === "number") setAccountElo(detail.elo);
+      void fetchLangElos();
+    };
+    window.addEventListener(RANK_UPDATED_EVENT, syncRank);
+    return () => window.removeEventListener(RANK_UPDATED_EVENT, syncRank);
   }, [visible, pathname]);
 
   if (!visible) return null;
@@ -113,7 +126,7 @@ export default function DevOverlay() {
       <div className="max-h-[calc(40vh-3rem)] space-y-1 overflow-y-auto pr-1 text-cream-400 font-mono">
         <div className="flex justify-between">
           <span className="text-cream-600">Global ELO</span>
-          <span className="text-gold-300">{localElo.toLocaleString()}</span>
+          <span className="text-gold-300">{displayedElo.toLocaleString()}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-cream-600">Rank</span>
