@@ -58,7 +58,7 @@ export default function DevOverlay() {
     return (
       <button
         onClick={() => setMinimized(false)}
-        className="fixed bottom-4 left-4 z-[500] rounded-lg border border-gold-700 bg-ink-900 px-2 py-1 text-xs text-gold-400 shadow-xl cursor-pointer"
+        className="fixed bottom-4 left-4 z-[2147483647] rounded-lg border border-gold-700 bg-ink-900 px-2 py-1 text-xs text-gold-400 shadow-xl cursor-pointer"
         aria-label="Open developer overlay"
       >
         ⚡
@@ -67,7 +67,7 @@ export default function DevOverlay() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 z-[500] max-h-[40vh] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-gold-700 bg-ink-900/95 p-3 text-xs shadow-2xl backdrop-blur-sm">
+    <div className="fixed bottom-4 left-4 z-[2147483647] max-h-[40vh] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-gold-700 bg-ink-900/95 p-3 text-xs shadow-2xl backdrop-blur-sm">
       <div className="flex items-center justify-between mb-2">
         <span className="text-gold-400 font-bold tracking-wider">⚡ DEV</span>
         <button
