@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ChatBubble, { TypingIndicator } from "@/components/ChatBubble";
 import VoiceButton from "@/components/VoiceButton";
 import { getSession, saveSession, getCurrentSessionId } from "@/lib/storage";
+import { pushSessionToCloud } from "@/lib/supabase/session-sync";
 import type { Difficulty, Message, Session } from "@/lib/types";
 
 const difficultyLabels: Record<Difficulty, string> = {
@@ -188,6 +189,7 @@ export default function PracticePage() {
         const finalSession = { ...currentSession, messages: finalMessages };
         setSession(finalSession);
         saveSession(finalSession);
+        void pushSessionToCloud(finalSession);
 
         if (autoSpeak && assistantText) {
           speakText(assistantText);
@@ -221,6 +223,7 @@ export default function PracticePage() {
     const updated = { ...session, messages };
     setSession(updated);
     saveSession(updated);
+    void pushSessionToCloud(updated);
     setInput("");
 
     await streamAssistant(updated, messages);
@@ -258,11 +261,13 @@ export default function PracticePage() {
         grade,
       };
       saveSession(endedSession);
+      void pushSessionToCloud(endedSession);
       sessionStorage.setItem("hanyu_fresh_grade", "1");
       router.push("/zh-tw/results");
     } catch {
       const endedSession = { ...session, endTime: Date.now() };
       saveSession(endedSession);
+      void pushSessionToCloud(endedSession);
       router.push("/zh-tw/results");
     }
   };

@@ -8,6 +8,7 @@ import {
   saveSession,
   setCurrentSessionId,
 } from "@/lib/storage";
+import { pushSessionToCloud } from "@/lib/supabase/session-sync";
 import type { Difficulty, Session } from "@/lib/types";
 
 interface PracticeSetupProps {
@@ -58,6 +59,7 @@ export default function PracticeSetup({
     };
 
     saveSession(session);
+    void pushSessionToCloud(session);
     setCurrentSessionId(id);
     router.push(`${basePath}/practice`);
   };

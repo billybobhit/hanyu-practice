@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { syncSessionsWithCloud } from "@/lib/supabase/session-sync";
 import LoginModal from "@/components/LoginModal";
 
 function getFirstName(user: User) {
@@ -27,6 +28,9 @@ export default function AuthButton() {
 
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ?? null);
+      if (data.user) {
+        void syncSessionsWithCloud(supabase);
+      }
     });
 
     const {
@@ -35,6 +39,9 @@ export default function AuthButton() {
       setUser(session?.user ?? null);
       setShowLogin(false);
       setShowMenu(false);
+      if (session?.user) {
+        void syncSessionsWithCloud(supabase);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -69,12 +76,18 @@ export default function AuthButton() {
       </button>
 
       {showMenu && (
-        <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-xl border border-ink-500 bg-ink-800 shadow-xl">
+        <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-xl border border-ink-500 bg-ink-800 shadow-xl">
           <a
             href="/progress"
             className="block px-4 py-3 text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
           >
             My Progress
+          </a>
+          <a
+            href="/history"
+            className="block px-4 py-3 text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
+          >
+            Conversation History
           </a>
           <button
             onClick={() => supabase?.auth.signOut()}

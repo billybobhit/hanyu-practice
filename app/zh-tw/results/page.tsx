@@ -11,6 +11,7 @@ import {
   getSessionSummaries,
   deleteSession,
 } from "@/lib/storage";
+import { deleteSessionFromCloud } from "@/lib/supabase/session-sync";
 import type { Session, SessionSummary } from "@/lib/types";
 
 const gradeColor: Record<string, string> = {
@@ -81,6 +82,7 @@ export default function ResultsPage() {
 
   const handleDelete = (id: string) => {
     deleteSession(id);
+    void deleteSessionFromCloud(id);
     setSummaries(getSessionSummaries());
     if (currentSession?.id === id) setCurrentSession(null);
   };

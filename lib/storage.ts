@@ -27,6 +27,17 @@ export function getSessions(): Session[] {
   }
 }
 
+export function replaceSessions(sessions: Session[]): void {
+  const unique = new Map<string, Session>();
+  sessions.forEach((session) => {
+    unique.set(session.id, {
+      ...session,
+      difficulty: session.difficulty ?? "hard",
+    });
+  });
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(Array.from(unique.values())));
+}
+
 export function getSession(id: string): Session | null {
   return getSessions().find((s) => s.id === id) ?? null;
 }
