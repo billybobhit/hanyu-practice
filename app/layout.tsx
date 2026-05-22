@@ -3,10 +3,10 @@ import Navbar from "@/components/Navbar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "漢語練習 — HanYu Chinese Practice",
+  title: "HanYu",
   description: "Master Mandarin through deep Socratic AI conversations. Upload study materials and practice with an AI tutor.",
   openGraph: {
-    title: "漢語練習 — HanYu",
+    title: "HanYu",
     description: "AI-powered Socratic Chinese conversation practice",
     type: "website",
   },
