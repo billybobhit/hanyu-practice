@@ -82,7 +82,7 @@ export default function AuthButton() {
       </button>
 
       {showMenu && (
-        <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-xl border border-ink-500 bg-ink-800 shadow-xl">
+        <div className="absolute right-0 top-full mt-2 w-52 overflow-hidden rounded-xl border border-ink-500 bg-ink-800 shadow-xl">
           <a
             href="/progress"
             className="block px-4 py-3 text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
