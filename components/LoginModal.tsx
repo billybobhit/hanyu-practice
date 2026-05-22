@@ -66,7 +66,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgba(0,0,0,0.8)] p-4"
+      className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-[rgba(0,0,0,0.8)] px-4 pb-4 pt-16"
       onClick={onClose}
     >
       <div
