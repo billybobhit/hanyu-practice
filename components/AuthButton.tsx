@@ -26,6 +26,26 @@ function getFirstName(user: User) {
   return String(metadataName || fallback).split(" ")[0];
 }
 
+function isSupabaseAuthKey(key: string) {
+  return key.startsWith("sb-") && key.includes("auth-token");
+}
+
+function clearSupabaseAuthStorage() {
+  [localStorage, sessionStorage].forEach((storage) => {
+    Object.keys(storage)
+      .filter(isSupabaseAuthKey)
+      .forEach((key) => storage.removeItem(key));
+  });
+
+  document.cookie
+    .split(";")
+    .map((cookie) => cookie.split("=")[0]?.trim())
+    .filter((name): name is string => Boolean(name && isSupabaseAuthKey(name)))
+    .forEach((name) => {
+      document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax`;
+    });
+}
+
 export default function AuthButton() {
   const [user, setUser] = useState<User | null>(null);
   const [showLogin, setShowLogin] = useState(false);
@@ -51,13 +71,23 @@ export default function AuthButton() {
 
   const handleSignOut = async () => {
     setShowMenu(false);
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
     setUser(null);
     setIsDevUser(false);
     setDevMode(false);
-    window.location.href = "/";
+
+    if (supabase) {
+      void Promise.race([
+        supabase.auth.signOut({ scope: "global" }),
+        new Promise((resolve) => setTimeout(resolve, 1200)),
+      ]).finally(() => {
+        clearSupabaseAuthStorage();
+        window.location.replace("/");
+      });
+      return;
+    }
+
+    clearSupabaseAuthStorage();
+    window.location.replace("/");
   };
 
   useEffect(() => {
@@ -131,7 +161,7 @@ export default function AuthButton() {
         </button>
 
         {showMenu && (
-          <div className="absolute right-0 top-full mt-2 w-52 overflow-hidden rounded-xl border border-ink-500 bg-ink-800 shadow-xl">
+          <div className="absolute right-0 top-full z-[80] mt-2 w-56 overflow-hidden rounded-xl border border-ink-500 bg-ink-800 shadow-xl">
             <a
               href="/progress"
               className="block px-4 py-3 text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
@@ -145,6 +175,7 @@ export default function AuthButton() {
               Conversation History
             </a>
             <button
+              type="button"
               onClick={handleSignOut}
               className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
             >
@@ -157,12 +188,14 @@ export default function AuthButton() {
                   <p className="text-gold-500 text-xs font-bold tracking-widest uppercase">⚡ Developer Tools</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => { setShowMenu(false); setShowSimulate(true); }}
                   className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
                 >
                   Simulate Rank
                 </button>
                 <button
+                  type="button"
                   onClick={async () => {
                     setShowMenu(false);
                     if (!supabase) return;
@@ -173,6 +206,7 @@ export default function AuthButton() {
                   Force Placement Reset
                 </button>
                 <button
+                  type="button"
                   onClick={() => { setShowMenu(false); setShowRawElo(true); }}
                   className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
                 >
@@ -185,6 +219,7 @@ export default function AuthButton() {
                   Test Grade Reveal
                 </a>
                 <button
+                  type="button"
                   onClick={() => {
                     setDevModeOn((prev) => {
                       setDevMode(!prev);

@@ -35,11 +35,23 @@ export default function SimulateRankModal({ onClose }: SimulateRankModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl border border-gold-700/50 bg-ink-800 p-6 shadow-2xl">
+    <div
+      className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pb-6 pt-24 backdrop-blur-sm sm:items-center sm:py-8"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-sm rounded-2xl border border-gold-700/50 bg-ink-800 p-6 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-cream-100 font-semibold">⚡ Simulate Rank</h2>
-          <button onClick={onClose} className="text-cream-600 hover:text-cream-300 cursor-pointer text-sm">✕</button>
+          <button
+            onClick={onClose}
+            className="rounded-md px-2 py-1 text-sm text-cream-500 hover:bg-ink-700 hover:text-cream-200 cursor-pointer"
+            aria-label="Close simulate rank"
+          >
+            ✕
+          </button>
         </div>
 
         <div className="space-y-4">

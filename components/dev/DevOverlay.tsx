@@ -58,7 +58,8 @@ export default function DevOverlay() {
     return (
       <button
         onClick={() => setMinimized(false)}
-        className="fixed bottom-6 left-6 z-[500] rounded-lg bg-ink-900 border border-gold-700 px-2 py-1 text-xs text-gold-400 cursor-pointer"
+        className="fixed bottom-4 left-4 z-[500] rounded-lg border border-gold-700 bg-ink-900 px-2 py-1 text-xs text-gold-400 shadow-xl cursor-pointer"
+        aria-label="Open developer overlay"
       >
         ⚡
       </button>
@@ -66,17 +67,18 @@ export default function DevOverlay() {
   }
 
   return (
-    <div className="fixed bottom-6 left-6 z-[500] w-64 rounded-xl border border-gold-700 bg-ink-900/95 p-3 text-xs shadow-2xl backdrop-blur-sm">
+    <div className="fixed bottom-4 left-4 z-[500] max-h-[40vh] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-gold-700 bg-ink-900/95 p-3 text-xs shadow-2xl backdrop-blur-sm">
       <div className="flex items-center justify-between mb-2">
         <span className="text-gold-400 font-bold tracking-wider">⚡ DEV</span>
         <button
           onClick={() => setMinimized(true)}
-          className="text-cream-600 hover:text-cream-300 cursor-pointer"
+          className="rounded-md px-2 py-1 text-cream-500 hover:bg-ink-700 hover:text-cream-200 cursor-pointer"
+          aria-label="Minimize developer overlay"
         >
           ✕
         </button>
       </div>
-      <div className="space-y-1 text-cream-400 font-mono">
+      <div className="max-h-[calc(40vh-3rem)] space-y-1 overflow-y-auto pr-1 text-cream-400 font-mono">
         <div className="flex justify-between">
           <span className="text-cream-600">Global ELO</span>
           <span className="text-gold-300">{localElo.toLocaleString()}</span>
