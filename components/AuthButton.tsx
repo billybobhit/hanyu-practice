@@ -9,7 +9,13 @@ import RankBadge from "@/components/RankBadge";
 import { getUserProgress } from "@/lib/storage";
 import SimulateRankModal from "@/components/dev/SimulateRankModal";
 import RawEloModal from "@/components/dev/RawEloModal";
-import { DEV_MODE_KEY, DEV_MODE_EVENT, setDevMode, getDevMode } from "@/lib/dev";
+import {
+  DEV_MODE_KEY,
+  DEV_MODE_EVENT,
+  setDevMode,
+  getDevMode,
+  isDev,
+} from "@/lib/dev";
 
 function getFirstName(user: User) {
   const metadataName =
@@ -31,6 +37,29 @@ export default function AuthButton() {
   const [showSimulate, setShowSimulate] = useState(false);
   const [showRawElo, setShowRawElo] = useState(false);
 
+  const loadDevAccess = async (activeUser: User) => {
+    const allowlisted = isDev(activeUser.email);
+
+    const { data: profile } = await supabase!
+      .from("user_profiles")
+      .select("is_dev")
+      .eq("user_id", activeUser.id)
+      .maybeSingle();
+
+    setIsDevUser(allowlisted || !!profile?.is_dev);
+  };
+
+  const handleSignOut = async () => {
+    setShowMenu(false);
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+    setUser(null);
+    setIsDevUser(false);
+    setDevMode(false);
+    window.location.href = "/";
+  };
+
   useEffect(() => {
     if (!supabase) return;
 
@@ -44,12 +73,7 @@ export default function AuthButton() {
       setUser(data.user ?? null);
       if (data.user) {
         void syncSessionsWithCloud(supabase);
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("is_dev")
-          .eq("user_id", data.user.id)
-          .maybeSingle();
-        setIsDevUser(!!profile?.is_dev);
+        await loadDevAccess(data.user);
       }
     });
 
@@ -61,12 +85,7 @@ export default function AuthButton() {
       setShowMenu(false);
       if (session?.user) {
         void syncSessionsWithCloud(supabase);
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("is_dev")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        setIsDevUser(!!profile?.is_dev);
+        await loadDevAccess(session.user);
       } else {
         setIsDevUser(false);
       }
@@ -126,7 +145,7 @@ export default function AuthButton() {
               Conversation History
             </a>
             <button
-              onClick={() => supabase?.auth.signOut()}
+              onClick={handleSignOut}
               className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-300 transition-colors hover:bg-ink-700 hover:text-cream-100"
             >
               Sign Out
