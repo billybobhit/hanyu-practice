@@ -123,7 +123,7 @@ export default function HomePage() {
             {
               icon: "🏆",
               title: "Earn Your Rank",
-              body: "Progress from Criminal to Sun Wukong based on your performance.",
+              body: "Climb from Noob to Eternal based on your performance.",
             },
           ].map((feature) => (
             <article
@@ -159,7 +159,7 @@ export default function HomePage() {
             {
               number: "03",
               title: "Earn Your Rank",
-              body: "Get graded and unlock characters from Criminal to Sun Wukong",
+              body: "Get graded, earn ELO, and climb from Noob to Eternal",
             },
           ].map((step) => (
             <div key={step.number} className="text-center">

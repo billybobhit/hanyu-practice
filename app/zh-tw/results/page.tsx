@@ -5,13 +5,17 @@ import { useRouter } from "next/navigation";
 import GradeCard from "@/components/GradeCard";
 import GradeReveal from "@/components/GradeReveal";
 import ProgressChart from "@/components/ProgressChart";
+import EloChangeSummary from "@/components/EloChangeSummary";
+import RankProgress from "@/components/RankProgress";
 import {
   getCurrentSessionId,
   getSession,
+  getSessions,
   getSessionSummaries,
   deleteSession,
 } from "@/lib/storage";
 import { deleteSessionFromCloud } from "@/lib/supabase/session-sync";
+import { getProgressFromSessions } from "@/lib/ranks";
 import type { Session, SessionSummary } from "@/lib/types";
 
 const gradeColor: Record<string, string> = {
@@ -152,6 +156,12 @@ export default function ResultsPage() {
                   messageCount={
                     currentSession.messages.filter((m) => m.role === "user").length
                   }
+                />
+
+                <EloChangeSummary event={currentSession.rankEvent} />
+                <RankProgress
+                  elo={getProgressFromSessions(getSessions()).currentElo}
+                  compact
                 />
 
                 {/* Session meta */}

@@ -15,6 +15,7 @@ export interface Session {
   startTime: number;
   endTime?: number;
   grade?: Grade;
+  rankEvent?: RankEvent;
 }
 
 export interface Grade {
@@ -39,4 +40,14 @@ export interface SessionSummary {
   overallScore: number;
   messageCount: number;
   difficulty: Difficulty;
+  eloChange?: number;
+  eloAfter?: number;
+}
+
+export interface RankEvent {
+  eloBefore: number;
+  eloAfter: number;
+  eloChange: number;
+  rankBefore: string;
+  rankAfter: string;
 }

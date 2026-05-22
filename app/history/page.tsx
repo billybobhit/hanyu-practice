@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import GradeCard from "@/components/GradeCard";
+import RankProgress from "@/components/RankProgress";
 import {
   deleteSession,
   getSession,
   getSessionSummaries,
+  getUserProgress,
 } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -36,6 +38,7 @@ export default function HistoryPage() {
   const [supabase] = useState(() => createClient());
   const [summaries, setSummaries] = useState<SessionSummary[]>([]);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [currentElo, setCurrentElo] = useState(0);
   const [syncStatus, setSyncStatus] = useState<
     "local" | "syncing" | "synced" | "unavailable"
   >("local");
@@ -43,6 +46,7 @@ export default function HistoryPage() {
   const refreshHistory = (selectedId?: string) => {
     const nextSummaries = getSessionSummaries();
     setSummaries(nextSummaries);
+    setCurrentElo(getUserProgress().currentElo);
 
     const id = selectedId ?? nextSummaries[0]?.id;
     setSelectedSession(id ? getSession(id) : null);
@@ -112,6 +116,8 @@ export default function HistoryPage() {
 
       <div className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[minmax(0,420px)_1fr]">
         <section className="space-y-4">
+          <RankProgress elo={currentElo} compact />
+
           {summaries.length === 0 ? (
             <div className="rounded-2xl border border-ink-500 bg-ink-800 p-8 text-center">
               <p className="text-sm text-cream-400">

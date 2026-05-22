@@ -1,4 +1,5 @@
 import type { Session, SessionSummary } from "./types";
+import { getProgressFromSessions, getRankEventsForSessions } from "@/lib/ranks";
 
 const SESSIONS_KEY = "hanyu_sessions";
 const CURRENT_ID_KEY = "hanyu_current_id";
@@ -48,19 +49,32 @@ export function deleteSession(id: string): void {
 }
 
 export function getSessionSummaries(): SessionSummary[] {
-  return getSessions()
+  const sessions = getSessions();
+  const rankEvents = getRankEventsForSessions(sessions);
+
+  return sessions
     .filter((s) => s.endTime && s.grade)
-    .map((s) => ({
-      id: s.id,
-      materialTitle: s.materialTitle,
-      startTime: s.startTime,
-      endTime: s.endTime!,
-      overallGrade: s.grade!.overallGrade,
-      overallScore: s.grade!.overallScore,
-      messageCount: s.messages.length,
-      difficulty: s.difficulty ?? "hard",
-    }))
+    .map((s) => {
+      const rankEvent = rankEvents.get(s.id);
+
+      return {
+        id: s.id,
+        materialTitle: s.materialTitle,
+        startTime: s.startTime,
+        endTime: s.endTime!,
+        overallGrade: s.grade!.overallGrade,
+        overallScore: s.grade!.overallScore,
+        messageCount: s.messages.length,
+        difficulty: s.difficulty ?? "hard",
+        eloChange: rankEvent?.eloChange,
+        eloAfter: rankEvent?.eloAfter,
+      };
+    })
     .sort((a, b) => b.startTime - a.startTime);
+}
+
+export function getUserProgress() {
+  return getProgressFromSessions(getSessions());
 }
 
 export function setCurrentSessionId(id: string): void {

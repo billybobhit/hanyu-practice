@@ -4,7 +4,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import ChatBubble, { TypingIndicator } from "@/components/ChatBubble";
 import VoiceButton from "@/components/VoiceButton";
-import { getSession, saveSession, getCurrentSessionId } from "@/lib/storage";
+import {
+  getCurrentSessionId,
+  getSession,
+  getSessions,
+  saveSession,
+} from "@/lib/storage";
+import { applyEloChange, getProgressFromSessions } from "@/lib/ranks";
 import { pushSessionToCloud } from "@/lib/supabase/session-sync";
 import type { Difficulty, Message, Session } from "@/lib/types";
 
@@ -255,11 +261,19 @@ export default function PracticePage() {
       });
 
       const grade = await response.json();
-      const endedSession = {
+      const endedSession: Session = {
         ...session,
         endTime: Date.now(),
         grade,
       };
+      const previousProgress = getProgressFromSessions(
+        getSessions().filter((s) => s.id !== session.id)
+      );
+      endedSession.rankEvent = applyEloChange(
+        previousProgress.currentElo,
+        grade.overallGrade,
+        grade.overallScore
+      );
       saveSession(endedSession);
       void pushSessionToCloud(endedSession);
       sessionStorage.setItem("hanyu_fresh_grade", "1");
