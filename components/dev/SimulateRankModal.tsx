@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { RANK_THRESHOLDS } from "@/lib/elo";
 import { dispatchRankUpdated } from "@/lib/rank-events";
 import type { RankEvent } from "@/lib/types";
@@ -47,14 +48,15 @@ export default function SimulateRankModal({ onClose }: SimulateRankModalProps) {
   };
 
   if (rankEvent) {
-    return (
+    return createPortal(
       <EloProgressAnimation
         event={rankEvent}
         onComplete={() => {
           dispatchRankUpdated({ elo: rankEvent.eloAfter, languageCode, rankEvent });
           onClose();
         }}
-      />
+      />,
+      document.body
     );
   }
 
