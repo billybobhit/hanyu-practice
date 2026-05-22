@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getUserProgress } from "@/lib/storage";
 import { eloToRank } from "@/lib/elo";
-import { DEV_MODE_KEY, DEV_MODE_EVENT } from "@/lib/dev";
+import { DEV_MODE_KEY, DEV_MODE_EVENT, isDev } from "@/lib/dev";
 
 interface LanguageElo {
   language_code: string;
@@ -28,12 +28,44 @@ export default function DevOverlay() {
       : "—";
 
   useEffect(() => {
-    const check = () => {
-      setVisible(localStorage.getItem(DEV_MODE_KEY) === "true");
+    let active = true;
+    const supabase = createClient();
+
+    const check = async () => {
+      if (localStorage.getItem(DEV_MODE_KEY) !== "true" || !supabase) {
+        if (active) setVisible(false);
+        return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        if (active) setVisible(false);
+        return;
+      }
+
+      let allowed = isDev(user.email);
+      if (!allowed) {
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("is_dev")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        allowed = !!profile?.is_dev;
+      }
+
+      if (active) setVisible(allowed);
     };
-    check();
+    void check();
     window.addEventListener(DEV_MODE_EVENT, check);
-    return () => window.removeEventListener(DEV_MODE_EVENT, check);
+    const subscription = supabase?.auth.onAuthStateChange(() => {
+      void check();
+    }).data.subscription;
+
+    return () => {
+      active = false;
+      window.removeEventListener(DEV_MODE_EVENT, check);
+      subscription?.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -58,7 +90,7 @@ export default function DevOverlay() {
     return (
       <button
         onClick={() => setMinimized(false)}
-        className="fixed bottom-4 left-4 z-[2147483647] rounded-lg border border-gold-700 bg-ink-900 px-2 py-1 text-xs text-gold-400 shadow-xl cursor-pointer"
+        className="fixed bottom-4 left-4 z-[500] rounded-lg border border-gold-700 bg-ink-900 px-2 py-1 text-xs text-gold-400 shadow-xl cursor-pointer"
         aria-label="Open developer overlay"
       >
         ⚡
@@ -67,7 +99,7 @@ export default function DevOverlay() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 z-[2147483647] max-h-[40vh] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-gold-700 bg-ink-900/95 p-3 text-xs shadow-2xl backdrop-blur-sm">
+    <div className="fixed bottom-4 left-4 z-[500] max-h-[40vh] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-gold-700 bg-ink-900/95 p-3 text-xs shadow-2xl backdrop-blur-sm">
       <div className="flex items-center justify-between mb-2">
         <span className="text-gold-400 font-bold tracking-wider">⚡ DEV</span>
         <button
