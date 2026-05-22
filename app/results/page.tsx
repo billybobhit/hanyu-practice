@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import GradeCard from "@/components/GradeCard";
 import GradeReveal from "@/components/GradeReveal";
+import EloProgressAnimation from "@/components/EloProgressAnimation";
 import ProgressChart from "@/components/ProgressChart";
 import EloChangeSummary from "@/components/EloChangeSummary";
 import RankProgress from "@/components/RankProgress";
@@ -15,7 +16,7 @@ import {
   deleteSession,
 } from "@/lib/storage";
 import { deleteSessionFromCloud } from "@/lib/supabase/session-sync";
-import { getProgressFromSessions } from "@/lib/ranks";
+import { applyEloChange, getProgressFromSessions } from "@/lib/ranks";
 import type { Session, SessionSummary } from "@/lib/types";
 
 const gradeColor: Record<string, string> = {
@@ -38,6 +39,7 @@ export default function ResultsPage() {
   const [summaries, setSummaries] = useState<SessionSummary[]>([]);
   const [tab, setTab] = useState<"current" | "history">("current");
   const [showReveal, setShowReveal] = useState(false);
+  const [showEloAnim, setShowEloAnim] = useState(false);
 
   useEffect(() => {
     // Dev preview mode: /results?preview=A
@@ -47,6 +49,8 @@ export default function ResultsPage() {
     if (preview && validGrades.includes(preview)) {
       const scoreMap: Record<string, number> = { A: 95, B: 83, C: 74, D: 63, F: 42 };
       const score = scoreMap[preview] ?? 75;
+      const grade = preview as "A" | "B" | "C" | "D" | "F";
+      const rankEvent = applyEloChange(0, grade, score);
       setCurrentSession({
         id: "dev-preview",
         materialTitle: "Dev Preview",
@@ -56,7 +60,7 @@ export default function ResultsPage() {
         startTime: Date.now(),
         endTime: Date.now(),
         grade: {
-          overallGrade: preview as "A" | "B" | "C" | "D" | "F",
+          overallGrade: grade,
           overallScore: score,
           vocabularyScore: score,
           grammarScore: score,
@@ -67,6 +71,7 @@ export default function ResultsPage() {
           difficultyNotes: "Dev preview mode.",
           nextPracticePlan: ["Review the animation preview."],
         },
+        rankEvent,
       });
       setShowReveal(true);
       return;
@@ -97,7 +102,16 @@ export default function ResultsPage() {
         <GradeReveal
           grade={currentSession.grade.overallGrade}
           gradeData={currentSession.grade}
-          onComplete={() => setShowReveal(false)}
+          onComplete={() => {
+            setShowReveal(false);
+            if (currentSession.rankEvent) setShowEloAnim(true);
+          }}
+        />
+      )}
+      {showEloAnim && currentSession?.rankEvent && (
+        <EloProgressAnimation
+          event={currentSession.rankEvent}
+          onComplete={() => setShowEloAnim(false)}
         />
       )}
       {/* Header */}

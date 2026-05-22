@@ -68,11 +68,30 @@ Grading criteria:
 - comprehensionScore: depth of understanding of the material, quality of analysis
 - overallScore: weighted average (vocab 25%, grammar 35%, comprehension 40%)
 - overallGrade: A=90-100, B=80-89, C=70-79, D=60-69, F=below 60
-- EASY mode: reward comprehension and willingness to use Chinese terms, but do not over-penalize English scaffolding.
-- MEDIUM mode: evaluate Chinese output and pinyin-supported comprehension; reward correct Chinese terms even if pinyin is used heavily.
-- HARD mode: evaluate sustained Mandarin-only communication more strictly.
 
-Be honest, specific, and useful. A student who gives short answers or shows shallow comprehension should not get high scores. Feedback must be in English and should give clear next steps.`;
+Grade anchors — use these to calibrate your scoring:
+- A (90-100): The student performed clearly and impressively well. Strong comprehension, mostly accurate Chinese, engaged throughout. Minor errors are fine — consistent high quality earns an A.
+- B (80-89): The student was solid. Showed genuine effort, communicated understandably, got mostly correct answers. Some mistakes are expected and acceptable. A good, real conversation with mostly correct Chinese earns a B.
+- C (70-79): Partial performance. Some correct answers mixed with errors. The student tried but understanding was uneven or Chinese output was limited. Still a genuine, passing attempt.
+- D (60-69): The student struggled. Mostly incorrect answers, shallow responses, or significant communication breakdowns. Some engagement but not meeting the basics.
+- F (below 60): Very weak. Minimal effort, mostly wrong or incomprehensible responses, or barely any Chinese output. Reserved for genuinely low-effort or failed sessions.
+
+Reward the following behaviors:
+- Consistent effort and engagement throughout the conversation
+- Understandable communication, even with imperfect grammar or vocabulary
+- Improvement or self-correction during the conversation
+- Willingness to attempt answers and correct mistakes when guided
+- Mostly correct answers, even with minor grammatical slips
+- Meaningful engagement with the topic and material
+
+Do NOT penalize minor errors that don't impede communication. Do NOT default to harsh scoring — if the student clearly tried and communicated understandably, that is at least a C; if they performed solidly across the session, that is a B.
+
+Mode adjustments:
+- EASY mode: reward comprehension and willingness to use Chinese terms; do not over-penalize English scaffolding. A genuine EASY session with real Chinese output and correct understanding deserves at least a B.
+- MEDIUM mode: evaluate Chinese output and pinyin-supported comprehension; reward correct Chinese terms even if pinyin is used. Solid MEDIUM performance earns a B.
+- HARD mode: evaluate sustained Mandarin-only communication more strictly; heavily English-scaffolded responses pull scores down significantly.
+
+Be honest, specific, and useful. Reserve D and F for conversations that were genuinely weak, minimal-effort, mostly incorrect, or barely engaged. Feedback must be in English and should give clear next steps.`;
 
   try {
     let text = "";

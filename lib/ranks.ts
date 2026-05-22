@@ -111,7 +111,7 @@ export function calculateEloChange(grade: unknown, percentScore: unknown) {
   }
 
   if (normalizedGrade === "C") {
-    return 0;
+    return Math.round(scale(score, 70, 79) * 20);
   }
 
   if (normalizedGrade === "D") {
