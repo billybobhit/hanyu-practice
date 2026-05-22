@@ -12,6 +12,7 @@ import {
 } from "@/lib/storage";
 import { applyEloChange, getProgressFromSessions } from "@/lib/ranks";
 import { pushSessionToCloud } from "@/lib/supabase/session-sync";
+import { createClient } from "@/lib/supabase/client";
 import type { Difficulty, Message, Session } from "@/lib/types";
 
 const difficultyLabels: Record<Difficulty, string> = {
@@ -253,6 +254,11 @@ export default function PracticePage() {
       const previousProgress = getProgressFromSessions(
         getSessions().filter((s) => s.id !== session.id)
       );
+      const supabase = createClient();
+      const userId = supabase
+        ? (await supabase.auth.getUser()).data.user?.id
+        : undefined;
+
       const response = await fetch("/zh-cn/api/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -262,6 +268,8 @@ export default function PracticePage() {
           difficulty: session.difficulty ?? "hard",
           userRank: previousProgress.currentRank.name,
           userElo: previousProgress.currentElo,
+          languageCode: "zh-cn",
+          userId,
         }),
       });
 

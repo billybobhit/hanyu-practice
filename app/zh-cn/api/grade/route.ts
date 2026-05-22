@@ -2,6 +2,9 @@ import OpenAI from "openai";
 import { NextRequest } from "next/server";
 import { OPENROUTER_TEXT_FALLBACK_MODELS } from "@/lib/openrouter-models";
 import type { Difficulty } from "@/lib/types";
+import { createClient } from "@/lib/supabase/server";
+import { syncUserRank } from "@/lib/supabase/rankSync";
+import { calculateEloChange, getRankForElo } from "@/lib/ranks";
 
 // ── Universal rules injected into every rank ──────────────────────────────────
 const UNIVERSAL_RULES = `UNIVERSAL RULES FOR ALL RANKS (apply without exception):
@@ -293,7 +296,7 @@ export async function POST(req: NextRequest) {
     apiKey,
   });
 
-  const { messages, material, difficulty, userRank, userElo } = await req.json();
+  const { messages, material, difficulty, userRank, userElo, languageCode, userId } = await req.json();
   const selectedDifficulty: Difficulty =
     difficulty === "easy" || difficulty === "medium" || difficulty === "hard"
       ? difficulty
@@ -301,6 +304,24 @@ export async function POST(req: NextRequest) {
 
   const rankName: string = typeof userRank === "string" && userRank ? userRank : "Noob";
   const rankElo: number = typeof userElo === "number" ? userElo : 0;
+
+  let dbElo: number | undefined;
+  if (typeof languageCode === "string" && typeof userId === "string" && languageCode && userId) {
+    try {
+      const supabase = await createClient();
+      const { data } = await supabase
+        .from("user_language_elo")
+        .select("elo")
+        .eq("user_id", userId)
+        .eq("language_code", languageCode)
+        .maybeSingle();
+      if (data != null) dbElo = data.elo;
+    } catch {
+      // fall back to client-sent values
+    }
+  }
+  const effectiveElo = dbElo ?? rankElo;
+  const effectiveRank = dbElo != null ? getRankForElo(dbElo).name : rankName;
 
   const userMessages = messages.filter(
     (m: { role: string }) => m.role === "user"
@@ -319,7 +340,7 @@ export async function POST(req: NextRequest) {
     )
     .join("\n");
 
-  const rubric = getRubric(rankName);
+  const rubric = getRubric(effectiveRank);
 
   const prompt = `${rubric}
 
@@ -327,7 +348,7 @@ ${UNIVERSAL_RULES}
 
 ---
 
-Student rank: ${rankName} (${rankElo} ELO)
+Student rank: ${effectiveRank} (${effectiveElo} ELO)
 Study Material Context: ${material || "(General conversation, no specific material)"}
 Difficulty: ${selectedDifficulty.toUpperCase()}
 
@@ -355,7 +376,7 @@ Scoring dimensions:
 - grammarScore: sentence structure appropriate for this rank level
 - comprehensionScore: depth of understanding and response quality for this rank level
 - overallScore: weighted average (vocab 25%, grammar 35%, comprehension 40%)
-- overallGrade: calibrated to the ${rankName} rank standard above
+- overallGrade: calibrated to the ${effectiveRank} rank standard above
 
 Mode adjustments:
 - EASY mode: reward comprehension and willingness; do not over-penalize English scaffolding.
@@ -393,7 +414,40 @@ Mode adjustments:
     }
 
     const grade = JSON.parse(jsonMatch[0]);
-    return Response.json(grade);
+
+    let extraFields: Record<string, unknown> = {};
+    if (typeof languageCode === "string" && typeof userId === "string" && languageCode && userId) {
+      try {
+        const supabase = await createClient();
+        const currentElo = dbElo ?? 0;
+        const newElo = Math.max(0, currentElo + calculateEloChange(grade.overallGrade, grade.overallScore));
+        await supabase.from("user_language_elo").upsert(
+          {
+            user_id: userId,
+            language_code: languageCode,
+            elo: newElo,
+            has_completed_placement: true,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,language_code" }
+        );
+        const bestRank = await syncUserRank(userId, supabase);
+        const { data: allRows } = await supabase
+          .from("user_language_elo")
+          .select("elo")
+          .eq("user_id", userId);
+        const globalEloSum = allRows?.reduce((sum: number, row: { elo: number }) => sum + (row.elo ?? 0), 0) ?? newElo;
+        extraFields = {
+          languageEloAfter: newElo,
+          globalEloSum,
+          bestRankName: bestRank?.rankName,
+        };
+      } catch {
+        // non-fatal
+      }
+    }
+
+    return Response.json({ ...grade, ...extraFields });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return Response.json({ error: msg }, { status: 502 });
