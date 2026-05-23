@@ -250,40 +250,27 @@ export default function PracticePage() {
 
     setIsGrading(true);
     try {
-      const previousProgress = getProgressFromSessions(
-        getSessions().filter((s) => s.id !== session.id)
-      );
       const response = await fetch("/api/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: session.messages,
           material: session.materialContent,
-          difficulty: session.difficulty ?? "hard",
-          userRank: previousProgress.currentRank.name,
-          userElo: previousProgress.currentElo,
         }),
       });
 
       const grade = await response.json();
-      const endedSession: Session = {
+      const endedSession = {
         ...session,
         endTime: Date.now(),
         grade,
       };
-      endedSession.rankEvent = applyEloChange(
-        previousProgress.currentElo,
-        grade.overallGrade,
-        grade.overallScore
-      );
       saveSession(endedSession);
-      void pushSessionToCloud(endedSession);
       sessionStorage.setItem("hanyu_fresh_grade", "1");
       router.push("/results");
     } catch {
       const endedSession = { ...session, endTime: Date.now() };
       saveSession(endedSession);
-      void pushSessionToCloud(endedSession);
       router.push("/results");
     }
   };
