@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getUserProgress, saveSession, generateSessionId } from "@/lib/storage";
 import { getRankForElo } from "@/lib/ranks";
 import PlacementResult from "@/components/PlacementResult";
+import VoiceButton from "@/components/VoiceButton";
 import type { RankEvent } from "@/lib/types";
 
 interface Message {
@@ -27,10 +28,25 @@ export default function ZhCnPlacementPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
   const [result, setResult] = useState<PlacementGradeResult | null>(null);
+  const [autoSpeak, setAutoSpeak] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const userTurns = messages.filter((m) => m.role === "user").length;
+
+  const speakText = useCallback((text: string) => {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text.replace(/\([^)]+\)/g, ""));
+    utterance.lang = "zh-CN";
+    utterance.rate = 0.85;
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find((v) => v.lang.includes("zh") && v.lang.includes("CN"));
+    if (preferredVoice) utterance.voice = preferredVoice;
+    synthRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  }, []);
 
   useEffect(() => {
     async function init() {
@@ -101,11 +117,12 @@ export default function ZhCnPlacementPage() {
           return next;
         });
       }
+      if (autoSpeak && text) speakText(text);
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
     }
-  }, []);
+  }, [autoSpeak, speakText]);
 
   function startPlacement() {
     streamAssistant([]);
@@ -217,6 +234,20 @@ export default function ZhCnPlacementPage() {
           </h1>
           <p className="text-cream-600 text-xs">Simplified Chinese · {userTurns} turns</p>
         </div>
+        <button
+          onClick={() => {
+            setAutoSpeak((v) => !v);
+            if (autoSpeak) window.speechSynthesis?.cancel();
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+            autoSpeak
+              ? "bg-vermillion-700 text-vermillion-200"
+              : "bg-ink-600 text-cream-400 hover:text-cream-200"
+          }`}
+          title="Auto speak"
+        >
+          🔊
+        </button>
         {userTurns >= 4 && (
           <button
             onClick={submitForAssessment}
@@ -283,6 +314,10 @@ export default function ZhCnPlacementPage() {
 
       <div className="glass border-t border-ink-600 p-4 shrink-0">
         <div className="flex gap-2 items-end">
+          <VoiceButton
+            onTranscript={(text) => setInput((prev) => prev + text)}
+            disabled={isLoading || isGrading}
+          />
           <textarea
             ref={inputRef}
             value={input}
