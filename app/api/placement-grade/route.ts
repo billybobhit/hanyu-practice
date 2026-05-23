@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { syncUserRank } from "@/lib/supabase/rankSync";
 import { PLACEMENT_STARTING_ELO, eloToRank } from "@/lib/elo";
 
+export const maxDuration = 60;
+
 const PLACEMENT_GRADE_PROMPT = `You are grading a Chinese language placement assessment conversation. Based on the conversation, determine the student's proficiency level.
 
 Return ONLY valid JSON:

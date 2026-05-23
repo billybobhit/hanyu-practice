@@ -253,6 +253,8 @@ export default function PracticePage() {
       const previousProgress = getProgressFromSessions(
         getSessions().filter((s) => s.id !== session.id)
       );
+      const gradeAbort = new AbortController();
+      const gradeTimeout = setTimeout(() => gradeAbort.abort(), 55_000);
       const response = await fetch("/api/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -263,7 +265,9 @@ export default function PracticePage() {
           userRank: previousProgress.currentRank.name,
           userElo: previousProgress.currentElo,
         }),
+        signal: gradeAbort.signal,
       });
+      clearTimeout(gradeTimeout);
 
       const grade = await response.json();
       const endedSession: Session = {
