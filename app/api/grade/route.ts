@@ -3,8 +3,6 @@ import { NextRequest } from "next/server";
 import { OPENROUTER_TEXT_FALLBACK_MODELS } from "@/lib/openrouter-models";
 import type { Difficulty } from "@/lib/types";
 
-export const maxDuration = 60;
-
 // ── Universal rules injected into every rank ──────────────────────────────────
 const UNIVERSAL_RULES = `UNIVERSAL RULES FOR ALL RANKS (apply without exception):
 1. Voice/speech-to-text errors (garbled words, wrong characters from misrecognition) — NEVER penalize. Grade intended meaning only.
