@@ -391,7 +391,7 @@ Mode adjustments:
       try {
         const response = await client.chat.completions.create({
           model,
-          max_tokens: 1200,
+          max_tokens: 800,
           messages: [{ role: "user", content: prompt }],
         });
 
@@ -431,11 +431,10 @@ Mode adjustments:
           },
           { onConflict: "user_id,language_code" }
         );
-        const bestRank = await syncUserRank(userId, supabase);
-        const { data: allRows } = await supabase
-          .from("user_language_elo")
-          .select("elo")
-          .eq("user_id", userId);
+        const [bestRank, { data: allRows }] = await Promise.all([
+          syncUserRank(userId, supabase),
+          supabase.from("user_language_elo").select("elo").eq("user_id", userId),
+        ]);
         const globalEloSum = allRows?.reduce((sum: number, row: { elo: number }) => sum + (row.elo ?? 0), 0) ?? newElo;
         extraFields = {
           languageEloAfter: newElo,

@@ -370,7 +370,7 @@ Mode adjustments:
       try {
         const response = await client.chat.completions.create({
           model,
-          max_tokens: 1200,
+          max_tokens: 800,
           messages: [{ role: "user", content: prompt }],
         });
 
