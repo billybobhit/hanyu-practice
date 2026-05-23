@@ -259,6 +259,8 @@ export default function PracticePage() {
         ? (await supabase.auth.getUser()).data.user?.id
         : undefined;
 
+      const gradeAbort = new AbortController();
+      const gradeTimeout = setTimeout(() => gradeAbort.abort(), 55_000);
       const response = await fetch("/zh-tw/api/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -271,7 +273,9 @@ export default function PracticePage() {
           languageCode: "zh-tw",
           userId,
         }),
+        signal: gradeAbort.signal,
       });
+      clearTimeout(gradeTimeout);
 
       const grade = await response.json();
       const endedSession: Session = {
