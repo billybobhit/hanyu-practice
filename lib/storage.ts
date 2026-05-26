@@ -77,6 +77,12 @@ export function getUserProgress() {
   return getProgressFromSessions(getSessions());
 }
 
+export function getUserProgressForLanguage(languageCode: string) {
+  return getProgressFromSessions(
+    getSessions().filter((s) => s.languageCode === languageCode)
+  );
+}
+
 export function setCurrentSessionId(id: string): void {
   sessionStorage.setItem(CURRENT_ID_KEY, id);
 }

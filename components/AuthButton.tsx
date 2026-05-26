@@ -260,6 +260,19 @@ export default function AuthButton() {
                 </button>
                 <button
                   type="button"
+                  onClick={async () => {
+                    setShowMenu(false);
+                    await fetch("/api/dev/reset-rank", { method: "POST" });
+                    replaceSessions([]);
+                    window.dispatchEvent(new CustomEvent(RANK_UPDATED_EVENT, { detail: { elo: 0 } }));
+                    window.location.reload();
+                  }}
+                  className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
+                >
+                  Reset Rank (Full)
+                </button>
+                <button
+                  type="button"
                   onClick={() => { setShowMenu(false); setShowRawElo(true); }}
                   className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
                 >

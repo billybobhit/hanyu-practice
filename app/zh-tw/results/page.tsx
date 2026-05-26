@@ -14,6 +14,7 @@ import {
   getSessions,
   getSessionSummaries,
   deleteSession,
+  getUserProgressForLanguage,
 } from "@/lib/storage";
 import { deleteSessionFromCloud } from "@/lib/supabase/session-sync";
 import { applyEloChange, getProgressFromSessions } from "@/lib/ranks";
@@ -187,7 +188,7 @@ export default function ResultsPage() {
 
                 <EloChangeSummary event={currentSession.rankEvent} />
                 <RankProgress
-                  elo={getProgressFromSessions(getSessions()).currentElo}
+                  elo={getUserProgressForLanguage("zh-tw").currentElo}
                   compact
                 />
 

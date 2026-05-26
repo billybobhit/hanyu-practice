@@ -252,7 +252,7 @@ export default function PracticePage() {
     setIsGrading(true);
     try {
       const previousProgress = getProgressFromSessions(
-        getSessions().filter((s) => s.id !== session.id)
+        getSessions().filter((s) => s.id !== session.id && s.languageCode === "zh-cn")
       );
       const supabase = createClient();
       const userId = supabase

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getUserProgress, saveSession, generateSessionId, setCurrentSessionId } from "@/lib/storage";
+import { getUserProgressForLanguage, saveSession, generateSessionId, setCurrentSessionId } from "@/lib/storage";
 import { getRankForElo } from "@/lib/ranks";
 import PlacementResult from "@/components/PlacementResult";
 import VoiceButton from "@/components/VoiceButton";
@@ -155,7 +155,7 @@ export default function ZhCnPlacementPage() {
       });
       const data = await res.json();
       const startingElo: number = data.startingElo ?? 0;
-      const currentElo = getUserProgress().currentElo;
+      const currentElo = getUserProgressForLanguage("zh-cn").currentElo;
       const rankEvent: RankEvent = {
         eloBefore: currentElo,
         eloAfter: currentElo + startingElo,

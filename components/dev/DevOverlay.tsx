@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getUserProgress } from "@/lib/storage";
+import { getUserProgressForLanguage } from "@/lib/storage";
 import { eloToRank } from "@/lib/elo";
 import { RANK_UPDATED_EVENT, type RankUpdatedDetail } from "@/lib/rank-events";
 import { DEV_MODE_KEY, DEV_MODE_EVENT } from "@/lib/dev";
@@ -22,8 +22,7 @@ export default function DevOverlay() {
   const [langElos, setLangElos] = useState<LanguageElo[]>([]);
   const [accountElo, setAccountElo] = useState<number | null>(null);
 
-  const localElo = typeof window !== "undefined" ? getUserProgress().currentElo : 0;
-  const displayedElo = accountElo ?? localElo;
+  const displayedElo = accountElo ?? 0;
   const displayedRank = eloToRank(displayedElo);
 
   const activeLanguage = pathname.startsWith("/zh-tw")
@@ -99,24 +98,25 @@ export default function DevOverlay() {
           <span className="text-gold-300">{displayedElo.toLocaleString()}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-cream-600">Local ELO</span>
-          <span className={localElo < 250 ? "text-vermillion-400" : "text-cream-300"}>{localElo.toLocaleString()}</span>
-        </div>
-        <div className="flex justify-between">
           <span className="text-cream-600">Rank</span>
           <span className="text-cream-200">{displayedRank}</span>
         </div>
-        {langElos.map((r) => (
-          <div key={r.language_code} className="flex justify-between">
-            <span className="text-cream-600">{r.language_code}</span>
-            <span className="text-cream-300">
-              {r.elo.toLocaleString()} · {eloToRank(r.elo)}{" "}
-              <span className={r.has_completed_placement ? "text-green-400" : "text-vermillion-400"}>
-                {r.has_completed_placement ? "✓" : "✗"}
+        {langElos.map((r) => {
+          const localLangElo = typeof window !== "undefined"
+            ? getUserProgressForLanguage(r.language_code).currentElo
+            : 0;
+          return (
+            <div key={r.language_code} className="flex justify-between">
+              <span className="text-cream-600">{r.language_code}</span>
+              <span className="text-cream-300">
+                acct:{r.elo.toLocaleString()} local:{localLangElo.toLocaleString()} · {eloToRank(r.elo)}{" "}
+                <span className={r.has_completed_placement ? "text-green-400" : "text-vermillion-400"}>
+                  {r.has_completed_placement ? "✓" : "✗"}
+                </span>
               </span>
-            </span>
-          </div>
-        ))}
+            </div>
+          );
+        })}
         <div className="flex justify-between">
           <span className="text-cream-600">Sessions</span>
           <span className="text-cream-300">{getSessions().length}</span>
