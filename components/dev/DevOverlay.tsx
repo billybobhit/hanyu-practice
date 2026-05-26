@@ -95,8 +95,12 @@ export default function DevOverlay() {
       </div>
       <div className="max-h-[calc(40vh-3rem)] space-y-1 overflow-y-auto pr-1 text-cream-400 font-mono">
         <div className="flex justify-between">
-          <span className="text-cream-600">Global ELO</span>
+          <span className="text-cream-600">Account ELO</span>
           <span className="text-gold-300">{displayedElo.toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-cream-600">Local ELO</span>
+          <span className={localElo < 250 ? "text-vermillion-400" : "text-cream-300"}>{localElo.toLocaleString()}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-cream-600">Rank</span>

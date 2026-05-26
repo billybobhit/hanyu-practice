@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { getSessions } from "@/lib/storage";
 import { getProgressFromSessions } from "@/lib/ranks";
+import { createClient } from "@/lib/supabase/client";
 
 interface PlacementBannerProps {
   languageCode: "zh-tw" | "zh-cn";
@@ -12,17 +13,32 @@ interface PlacementBannerProps {
 
 export default function PlacementBanner({ languageCode }: PlacementBannerProps) {
   const pathname = usePathname();
-  const [isNoob, setIsNoob] = useState(false);
+  const [show, setShow] = useState(false);
 
   useEffect(() => {
-    function check() {
+    async function check() {
+      const supabase = createClient();
+      if (supabase) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase
+            .from("user_language_elo")
+            .select("has_completed_placement")
+            .eq("user_id", user.id)
+            .eq("language_code", languageCode)
+            .maybeSingle();
+          setShow(!data?.has_completed_placement);
+          return;
+        }
+      }
+      // Guest fallback: use local sessions ELO
       const progress = getProgressFromSessions(getSessions());
-      setIsNoob(progress.currentElo < 250);
+      setShow(progress.currentElo < 250);
     }
-    check();
-  }, [pathname]);
+    void check();
+  }, [pathname, languageCode]);
 
-  if (!isNoob) return null;
+  if (!show) return null;
   if (pathname === `/${languageCode}/placement`) return null;
 
   return (
