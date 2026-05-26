@@ -7,6 +7,17 @@ export function isDev(email: string | undefined | null): boolean {
 export const DEV_MODE_KEY = "hanyu_dev_mode";
 export const DEV_MODE_EVENT = "hanyu_dev_mode_change";
 export const DEV_MODE_DISABLED_KEY = "hanyu_dev_mode_disabled";
+export const DEV_USER_KEY = "hanyu_is_dev_user";
+
+export function getPersistedDevUser(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(DEV_USER_KEY) === "true";
+}
+
+export function setPersistedDevUser(value: boolean): void {
+  if (value) localStorage.setItem(DEV_USER_KEY, "true");
+  else localStorage.removeItem(DEV_USER_KEY);
+}
 
 export function getDevMode(): boolean {
   if (typeof window === "undefined") return false;

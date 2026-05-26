@@ -21,6 +21,8 @@ import {
   isDev,
   isDevModeManuallyOff,
   setDevModeManuallyOff,
+  getPersistedDevUser,
+  setPersistedDevUser,
 } from "@/lib/dev";
 import { replaceSessions } from "@/lib/storage";
 
@@ -61,7 +63,7 @@ export default function AuthButton() {
   const [elo, setElo] = useState(() =>
     typeof window === "undefined" ? 0 : getUserProgress().currentElo
   );
-  const [isDevUser, setIsDevUser] = useState(false);
+  const [isDevUser, setIsDevUser] = useState(() => getPersistedDevUser());
   const [devModeOn, setDevModeOn] = useState(() =>
     typeof window === "undefined" ? false : getDevMode()
   );
@@ -80,12 +82,12 @@ export default function AuthButton() {
 
     const allowed = allowlisted || !!profile?.is_dev;
     setIsDevUser(allowed);
+    setPersistedDevUser(allowed);
 
     if (allowed) {
       setDevMode(true);
       setDevModeOn(true);
     } else {
-      setIsDevUser(false);
       setDevMode(false);
       setDevModeManuallyOff(false);
       setDevModeOn(false);
@@ -102,6 +104,7 @@ export default function AuthButton() {
     setShowMenu(false);
     setUser(null);
     setIsDevUser(false);
+    setPersistedDevUser(false);
 
     if (supabase) {
       void Promise.race([
