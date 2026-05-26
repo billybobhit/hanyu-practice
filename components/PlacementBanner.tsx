@@ -1,24 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { getUserProgress } from "@/lib/storage";
+import { getSessions } from "@/lib/storage";
+import { getProgressFromSessions } from "@/lib/ranks";
 
 interface PlacementBannerProps {
   languageCode: "zh-tw" | "zh-cn";
 }
 
 export default function PlacementBanner({ languageCode }: PlacementBannerProps) {
-  const [show, setShow] = useState(false);
+  const pathname = usePathname();
+  const [isNoob, setIsNoob] = useState(false);
 
   useEffect(() => {
-    const progress = getUserProgress();
-    if (progress.currentRank.name === "Noob") {
-      setShow(true);
+    function check() {
+      const progress = getProgressFromSessions(getSessions());
+      setIsNoob(progress.currentElo < 250);
     }
-  }, []);
+    check();
+  }, [pathname]);
 
-  if (!show) return null;
+  if (!isNoob) return null;
+  if (pathname === `/${languageCode}/placement`) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-40 animate-fade-up">

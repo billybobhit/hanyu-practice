@@ -1,3 +1,10 @@
+import PlacementBanner from "@/components/PlacementBanner";
+
 export default function ZhTwLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <PlacementBanner languageCode="zh-tw" />
+      {children}
+    </>
+  );
 }

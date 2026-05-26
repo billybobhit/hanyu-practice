@@ -1,3 +1,10 @@
+import PlacementBanner from "@/components/PlacementBanner";
+
 export default function ZhCnLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <PlacementBanner languageCode="zh-cn" />
+      {children}
+    </>
+  );
 }
