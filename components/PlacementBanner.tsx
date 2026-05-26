@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { getUserProgress } from "@/lib/storage";
 
 interface PlacementBannerProps {
   languageCode: "zh-tw" | "zh-cn";
@@ -12,28 +12,11 @@ export default function PlacementBanner({ languageCode }: PlacementBannerProps) 
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    async function check() {
-      const supabase = createClient();
-      if (!supabase) return;
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase
-        .from("user_language_elo")
-        .select("has_completed_placement")
-        .eq("user_id", user.id)
-        .eq("language_code", languageCode)
-        .maybeSingle();
-
-      if (!data || !data.has_completed_placement) {
-        setShow(true);
-      }
+    const progress = getUserProgress();
+    if (progress.currentRank.name === "Noob") {
+      setShow(true);
     }
-    void check();
-  }, [languageCode]);
+  }, []);
 
   if (!show) return null;
 

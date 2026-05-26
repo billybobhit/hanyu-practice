@@ -7,10 +7,12 @@ import { getUserProgress } from "@/lib/storage";
 import { eloToRank } from "@/lib/elo";
 import { RANK_UPDATED_EVENT, type RankUpdatedDetail } from "@/lib/rank-events";
 import { DEV_MODE_KEY, DEV_MODE_EVENT, isDev } from "@/lib/dev";
+import { getSessions } from "@/lib/storage";
 
 interface LanguageElo {
   language_code: string;
   elo: number;
+  has_completed_placement: boolean;
 }
 
 export default function DevOverlay() {
@@ -80,7 +82,7 @@ export default function DevOverlay() {
       if (!user) return;
       const { data } = await supabase
         .from("user_language_elo")
-        .select("language_code, elo")
+        .select("language_code, elo, has_completed_placement")
         .eq("user_id", user.id);
       if (data) {
         setLangElos(data);
@@ -135,9 +137,18 @@ export default function DevOverlay() {
         {langElos.map((r) => (
           <div key={r.language_code} className="flex justify-between">
             <span className="text-cream-600">{r.language_code}</span>
-            <span className="text-cream-300">{r.elo.toLocaleString()} · {eloToRank(r.elo)}</span>
+            <span className="text-cream-300">
+              {r.elo.toLocaleString()} · {eloToRank(r.elo)}{" "}
+              <span className={r.has_completed_placement ? "text-green-400" : "text-vermillion-400"}>
+                {r.has_completed_placement ? "✓" : "✗"}
+              </span>
+            </span>
           </div>
         ))}
+        <div className="flex justify-between">
+          <span className="text-cream-600">Sessions</span>
+          <span className="text-cream-300">{getSessions().length}</span>
+        </div>
         <div className="flex justify-between">
           <span className="text-cream-600">Active Lang</span>
           <span className="text-cream-300">{activeLanguage}</span>

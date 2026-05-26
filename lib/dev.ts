@@ -6,6 +6,7 @@ export function isDev(email: string | undefined | null): boolean {
 
 export const DEV_MODE_KEY = "hanyu_dev_mode";
 export const DEV_MODE_EVENT = "hanyu_dev_mode_change";
+export const DEV_MODE_DISABLED_KEY = "hanyu_dev_mode_disabled";
 
 export function getDevMode(): boolean {
   if (typeof window === "undefined") return false;
@@ -15,4 +16,14 @@ export function getDevMode(): boolean {
 export function setDevMode(enabled: boolean): void {
   localStorage.setItem(DEV_MODE_KEY, enabled ? "true" : "false");
   window.dispatchEvent(new Event(DEV_MODE_EVENT));
+}
+
+export function isDevModeManuallyOff(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(DEV_MODE_DISABLED_KEY) === "true";
+}
+
+export function setDevModeManuallyOff(off: boolean): void {
+  if (off) localStorage.setItem(DEV_MODE_DISABLED_KEY, "true");
+  else localStorage.removeItem(DEV_MODE_DISABLED_KEY);
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import EloProgressAnimation from "@/components/EloProgressAnimation";
 import type { RankEvent } from "@/lib/types";
 
-type Phase = "analyzing" | "grade" | "elo";
+type Phase = "analyzing" | "grade" | "elo" | "done";
 
 const gradeColor: Record<string, string> = {
   A: "#EEC050",
@@ -19,6 +19,7 @@ interface PlacementResultProps {
   referenceLevel?: string;
   rankEvent: RankEvent;
   onComplete: () => void;
+  onViewReport: () => void;
 }
 
 export default function PlacementResult({
@@ -26,6 +27,7 @@ export default function PlacementResult({
   referenceLevel,
   rankEvent,
   onComplete,
+  onViewReport,
 }: PlacementResultProps) {
   const [phase, setPhase] = useState<Phase>("analyzing");
 
@@ -43,7 +45,7 @@ export default function PlacementResult({
   }, []);
 
   if (phase === "elo") {
-    return <EloProgressAnimation event={rankEvent} onComplete={onComplete} />;
+    return <EloProgressAnimation event={rankEvent} onComplete={() => setPhase("done")} />;
   }
 
   return (
@@ -94,6 +96,41 @@ export default function PlacementResult({
           >
             Continue →
           </button>
+        </div>
+      )}
+
+      {/* Phase 4: Done — offer report or start practicing */}
+      {phase === "done" && (
+        <div className="flex flex-col items-center gap-6 animate-fade-up">
+          <p
+            className="text-cream-500 text-xs uppercase tracking-[0.2em]"
+            style={{ fontFamily: "'Noto Serif SC', serif" }}
+          >
+            Placement Complete
+          </p>
+          <div
+            className="text-6xl font-bold leading-none"
+            style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              color: gradeColor[grade] ?? "#EDE4D4",
+            }}
+          >
+            {grade}
+          </div>
+          <div className="flex gap-3 mt-2">
+            <button
+              onClick={onViewReport}
+              className="cursor-pointer rounded-full bg-gold-600 px-6 py-2.5 text-sm font-bold text-ink-900 transition-all hover:bg-gold-500"
+            >
+              View Report
+            </button>
+            <button
+              onClick={onComplete}
+              className="cursor-pointer rounded-full border border-cream-600 px-6 py-2.5 text-sm font-medium text-cream-300 transition-all hover:border-cream-400 hover:text-cream-100"
+            >
+              Start Practicing →
+            </button>
+          </div>
         </div>
       )}
     </div>

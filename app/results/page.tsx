@@ -216,7 +216,7 @@ export default function ResultsPage() {
                 </div>
 
                 {/* Conversation preview */}
-                <div>
+                {currentSession.messages.length > 0 && <div>
                   <h3 className="text-cream-400 text-sm font-medium mb-3">Conversation Review</h3>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {currentSession.messages
@@ -247,7 +247,7 @@ export default function ResultsPage() {
                         </div>
                       ))}
                   </div>
-                </div>
+                </div>}
               </>
             ) : currentSession ? (
               <div className="bg-ink-800 border border-ink-500 rounded-2xl p-8 text-center">

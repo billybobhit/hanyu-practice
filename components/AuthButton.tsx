@@ -12,13 +12,17 @@ import { RANK_UPDATED_EVENT, type RankUpdatedDetail } from "@/lib/rank-events";
 import { getBestAccountElo } from "@/lib/supabase/client-rank";
 import SimulateRankModal from "@/components/dev/SimulateRankModal";
 import RawEloModal from "@/components/dev/RawEloModal";
+import SetEloModal from "@/components/dev/SetEloModal";
 import {
   DEV_MODE_KEY,
   DEV_MODE_EVENT,
   setDevMode,
   getDevMode,
   isDev,
+  isDevModeManuallyOff,
+  setDevModeManuallyOff,
 } from "@/lib/dev";
+import { replaceSessions } from "@/lib/storage";
 
 function getFirstName(user: User) {
   const metadataName =
@@ -63,6 +67,7 @@ export default function AuthButton() {
   );
   const [showSimulate, setShowSimulate] = useState(false);
   const [showRawElo, setShowRawElo] = useState(false);
+  const [showSetElo, setShowSetElo] = useState(false);
 
   const loadDevAccess = useCallback(async (activeUser: User) => {
     const allowlisted = isDev(activeUser.email);
@@ -77,10 +82,16 @@ export default function AuthButton() {
     setIsDevUser(allowed);
 
     if (allowed) {
-      setDevMode(true);
-      setDevModeOn(true);
+      if (!isDevModeManuallyOff()) {
+        setDevMode(true);
+        setDevModeOn(true);
+      } else {
+        setDevModeOn(false);
+      }
     } else {
+      setIsDevUser(false);
       setDevMode(false);
+      setDevModeManuallyOff(false);
       setDevModeOn(false);
     }
   }, [supabase]);
@@ -95,7 +106,6 @@ export default function AuthButton() {
     setShowMenu(false);
     setUser(null);
     setIsDevUser(false);
-    setDevMode(false);
 
     if (supabase) {
       void Promise.race([
@@ -252,14 +262,32 @@ export default function AuthButton() {
                 <button
                   type="button"
                   onClick={() => {
-                    setDevModeOn((prev) => {
-                      setDevMode(!prev);
-                      return !prev;
-                    });
+                    const newState = !devModeOn;
+                    setDevModeOn(newState);
+                    setDevMode(newState);
+                    setDevModeManuallyOff(!newState);
                   }}
                   className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
                 >
                   {devModeOn ? "Dev Mode: ON ✓" : "Dev Mode: OFF"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false);
+                    replaceSessions([]);
+                    window.location.reload();
+                  }}
+                  className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
+                >
+                  Clear Local Sessions
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); setShowSetElo(true); }}
+                  className="block w-full cursor-pointer px-4 py-3 text-left text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
+                >
+                  Set Exact ELO
                 </button>
               </>
             )}
@@ -269,6 +297,7 @@ export default function AuthButton() {
 
       {showSimulate && createPortal(<SimulateRankModal onClose={() => setShowSimulate(false)} />, document.body)}
       {showRawElo && createPortal(<RawEloModal onClose={() => setShowRawElo(false)} />, document.body)}
+      {showSetElo && createPortal(<SetEloModal onClose={() => setShowSetElo(false)} />, document.body)}
     </>
   );
 }

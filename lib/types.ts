@@ -16,6 +16,7 @@ export interface Session {
   endTime?: number;
   grade?: Grade;
   rankEvent?: RankEvent;
+  languageCode?: string;
 }
 
 export interface Grade {

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getUserProgress, saveSession, generateSessionId } from "@/lib/storage";
+import { getUserProgress, saveSession, generateSessionId, setCurrentSessionId } from "@/lib/storage";
 import { getRankForElo } from "@/lib/ranks";
 import PlacementResult from "@/components/PlacementResult";
 import VoiceButton from "@/components/VoiceButton";
@@ -164,22 +164,25 @@ export default function ZhTwPlacementPage() {
         rankAfter: getRankForElo(currentElo + startingElo).name,
       };
       const overallScore = data.overallScore ?? 65;
+      const sessionId = generateSessionId();
+      setCurrentSessionId(sessionId);
       saveSession({
-        id: generateSessionId(),
+        id: sessionId,
         materialTitle: "Placement Assessment · Traditional Chinese",
         materialContent: "",
         difficulty: "hard",
         messages: [],
         startTime: Date.now(),
         endTime: Date.now(),
+        languageCode: "zh-tw",
         grade: {
           overallGrade: data.overallGrade ?? "C",
           overallScore,
           vocabularyScore: overallScore,
           grammarScore: overallScore,
           comprehensionScore: overallScore,
-          strengths: [],
-          improvements: [],
+          strengths: data.strengths ?? [],
+          improvements: data.improvements ?? [],
           studyAreas: [],
           difficultyNotes: "",
           nextPracticePlan: [],
@@ -212,6 +215,7 @@ export default function ZhTwPlacementPage() {
         referenceLevel={result.referenceLevel}
         rankEvent={result.rankEvent}
         onComplete={() => router.push("/zh-tw")}
+        onViewReport={() => router.push("/results")}
       />
     );
   }
@@ -272,7 +276,7 @@ export default function ZhTwPlacementPage() {
             className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
           >
             <div
-              className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${
+              className={`max-w-[85%] px-4 py-3 rounded-xl text-base ${
                 msg.role === "user"
                   ? "bg-ink-500 text-cream-200"
                   : "bg-ink-700 border border-ink-500 text-cream-300"
@@ -326,12 +330,12 @@ export default function ZhTwPlacementPage() {
             placeholder="Reply in Chinese..."
             rows={1}
             disabled={isLoading || isGrading}
-            className="flex-1 bg-ink-700 border border-ink-500 focus:border-vermillion-600 rounded-xl px-4 py-2.5 text-cream-100 placeholder-cream-600 resize-none transition-colors text-sm leading-relaxed focus:outline-none disabled:opacity-50"
-            style={{ maxHeight: "120px", minHeight: "42px" }}
+            className="flex-1 bg-ink-700 border border-ink-500 focus:border-vermillion-600 rounded-xl px-4 py-2.5 text-cream-100 placeholder-cream-600 resize-none transition-colors text-base leading-relaxed focus:outline-none disabled:opacity-50"
+            style={{ maxHeight: "160px", minHeight: "52px" }}
             onInput={(e) => {
               const el = e.target as HTMLTextAreaElement;
               el.style.height = "auto";
-              el.style.height = Math.min(el.scrollHeight, 120) + "px";
+              el.style.height = Math.min(el.scrollHeight, 160) + "px";
             }}
           />
           <button
