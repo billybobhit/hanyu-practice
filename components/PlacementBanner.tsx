@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import LoginModal from "@/components/LoginModal";
+import { getUserProgressForLanguage } from "@/lib/storage";
 
 interface PlacementBannerProps {
   languageCode: "zh-tw" | "zh-cn";
@@ -23,17 +24,14 @@ export default function PlacementBanner({ languageCode }: PlacementBannerProps) 
       if (supabase) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data } = await supabase
-            .from("user_language_elo")
-            .select("has_completed_placement")
-            .eq("user_id", user.id)
-            .eq("language_code", languageCode)
-            .maybeSingle();
+          // Signed-in: use local per-language ELO to decide
+          const localElo = getUserProgressForLanguage(languageCode).currentElo;
           setIsGuest(false);
-          setShow(!data?.has_completed_placement);
+          setShow(localElo < 250);
           return;
         }
       }
+      // Guest: always show the "sign in" prompt
       setIsGuest(true);
       setShow(true);
     }
