@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getUserProgressForLanguage, saveSession, generateSessionId, setCurrentSessionId } from "@/lib/storage";
 import { getRankForElo } from "@/lib/ranks";
-import GradeReveal from "@/components/GradeReveal";
+import PlacementResult from "@/components/PlacementResult";
 import VoiceButton from "@/components/VoiceButton";
-import type { Grade, RankEvent } from "@/lib/types";
+import type { RankEvent } from "@/lib/types";
 
 interface Message {
   role: "user" | "assistant";
@@ -16,7 +16,7 @@ interface Message {
 
 interface PlacementGradeResult {
   grade: string;
-  gradeData: Grade;
+  referenceLevel?: string;
   rankEvent: RankEvent;
 }
 
@@ -185,17 +185,7 @@ export default function ZhCnPlacementPage() {
       });
       setResult({
         grade: data.overallGrade ?? "C",
-        gradeData: {
-          overallGrade: data.overallGrade ?? "C",
-          overallScore,
-          vocabularyScore: overallScore,
-          grammarScore: overallScore,
-          comprehensionScore: overallScore,
-          strengths: data.strengths ?? [],
-          improvements: data.improvements ?? [],
-          studyAreas: [],
-          referenceLevel: data.referenceLevel,
-        },
+        referenceLevel: data.referenceLevel,
         rankEvent,
       });
     } catch {
@@ -213,10 +203,12 @@ export default function ZhCnPlacementPage() {
 
   if (result) {
     return (
-      <GradeReveal
+      <PlacementResult
         grade={result.grade}
-        gradeData={result.gradeData}
+        referenceLevel={result.referenceLevel}
+        rankEvent={result.rankEvent}
         onComplete={() => router.push("/zh-cn")}
+        onViewReport={() => router.push("/results")}
       />
     );
   }
