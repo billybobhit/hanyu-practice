@@ -82,12 +82,8 @@ export default function AuthButton() {
     setIsDevUser(allowed);
 
     if (allowed) {
-      if (!isDevModeManuallyOff()) {
-        setDevMode(true);
-        setDevModeOn(true);
-      } else {
-        setDevModeOn(false);
-      }
+      setDevMode(true);
+      setDevModeOn(true);
     } else {
       setIsDevUser(false);
       setDevMode(false);
