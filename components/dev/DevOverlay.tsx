@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getUserProgress } from "@/lib/storage";
 import { eloToRank } from "@/lib/elo";
 import { RANK_UPDATED_EVENT, type RankUpdatedDetail } from "@/lib/rank-events";
-import { DEV_MODE_KEY, DEV_MODE_EVENT, isDev } from "@/lib/dev";
+import { DEV_MODE_KEY, DEV_MODE_EVENT } from "@/lib/dev";
 import { getSessions } from "@/lib/storage";
 
 interface LanguageElo {
@@ -33,44 +33,12 @@ export default function DevOverlay() {
       : "—";
 
   useEffect(() => {
-    let active = true;
-    const supabase = createClient();
-
-    const check = async () => {
-      if (localStorage.getItem(DEV_MODE_KEY) !== "true" || !supabase) {
-        if (active) setVisible(false);
-        return;
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        if (active) setVisible(false);
-        return;
-      }
-
-      let allowed = isDev(user.email);
-      if (!allowed) {
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("is_dev")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        allowed = !!profile?.is_dev;
-      }
-
-      if (active) setVisible(allowed);
-    };
-    void check();
-    window.addEventListener(DEV_MODE_EVENT, check);
-    const subscription = supabase?.auth.onAuthStateChange(() => {
-      void check();
-    }).data.subscription;
-
-    return () => {
-      active = false;
-      window.removeEventListener(DEV_MODE_EVENT, check);
-      subscription?.unsubscribe();
-    };
+    function syncVisible() {
+      setVisible(localStorage.getItem(DEV_MODE_KEY) === "true");
+    }
+    syncVisible();
+    window.addEventListener(DEV_MODE_EVENT, syncVisible);
+    return () => window.removeEventListener(DEV_MODE_EVENT, syncVisible);
   }, []);
 
   useEffect(() => {

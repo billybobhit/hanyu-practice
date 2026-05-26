@@ -152,7 +152,7 @@ export default function AuthButton() {
         void syncSessionsWithCloud(supabase);
         await loadDevAccess(session.user);
         await refreshElo();
-      } else {
+      } else if (_event === "SIGNED_OUT") {
         setIsDevUser(false);
       }
     });
