@@ -63,7 +63,7 @@ export default function AuthButton() {
   const [elo, setElo] = useState(() =>
     typeof window === "undefined" ? 0 : getUserProgress().currentElo
   );
-  const [isDevUser, setIsDevUser] = useState(() => getPersistedDevUser());
+  const [isDevUser, setIsDevUser] = useState(false);
   const [devModeOn, setDevModeOn] = useState(() =>
     typeof window === "undefined" ? false : getDevMode()
   );
@@ -72,15 +72,23 @@ export default function AuthButton() {
   const [showSetElo, setShowSetElo] = useState(false);
 
   const loadDevAccess = useCallback(async (activeUser: User) => {
-    const allowlisted = isDev(activeUser.email);
+    // Allowlisted emails are granted synchronously — no async needed
+    if (isDev(activeUser.email)) {
+      setIsDevUser(true);
+      setPersistedDevUser(true);
+      setDevMode(true);
+      setDevModeOn(true);
+      return;
+    }
 
-    const { data: profile } = await supabase!
+    if (!supabase) return;
+    const { data: profile } = await supabase
       .from("user_profiles")
       .select("is_dev")
       .eq("user_id", activeUser.id)
       .maybeSingle();
 
-    const allowed = allowlisted || !!profile?.is_dev;
+    const allowed = !!profile?.is_dev;
     setIsDevUser(allowed);
     setPersistedDevUser(allowed);
 
@@ -120,6 +128,11 @@ export default function AuthButton() {
     clearSupabaseAuthStorage();
     window.location.replace("/");
   };
+
+  // Restore dev user state synchronously on client mount before async auth resolves
+  useEffect(() => {
+    if (getPersistedDevUser()) setIsDevUser(true);
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
