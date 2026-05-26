@@ -64,14 +64,7 @@ export default function ZhCnPlacementPage() {
         return;
       }
 
-      const { data } = await supabase
-        .from("user_language_elo")
-        .select("has_completed_placement")
-        .eq("user_id", user.id)
-        .eq("language_code", "zh-cn")
-        .maybeSingle();
-
-      if (data?.has_completed_placement) {
+      if (getUserProgressForLanguage("zh-cn").currentElo >= 250) {
         router.replace("/zh-cn");
         return;
       }

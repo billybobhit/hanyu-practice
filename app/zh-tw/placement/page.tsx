@@ -64,14 +64,7 @@ export default function ZhTwPlacementPage() {
         return;
       }
 
-      const { data } = await supabase
-        .from("user_language_elo")
-        .select("has_completed_placement")
-        .eq("user_id", user.id)
-        .eq("language_code", "zh-tw")
-        .maybeSingle();
-
-      if (data?.has_completed_placement) {
+      if (getUserProgressForLanguage("zh-tw").currentElo >= 250) {
         router.replace("/zh-tw");
         return;
       }
