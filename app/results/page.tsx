@@ -5,21 +5,15 @@ import { useRouter } from "next/navigation";
 import GradeCard from "@/components/GradeCard";
 import GradeReveal from "@/components/GradeReveal";
 import EloProgressAnimation from "@/components/EloProgressAnimation";
-import ProgressChart from "@/components/ProgressChart";
 import EloChangeSummary from "@/components/EloChangeSummary";
 import RankProgress from "@/components/RankProgress";
 import {
   getCurrentSessionId,
   getSession,
   getSessions,
-  getSessionSummaries,
-  deleteSession,
-  setStorageUserId,
 } from "@/lib/storage";
-import { deleteSessionFromCloud } from "@/lib/supabase/session-sync";
-import { createClient } from "@/lib/supabase/client";
 import { applyEloChange, getProgressFromSessions } from "@/lib/ranks";
-import type { Session, SessionSummary } from "@/lib/types";
+import type { Session } from "@/lib/types";
 
 const gradeColor: Record<string, string> = {
   A: "#EEC050",
@@ -38,8 +32,6 @@ function formatDuration(start: number, end: number) {
 export default function ResultsPage() {
   const router = useRouter();
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
-  const [summaries, setSummaries] = useState<SessionSummary[]>([]);
-  const [tab, setTab] = useState<"current" | "history">("current");
   const [showReveal, setShowReveal] = useState(false);
   const [showEloAnim, setShowEloAnim] = useState(false);
 
@@ -89,25 +81,7 @@ export default function ResultsPage() {
       if (s?.grade && fresh) setShowReveal(true);
     }
 
-    // Load summaries after auth so we use the authenticated user's localStorage key.
-    // Reading before auth resolves would return whatever stale user ID is in localStorage.
-    const supabase = createClient();
-    if (supabase) {
-      void supabase.auth.getSession().then(({ data: { session } }) => {
-        setStorageUserId(session?.user?.id ?? "guest");
-        setSummaries(getSessionSummaries());
-      });
-    } else {
-      setSummaries(getSessionSummaries());
-    }
   }, []);
-
-  const handleDelete = (id: string) => {
-    deleteSession(id);
-    void deleteSessionFromCloud(id);
-    setSummaries(getSessionSummaries());
-    if (currentSession?.id === id) setCurrentSession(null);
-  };
 
   return (
     <div className="min-h-screen pt-16">
@@ -152,29 +126,7 @@ export default function ResultsPage() {
       </header>
 
       <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
-        {/* Tabs */}
-        <div className="flex gap-1 bg-ink-800 rounded-xl p-1">
-          {[
-            { key: "current" as const, label: "Current Score" },
-            { key: "history" as const, label: `History (${summaries.length})` },
-          ].map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer ${
-                tab === t.key
-                  ? "bg-ink-500 text-cream-100 shadow-sm"
-                  : "text-cream-400 hover:text-cream-200"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Current session tab */}
-        {tab === "current" && (
-          <div className="animate-fade-up space-y-6">
+        <div className="animate-fade-up space-y-6">
             {currentSession?.grade ? (
               <>
                 <GradeCard
@@ -286,69 +238,6 @@ export default function ResultsPage() {
               </div>
             )}
           </div>
-        )}
-
-        {/* History tab */}
-        {tab === "history" && (
-          <div className="animate-fade-up space-y-4">
-            {/* Progress chart */}
-            {summaries.length >= 2 && (
-              <div className="bg-ink-800 border border-ink-600 rounded-2xl p-5">
-                <h3 className="text-cream-300 text-sm font-medium mb-4">Score Trend</h3>
-                <ProgressChart summaries={summaries} />
-              </div>
-            )}
-
-            {/* Session list */}
-            {summaries.length === 0 ? (
-              <div className="bg-ink-800 border border-ink-500 rounded-2xl p-8 text-center">
-                <p className="text-4xl mb-3">📚</p>
-                <p className="text-cream-400 text-sm">Completed sessions will appear here.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {summaries.map((s, i) => (
-                  <div
-                    key={s.id}
-                    className="bg-ink-800 border border-ink-600 rounded-2xl p-4 flex items-center gap-4 animate-fade-up"
-                    style={{ animationDelay: `${i * 0.05}s` }}
-                  >
-                    {/* Grade */}
-                    <div
-                      className="text-3xl font-bold shrink-0 w-10 text-center"
-                      style={{
-                        fontFamily: "'Cormorant Garamond', serif",
-                        color: gradeColor[s.overallGrade] || "#EDE4D4",
-                      }}
-                    >
-                      {s.overallGrade}
-                    </div>
-
-                    {/* Details */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-cream-200 text-sm font-medium truncate">
-                        {s.materialTitle}
-                      </p>
-                      <p className="text-cream-600 text-xs mt-0.5">
-                        {new Date(s.startTime).toLocaleDateString("en-US")} ·{" "}
-                        {s.messageCount} turns · {s.overallScore} pts · {s.difficulty}
-                      </p>
-                    </div>
-
-                    {/* Delete */}
-                    <button
-                      onClick={() => handleDelete(s.id)}
-                      className="text-cream-600 hover:text-vermillion-400 transition-colors cursor-pointer text-xs shrink-0"
-                      title="Delete session"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

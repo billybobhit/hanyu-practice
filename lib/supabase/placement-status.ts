@@ -28,8 +28,12 @@ export async function getPlacementStatus(
     return { hasCompletedPlacement: false, elo: 0 };
   }
 
+  const elo = Math.max(0, Number(data?.elo ?? 0));
+  // Placement is only considered done if the flag is set AND the user has escaped Noob rank (ELO >= 250).
+  // This means Noob-range users always see the placement test, even if an old grading session
+  // incorrectly set has_completed_placement = true.
   return {
-    hasCompletedPlacement: data?.has_completed_placement === true,
-    elo: Math.max(0, Number(data?.elo ?? 0)),
+    hasCompletedPlacement: data?.has_completed_placement === true && elo >= 250,
+    elo,
   };
 }
