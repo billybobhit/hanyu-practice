@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import LoginModal from "@/components/LoginModal";
-import { getUserProgressForLanguage } from "@/lib/storage";
 
 interface PlacementBannerProps {
   languageCode: "zh-tw" | "zh-cn";
@@ -18,7 +17,6 @@ export default function PlacementBanner({ languageCode }: PlacementBannerProps) 
   const [isGuest, setIsGuest] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
 
-  // Auth state: fires INITIAL_SESSION immediately on subscribe (no network call)
   useEffect(() => {
     const supabase = createClient();
     if (!supabase) {
@@ -26,27 +24,105 @@ export default function PlacementBanner({ languageCode }: PlacementBannerProps) 
       setShow(true);
       return;
     }
+
+    let cancelled = false;
+
+    const clearPlacementStatus = () => {
+      setShowLogin(false);
+      setIsGuest(true);
+      setShow(true);
+    };
+
+    const loadPlacementStatus = async (userId: string) => {
+      const { data, error } = await supabase
+        .from("user_language_elo")
+        .select("has_completed_placement")
+        .eq("user_id", userId)
+        .eq("language_code", languageCode)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      setIsGuest(false);
+      setShow(!(data?.has_completed_placement ?? false));
+
+      if (error) {
+        console.log("[placement-banner] status-fetch-failed", {
+          languageCode,
+          userId,
+          error,
+        });
+      }
+    };
+
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return;
+      if (!session?.user) {
+        clearPlacementStatus();
+        return;
+      }
+
+      setIsGuest(false);
+      setShow(false);
+      void loadPlacementStatus(session.user.id);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
+      if (cancelled || _event === "INITIAL_SESSION") return;
+
+      if (_event === "SIGNED_OUT" || !session?.user) {
+        clearPlacementStatus();
+        return;
+      }
+
+      if (_event === "SIGNED_IN") {
         setIsGuest(false);
-        setShow(getUserProgressForLanguage(languageCode).currentElo < 250);
-      } else {
-        setIsGuest(true);
-        setShow(true);
+        setShow(false);
+        window.setTimeout(() => {
+          if (!cancelled) void loadPlacementStatus(session.user.id);
+        }, 0);
       }
     });
-    return () => subscription.unsubscribe();
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [languageCode]);
 
-  // Re-evaluate ELO on navigation (signed-in users who just completed a session)
   useEffect(() => {
     const supabase = createClient();
     if (!supabase) return;
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setShow(getUserProgressForLanguage(languageCode).currentElo < 250);
+
+    let cancelled = false;
+
+    void supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (cancelled || !session?.user) return;
+
+      const { data, error } = await supabase
+        .from("user_language_elo")
+        .select("has_completed_placement")
+        .eq("user_id", session.user.id)
+        .eq("language_code", languageCode)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.log("[placement-banner] status-refresh-failed", {
+          languageCode,
+          userId: session.user.id,
+          error,
+        });
       }
+
+      setIsGuest(false);
+      setShow(!(data?.has_completed_placement ?? false));
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [pathname, languageCode]);
 
   if (!show) return null;
