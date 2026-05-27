@@ -23,6 +23,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
       return;
     }
 
+    sessionStorage.setItem("auth_next", window.location.pathname);
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -89,7 +90,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
             HanYu
           </div>
           <h2 className="mt-2 text-xl font-semibold text-cream-100">
-            Welcome Back
+            {isSignUp ? "Create Account" : "Welcome Back"}
           </h2>
         </div>
 

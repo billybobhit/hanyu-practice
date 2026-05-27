@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
@@ -56,6 +57,7 @@ function clearSupabaseAuthStorage() {
 }
 
 export default function AuthButton() {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -168,6 +170,13 @@ export default function AuthButton() {
         void syncSessionsWithCloud(supabase);
         await loadDevAccess(session.user);
         await refreshElo();
+        if (_event === "SIGNED_IN") {
+          const next = sessionStorage.getItem("auth_next");
+          if (next) {
+            sessionStorage.removeItem("auth_next");
+            router.push(next);
+          }
+        }
       } else if (_event === "SIGNED_OUT") {
         setIsDevUser(false);
       }

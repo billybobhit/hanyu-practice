@@ -18,24 +18,35 @@ export default function PlacementBanner({ languageCode }: PlacementBannerProps) 
   const [isGuest, setIsGuest] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
 
+  // Auth state: fires INITIAL_SESSION immediately on subscribe (no network call)
   useEffect(() => {
-    async function check() {
-      const supabase = createClient();
-      if (supabase) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Signed-in: use local per-language ELO to decide
-          const localElo = getUserProgressForLanguage(languageCode).currentElo;
-          setIsGuest(false);
-          setShow(localElo < 250);
-          return;
-        }
-      }
-      // Guest: always show the "sign in" prompt
+    const supabase = createClient();
+    if (!supabase) {
       setIsGuest(true);
       setShow(true);
+      return;
     }
-    void check();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setIsGuest(false);
+        setShow(getUserProgressForLanguage(languageCode).currentElo < 250);
+      } else {
+        setIsGuest(true);
+        setShow(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [languageCode]);
+
+  // Re-evaluate ELO on navigation (signed-in users who just completed a session)
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setShow(getUserProgressForLanguage(languageCode).currentElo < 250);
+      }
+    });
   }, [pathname, languageCode]);
 
   if (!show) return null;
