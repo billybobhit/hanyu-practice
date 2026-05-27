@@ -12,6 +12,7 @@ import {
 } from "@/lib/storage";
 import { applyEloChange, getProgressFromSessions } from "@/lib/ranks";
 import { pushSessionToCloud } from "@/lib/supabase/session-sync";
+import { addConversationHistory } from "@/lib/supabase/conversation-history";
 import type { Difficulty, Message, Session } from "@/lib/types";
 
 const difficultyLabels: Record<Difficulty, string> = {
@@ -293,6 +294,7 @@ export default function PracticePage() {
       );
       saveSession(endedSession);
       void pushSessionToCloud(endedSession);
+      await addConversationHistory(endedSession);
       sessionStorage.setItem("hanyu_fresh_grade", "1");
       router.push("/results");
     } catch (err) {

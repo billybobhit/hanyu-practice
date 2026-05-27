@@ -12,6 +12,7 @@ import {
 } from "@/lib/storage";
 import { applyEloChange, getProgressFromSessions, getRankForElo } from "@/lib/ranks";
 import { pushSessionToCloud } from "@/lib/supabase/session-sync";
+import { addConversationHistory } from "@/lib/supabase/conversation-history";
 import { createClient } from "@/lib/supabase/client";
 import type { Difficulty, Message, Session } from "@/lib/types";
 
@@ -344,6 +345,7 @@ export default function PracticePage() {
             );
       saveSession(endedSession);
       void pushSessionToCloud(endedSession);
+      await addConversationHistory(endedSession);
       sessionStorage.setItem("hanyu_fresh_grade", "1");
       router.push("/zh-cn/results");
     } catch (err) {
