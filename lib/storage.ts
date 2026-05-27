@@ -1,11 +1,24 @@
 import type { Session, SessionSummary } from "./types";
 import { getProgressFromSessions, getRankEventsForSessions } from "@/lib/ranks";
 
-let currentUserId = "guest";
 const CURRENT_ID_KEY = "hanyu_current_id";
+const USER_ID_PERSIST_KEY = "hanyu_user_id";
+
+function getInitialUserId(): string {
+  if (typeof window === "undefined") return "guest";
+  return localStorage.getItem(USER_ID_PERSIST_KEY) ?? "guest";
+}
+
+let currentUserId = getInitialUserId();
 
 export function setStorageUserId(id: string): void {
   currentUserId = id;
+  if (typeof window === "undefined") return;
+  if (id === "guest") {
+    localStorage.removeItem(USER_ID_PERSIST_KEY);
+  } else {
+    localStorage.setItem(USER_ID_PERSIST_KEY, id);
+  }
 }
 
 function getSessionsKey(): string {

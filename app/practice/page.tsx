@@ -33,6 +33,7 @@ export default function PracticePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
+  const [gradingError, setGradingError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [devMode, setDevMode] = useState(false);
   const [devInput, setDevInput] = useState("");
@@ -249,10 +250,13 @@ export default function PracticePage() {
     }
 
     setIsGrading(true);
+    setGradingError(null);
+    const previousProgress = getProgressFromSessions(
+      getSessions().filter((s) => s.id !== session.id)
+    );
+    const gradeAbort = new AbortController();
+    const gradeTimeout = setTimeout(() => gradeAbort.abort(), 10_000);
     try {
-      const previousProgress = getProgressFromSessions(
-        getSessions().filter((s) => s.id !== session.id)
-      );
       const response = await fetch("/api/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -263,7 +267,9 @@ export default function PracticePage() {
           userRank: previousProgress.currentRank.name,
           userElo: previousProgress.currentElo,
         }),
+        signal: gradeAbort.signal,
       });
+      clearTimeout(gradeTimeout);
 
       const grade = await response.json();
       const endedSession: Session = {
@@ -281,10 +287,12 @@ export default function PracticePage() {
       sessionStorage.setItem("hanyu_fresh_grade", "1");
       router.push("/results");
     } catch {
+      clearTimeout(gradeTimeout);
+      setIsGrading(false);
+      setGradingError("Grading timed out — your session is saved.");
       const endedSession = { ...session, endTime: Date.now() };
       saveSession(endedSession);
       void pushSessionToCloud(endedSession);
-      router.push("/results");
     }
   };
 
@@ -399,6 +407,19 @@ export default function PracticePage() {
             className="text-vermillion-500 hover:text-vermillion-300 text-xs cursor-pointer shrink-0"
           >
             ✕
+          </button>
+        </div>
+      )}
+
+      {/* Grading error banner */}
+      {gradingError && (
+        <div className="bg-ink-700/80 border-t border-ink-500 px-4 py-3 shrink-0 flex items-center gap-3">
+          <span className="text-cream-400 text-sm flex-1">{gradingError}</span>
+          <button
+            onClick={() => router.push("/results")}
+            className="px-3 py-1.5 bg-vermillion-600 hover:bg-vermillion-500 text-cream-100 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0"
+          >
+            Continue →
           </button>
         </div>
       )}
