@@ -4,39 +4,145 @@ import { useEffect, useState } from "react";
 import RankBadge from "@/components/RankBadge";
 import RankProgress from "@/components/RankProgress";
 import { RANKS } from "@/lib/ranks";
-import { getSessionSummaries, getUserProgress } from "@/lib/storage";
+import { getSessionSummaries, setStorageUserId } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 import { getBestAccountElo } from "@/lib/supabase/client-rank";
 import { RANK_UPDATED_EVENT, type RankUpdatedDetail } from "@/lib/rank-events";
 import type { SessionSummary } from "@/lib/types";
 
 export default function ProgressPage() {
-  const [elo, setElo] = useState(() =>
-    typeof window === "undefined" ? 0 : getUserProgress().currentElo
-  );
-  const [summaries, setSummaries] = useState<SessionSummary[]>(() =>
-    typeof window === "undefined" ? [] : getSessionSummaries()
-  );
+  const [loading, setLoading] = useState(true);
+  const [authed, setAuthed] = useState(false);
+  const [elo, setElo] = useState(0);
+  const [summaries, setSummaries] = useState<SessionSummary[]>([]);
 
   useEffect(() => {
-    const refresh = async () => {
-      const supabase = createClient();
-      if (!supabase) return;
-      const accountElo = await getBestAccountElo(supabase);
-      if (accountElo !== null) setElo(accountElo);
+    const supabase = createClient();
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const refresh = async (userId: string) => {
+      console.log("[progress] fetch:start", { userId });
+
+      try {
+        setStorageUserId(userId);
+        setSummaries(getSessionSummaries());
+        const accountElo = await getBestAccountElo(supabase);
+        if (cancelled) return;
+        setElo(accountElo ?? 0);
+        console.log("[progress] fetch:success", { accountElo });
+      } catch (error) {
+        console.log("[progress] fetch:failed-showing-empty", error);
+        if (cancelled) return;
+        setElo(0);
+        setSummaries([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    const resolveInitialSession = async () => {
+      setLoading(true);
+
+      try {
+        console.log("[progress] auth:session-check:start");
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (cancelled) return;
+
+        console.log("[progress] auth:session-check:complete", {
+          hasUser: Boolean(session?.user),
+          userId: session?.user?.id ?? null,
+        });
+
+        if (!session?.user) {
+          setAuthed(false);
+          setElo(0);
+          setSummaries([]);
+          setLoading(false);
+          return;
+        }
+
+        setAuthed(true);
+        await refresh(session.user.id);
+      } catch (error) {
+        console.log("[progress] auth:session-check:failed", error);
+        if (cancelled) return;
+        setAuthed(false);
+        setElo(0);
+        setSummaries([]);
+        setLoading(false);
+      }
     };
 
     const syncRank = (event: Event) => {
       const detail = (event as CustomEvent<RankUpdatedDetail>).detail;
       if (typeof detail?.elo === "number") setElo(detail.elo);
       setSummaries(getSessionSummaries());
-      void refresh();
     };
 
-    void refresh();
+    void resolveInitialSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return;
+      if (_event === "INITIAL_SESSION") return;
+
+      console.log("[progress] auth:event", {
+        event: _event,
+        hasUser: Boolean(session?.user),
+        userId: session?.user?.id ?? null,
+      });
+
+      if (!session?.user) {
+        setAuthed(false);
+        setElo(0);
+        setSummaries([]);
+        setLoading(false);
+        return;
+      }
+
+      setAuthed(true);
+      void refresh(session.user.id);
+    });
+
     window.addEventListener(RANK_UPDATED_EVENT, syncRank);
-    return () => window.removeEventListener(RANK_UPDATED_EVENT, syncRank);
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+      window.removeEventListener(RANK_UPDATED_EVENT, syncRank);
+    };
   }, []);
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-ink-900 px-6 pt-24">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-ink-500 border-t-gold-500" />
+      </main>
+    );
+  }
+
+  if (!authed) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-ink-900 px-6 pt-24 text-center">
+        <div>
+          <p className="text-lg font-medium text-cream-300">
+            Sign in to view your rank
+          </p>
+          <p className="mt-2 text-sm text-cream-500">
+            Your ELO and rank are saved to your account.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-ink-900 px-6 pt-24">

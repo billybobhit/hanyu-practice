@@ -60,6 +60,7 @@ function clearSupabaseAuthStorage() {
 export default function AuthButton() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [authResolved, setAuthResolved] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [supabase] = useState(() => createClient());
@@ -137,7 +138,10 @@ export default function AuthButton() {
   };
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase) {
+      setAuthResolved(true);
+      return;
+    }
 
     const syncDevMode = () => setDevModeOn(localStorage.getItem(DEV_MODE_KEY) === "true");
     const syncRank = (event: Event) => {
@@ -151,24 +155,45 @@ export default function AuthButton() {
     window.addEventListener(DEV_MODE_EVENT, syncDevMode);
     window.addEventListener(RANK_UPDATED_EVENT, syncRank);
 
-    supabase.auth.getUser().then(async ({ data }) => {
-      setUser(data.user ?? null);
-      if (data.user) {
-        setStorageUserId(data.user.id);
-        void syncSessionsWithCloud(supabase);
-        await loadDevAccess(data.user);
-        await refreshElo();
-      } else {
-        setStorageUserId("guest");
-        setElo(getUserProgress().currentElo);
-        setIsDevUser(false);
-        setPersistedDevUser(false);
-      }
-    });
+    supabase.auth
+      .getSession()
+      .then(async ({ data }) => {
+        const sessionUser = data.session?.user ?? null;
+        console.log("[auth-button] initial-session", {
+          hasUser: Boolean(sessionUser),
+          userId: sessionUser?.id ?? null,
+        });
+        setUser(sessionUser);
+        setAuthResolved(true);
+        if (sessionUser) {
+          setStorageUserId(sessionUser.id);
+          void syncSessionsWithCloud(supabase);
+          await loadDevAccess(sessionUser);
+          await refreshElo();
+        } else {
+          setStorageUserId("guest");
+          setElo(getUserProgress().currentElo);
+          setIsDevUser(false);
+          setPersistedDevUser(false);
+        }
+      })
+      .catch((error) => {
+        console.log("[auth-button] initial-session-error", error);
+        setUser(null);
+        setAuthResolved(true);
+      });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (_event === "INITIAL_SESSION") return;
+
+      console.log("[auth-button] auth-event", {
+        event: _event,
+        hasUser: Boolean(session?.user),
+        userId: session?.user?.id ?? null,
+      });
+      setAuthResolved(true);
       setUser(session?.user ?? null);
       setShowLogin(false);
       setShowMenu(false);
@@ -184,9 +209,11 @@ export default function AuthButton() {
             router.push(next);
           }
         }
-      } else if (_event === "SIGNED_OUT") {
-        setStorageUserId("guest");
-        setIsDevUser(false);
+      } else {
+        if (_event === "SIGNED_OUT") {
+          setStorageUserId("guest");
+          setIsDevUser(false);
+        }
       }
     });
 
@@ -196,6 +223,12 @@ export default function AuthButton() {
       window.removeEventListener(RANK_UPDATED_EVENT, syncRank);
     };
   }, [loadDevAccess, refreshElo, router, supabase]);
+
+  if (!authResolved) {
+    return (
+      <div className="h-10 w-24 animate-pulse rounded-full bg-ink-800" />
+    );
+  }
 
   if (!user) {
     return (

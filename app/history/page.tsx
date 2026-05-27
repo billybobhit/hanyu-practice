@@ -155,6 +155,7 @@ export default function HistoryPage() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (cancelled) return;
+      if (_event === "INITIAL_SESSION") return;
 
       console.log("[history] auth:event", {
         event: _event,

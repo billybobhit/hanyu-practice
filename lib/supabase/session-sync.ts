@@ -43,10 +43,10 @@ function mergeSessions(localSessions: Session[], remoteSessions: Session[]) {
 
 async function getSignedInUser(supabase: SupabaseClient) {
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  return user;
+  return session?.user ?? null;
 }
 
 export async function syncSessionsWithCloud(supabase: SupabaseClient) {

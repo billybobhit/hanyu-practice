@@ -1,15 +1,29 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function getBestAccountElo(supabase: SupabaseClient) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const user = session?.user;
 
-  const { data } = await supabase
-    .from("user_language_elo")
-    .select("elo")
-    .eq("user_id", user.id)
-    .order("elo", { ascending: false })
-    .limit(1);
+    if (!user) return null;
 
-  return data?.[0]?.elo ?? null;
+    const { data, error } = await supabase
+      .from("user_language_elo")
+      .select("elo")
+      .eq("user_id", user.id)
+      .order("elo", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.log("[rank] fetch:failed", error);
+      return null;
+    }
+
+    return data?.[0]?.elo ?? null;
+  } catch (error) {
+    console.log("[rank] fetch:failed", error);
+    return null;
+  }
 }
