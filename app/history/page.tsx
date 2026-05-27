@@ -3,14 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import GradeCard from "@/components/GradeCard";
-import ProgressChart from "@/components/ProgressChart";
 import { createClient } from "@/lib/supabase/client";
 import {
   getConversationHistory,
   deleteConversationHistoryEntry,
   type ConversationHistoryRow,
 } from "@/lib/supabase/conversation-history";
-import type { Message, SessionSummary } from "@/lib/types";
+import type { Message } from "@/lib/types";
 
 const gradeColor: Record<string, string> = {
   A: "#EEC050",
@@ -23,10 +22,6 @@ const gradeColor: Record<string, string> = {
 const languageName: Record<string, string> = {
   "zh-cn": "Simplified Chinese",
   "zh-tw": "Traditional Chinese",
-  ja: "Japanese",
-  ko: "Korean",
-  es: "Spanish",
-  fr: "French",
   general: "Mandarin",
 };
 
@@ -89,7 +84,6 @@ export default function HistoryPage() {
   const [authed, setAuthed] = useState(false);
   const [conversations, setConversations] = useState<ConversationHistoryRow[]>([]);
   const [selected, setSelected] = useState<ConversationHistoryRow | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
 
   const loadHistory = useCallback(
     async (sb: NonNullable<typeof supabase>, userId: string) => {
@@ -110,20 +104,6 @@ export default function HistoryPage() {
     },
     []
   );
-
-  useEffect(() => {
-    if (conversations.length === 0) {
-      setSelectedLanguage(null);
-      return;
-    }
-
-    if (
-      !selectedLanguage ||
-      !conversations.some((conv) => conv.language_code === selectedLanguage)
-    ) {
-      setSelectedLanguage(conversations[0].language_code);
-    }
-  }, [conversations, selectedLanguage]);
 
   useEffect(() => {
     if (!supabase) {
@@ -153,7 +133,6 @@ export default function HistoryPage() {
           setAuthed(false);
           setConversations([]);
           setSelected(null);
-          setSelectedLanguage(null);
           setLoading(false);
           return;
         }
@@ -166,7 +145,6 @@ export default function HistoryPage() {
         setAuthed(false);
         setConversations([]);
         setSelected(null);
-        setSelectedLanguage(null);
         setLoading(false);
       }
     };
@@ -189,7 +167,6 @@ export default function HistoryPage() {
         setAuthed(false);
         setConversations([]);
         setSelected(null);
-        setSelectedLanguage(null);
         setLoading(false);
         return;
       }
@@ -198,7 +175,6 @@ export default function HistoryPage() {
       setLoading(true);
       setConversations([]);
       setSelected(null);
-      setSelectedLanguage(null);
       window.setTimeout(() => {
         if (!cancelled) void loadHistory(supabase, session.user.id);
       }, 0);
@@ -219,41 +195,6 @@ export default function HistoryPage() {
       return next;
     });
   };
-
-  const languageTabs = Array.from(
-    new Set(conversations.map((conv) => conv.language_code))
-  );
-  const activeLanguage = selectedLanguage ?? languageTabs[0] ?? null;
-  const visibleConversations = activeLanguage
-    ? conversations.filter((conv) => conv.language_code === activeLanguage)
-    : conversations;
-  const chartSummaries: SessionSummary[] = visibleConversations
-    .filter((conv) => typeof conv.elo_after === "number")
-    .sort(
-      (a, b) =>
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    )
-    .map((conv) => {
-      const timestamp = new Date(conv.created_at).getTime();
-      return {
-        id: conv.id,
-        materialTitle: conv.material_title ?? "Untitled",
-        startTime: timestamp,
-        endTime: timestamp,
-        overallGrade: conv.grade?.overallGrade ?? "?",
-        overallScore: conv.grade?.overallScore ?? 0,
-        messageCount: conv.messages.filter((message) => message.role === "user")
-          .length,
-        difficulty:
-          conv.difficulty === "easy" ||
-          conv.difficulty === "medium" ||
-          conv.difficulty === "hard"
-            ? conv.difficulty
-            : "hard",
-        eloChange: conv.elo_change ?? undefined,
-        eloAfter: conv.elo_after ?? undefined,
-      };
-    });
 
   return (
     <main className="min-h-screen bg-ink-900 pt-16">
@@ -304,60 +245,10 @@ export default function HistoryPage() {
 
       {/* History */}
       {!loading && authed && (
-        <div className="mx-auto max-w-6xl space-y-6 px-6 py-8">
-          {conversations.length > 0 && (
-            <section className="rounded-2xl border border-ink-600 bg-ink-800 p-5">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-sm font-medium text-cream-300">
-                    ELO History
-                  </h2>
-                  <p className="mt-1 text-xs text-cream-600">
-                    {activeLanguage
-                      ? languageName[activeLanguage] ?? activeLanguage
-                      : "Language"}{" "}
-                    progress over time
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {languageTabs.map((language) => (
-                    <button
-                      key={language}
-                      type="button"
-                      onClick={() => {
-                        setSelectedLanguage(language);
-                        setSelected(
-                          conversations.find(
-                            (conv) => conv.language_code === language
-                          ) ?? null
-                        );
-                      }}
-                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                        activeLanguage === language
-                          ? "bg-vermillion-600 text-cream-100"
-                          : "bg-ink-900 text-cream-500 hover:text-cream-200"
-                      }`}
-                    >
-                      {languageName[language] ?? language}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <ProgressChart
-                summaries={chartSummaries}
-                valueKey="eloAfter"
-                valueLabel="ELO"
-                emptyMessage="Complete more sessions to see your progress chart"
-                reverse={false}
-              />
-            </section>
-          )}
-
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_1fr]">
-            {/* Left: list */}
-            <section className="space-y-4">
-              {conversations.length === 0 ? (
+        <div className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[minmax(0,420px)_1fr]">
+          {/* Left: list */}
+          <section className="space-y-4">
+            {conversations.length === 0 ? (
               <div className="rounded-2xl border border-ink-500 bg-ink-800 p-8 text-center">
                 <p className="mb-1 font-medium text-cream-300">
                   No history yet
@@ -368,7 +259,7 @@ export default function HistoryPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {visibleConversations.map((conv, index) => {
+                {conversations.map((conv, index) => {
                   const isSelected = selected?.id === conv.id;
                   const grade = conv.grade?.overallGrade;
                   const date = new Date(conv.created_at).toLocaleDateString(
@@ -457,10 +348,10 @@ export default function HistoryPage() {
                 })}
               </div>
             )}
-            </section>
+          </section>
 
-            {/* Right: detail */}
-            <section className="space-y-6">
+          {/* Right: detail */}
+          <section className="space-y-6">
             {selected?.grade ? (
               <>
                 <div className="flex items-center justify-between">
@@ -526,8 +417,7 @@ export default function HistoryPage() {
                 </p>
               </div>
             )}
-            </section>
-          </div>
+          </section>
         </div>
       )}
     </main>

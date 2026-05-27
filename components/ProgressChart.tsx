@@ -14,10 +14,6 @@ import type { SessionSummary } from "@/lib/types";
 
 interface ProgressChartProps {
   summaries: SessionSummary[];
-  valueKey?: "overallScore" | "eloAfter";
-  valueLabel?: string;
-  emptyMessage?: string;
-  reverse?: boolean;
 }
 
 function formatDate(ts: number) {
@@ -39,36 +35,20 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-export default function ProgressChart({
-  summaries,
-  valueKey = "overallScore",
-  valueLabel = "Score",
-  emptyMessage = "Complete more sessions to see your progress trend.",
-  reverse = true,
-}: ProgressChartProps) {
+export default function ProgressChart({ summaries }: ProgressChartProps) {
   if (summaries.length < 2) {
     return (
       <div className="flex items-center justify-center h-40 text-cream-500 text-sm">
-        {emptyMessage}
+        Complete more sessions to see your progress trend.
       </div>
     );
   }
 
-  const values = summaries
-    .map((s) => (valueKey === "eloAfter" ? s.eloAfter : s.overallScore))
-    .filter((value): value is number => typeof value === "number");
-  const minValue = Math.min(...values);
-  const maxValue = Math.max(...values);
-  const padding = valueKey === "eloAfter" ? Math.max(50, Math.round((maxValue - minValue) * 0.15)) : 0;
-  const domain =
-    valueKey === "eloAfter"
-      ? [Math.max(0, minValue - padding), maxValue + padding]
-      : [0, 100];
-
-  const orderedSummaries = reverse ? [...summaries].reverse() : summaries;
-  const data = orderedSummaries.map((s) => ({
+  const data = [...summaries]
+    .reverse()
+    .map((s) => ({
       date: formatDate(s.startTime),
-      [valueLabel]: valueKey === "eloAfter" ? s.eloAfter : s.overallScore,
+      Score: s.overallScore,
       grade: s.overallGrade,
     }));
 
@@ -83,7 +63,7 @@ export default function ProgressChart({
           tickLine={false}
         />
         <YAxis
-          domain={domain}
+          domain={[0, 100]}
           tick={{ fill: "#806858", fontSize: 11 }}
           axisLine={false}
           tickLine={false}
@@ -94,7 +74,7 @@ export default function ProgressChart({
         />
         <Line
           type="monotone"
-          dataKey={valueLabel}
+          dataKey="Score"
           stroke="#BA8820"
           strokeWidth={2}
           dot={{ fill: "#BA8820", r: 4, strokeWidth: 0 }}
