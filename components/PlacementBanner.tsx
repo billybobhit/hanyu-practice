@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { getPlacementStatus } from "@/lib/supabase/placement-status";
 import LoginModal from "@/components/LoginModal";
 
 interface PlacementBannerProps {
@@ -34,25 +35,12 @@ export default function PlacementBanner({ languageCode }: PlacementBannerProps) 
     };
 
     const loadPlacementStatus = async (userId: string) => {
-      const { data, error } = await supabase
-        .from("user_language_elo")
-        .select("has_completed_placement")
-        .eq("user_id", userId)
-        .eq("language_code", languageCode)
-        .maybeSingle();
+      const status = await getPlacementStatus(supabase, userId, languageCode);
 
       if (cancelled) return;
 
       setIsGuest(false);
-      setShow(!(data?.has_completed_placement ?? false));
-
-      if (error) {
-        console.log("[placement-banner] status-fetch-failed", {
-          languageCode,
-          userId,
-          error,
-        });
-      }
+      setShow(!status.hasCompletedPlacement);
     };
 
     void supabase.auth.getSession().then(({ data: { session } }) => {
@@ -68,14 +56,14 @@ export default function PlacementBanner({ languageCode }: PlacementBannerProps) 
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (cancelled || _event === "INITIAL_SESSION") return;
+      if (cancelled) return;
 
       if (_event === "SIGNED_OUT" || !session?.user) {
         clearPlacementStatus();
         return;
       }
 
-      if (_event === "SIGNED_IN") {
+      if (_event === "INITIAL_SESSION" || _event === "SIGNED_IN") {
         setIsGuest(false);
         setShow(false);
         window.setTimeout(() => {
@@ -99,25 +87,16 @@ export default function PlacementBanner({ languageCode }: PlacementBannerProps) 
     void supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (cancelled || !session?.user) return;
 
-      const { data, error } = await supabase
-        .from("user_language_elo")
-        .select("has_completed_placement")
-        .eq("user_id", session.user.id)
-        .eq("language_code", languageCode)
-        .maybeSingle();
+      const status = await getPlacementStatus(
+        supabase,
+        session.user.id,
+        languageCode
+      );
 
       if (cancelled) return;
 
-      if (error) {
-        console.log("[placement-banner] status-refresh-failed", {
-          languageCode,
-          userId: session.user.id,
-          error,
-        });
-      }
-
       setIsGuest(false);
-      setShow(!(data?.has_completed_placement ?? false));
+      setShow(!status.hasCompletedPlacement);
     });
 
     return () => {

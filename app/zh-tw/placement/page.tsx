@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getUserProgressForLanguage, saveSession, generateSessionId, setCurrentSessionId } from "@/lib/storage";
+import { getPlacementStatus } from "@/lib/supabase/placement-status";
+import { saveSession, generateSessionId, setCurrentSessionId } from "@/lib/storage";
 import { getRankForElo } from "@/lib/ranks";
 import PlacementResult from "@/components/PlacementResult";
 import VoiceButton from "@/components/VoiceButton";
@@ -29,6 +30,7 @@ export default function ZhTwPlacementPage() {
   const [isGrading, setIsGrading] = useState(false);
   const [result, setResult] = useState<PlacementGradeResult | null>(null);
   const [autoSpeak, setAutoSpeak] = useState(false);
+  const [placementElo, setPlacementElo] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -64,11 +66,14 @@ export default function ZhTwPlacementPage() {
         return;
       }
 
-      if (getUserProgressForLanguage("zh-tw").currentElo >= 250) {
+      const placementStatus = await getPlacementStatus(supabase, user.id, "zh-tw");
+
+      if (placementStatus.hasCompletedPlacement) {
         router.replace("/zh-tw");
         return;
       }
 
+      setPlacementElo(placementStatus.elo);
       setChecking(false);
       startPlacement();
     }
@@ -148,7 +153,7 @@ export default function ZhTwPlacementPage() {
       });
       const data = await res.json();
       const startingElo: number = data.startingElo ?? 0;
-      const currentElo = getUserProgressForLanguage("zh-tw").currentElo;
+      const currentElo = placementElo;
       const rankEvent: RankEvent = {
         eloBefore: currentElo,
         eloAfter: currentElo + startingElo,
