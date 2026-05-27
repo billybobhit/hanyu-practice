@@ -357,7 +357,7 @@ Difficulty: ${selectedDifficulty.toUpperCase()}
 Full Conversation:
 ${conversation}
 
-Grade the student on their Chinese language performance at the ${rankName} rank standard. Return ONLY valid JSON matching this exact structure:
+Grade the student on their Chinese language performance at the ${effectiveRank} rank standard. Return ONLY valid JSON matching this exact structure:
 {
   "vocabularyScore": <integer 0-100>,
   "grammarScore": <integer 0-100>,
@@ -421,8 +421,9 @@ Mode adjustments:
     if (typeof languageCode === "string" && typeof userId === "string" && languageCode && userId) {
       try {
         const supabase = await createClient();
-        const currentElo = dbElo ?? 0;
-        const newElo = Math.max(0, currentElo + calculateEloChange(grade.overallGrade, grade.overallScore));
+        const currentElo = dbElo ?? rankElo;
+        const eloChange = calculateEloChange(grade.overallGrade, grade.overallScore);
+        const newElo = Math.max(0, currentElo + eloChange);
         await supabase.from("user_language_elo").upsert(
           {
             user_id: userId,
@@ -439,7 +440,11 @@ Mode adjustments:
         ]);
         const globalEloSum = allRows?.reduce((sum: number, row: { elo: number }) => sum + (row.elo ?? 0), 0) ?? newElo;
         extraFields = {
+          languageEloBefore: currentElo,
           languageEloAfter: newElo,
+          languageEloChange: newElo - currentElo,
+          languageRankBefore: getRankForElo(currentElo).name,
+          languageRankAfter: getRankForElo(newElo).name,
           globalEloSum,
           bestRankName: bestRank?.rankName,
         };
