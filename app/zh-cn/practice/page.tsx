@@ -27,6 +27,9 @@ const difficultyDescriptions: Record<Difficulty, string> = {
   easy: "Plain English tutor responses",
 };
 
+const GRADE_TIMEOUT_MS = 45_000;
+const VALID_GRADES = ["A", "B", "C", "D", "F"];
+
 export default function PracticePage() {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
@@ -252,6 +255,7 @@ export default function PracticePage() {
 
     setIsGrading(true);
     setGradingError(null);
+    let gradeTimeout: ReturnType<typeof setTimeout> | null = null;
     try {
       const previousProgress = getProgressFromSessions(
         getSessions().filter((s) => s.id !== session.id && s.languageCode === "zh-cn")
@@ -262,7 +266,7 @@ export default function PracticePage() {
         : undefined;
 
       const gradeAbort = new AbortController();
-      const gradeTimeout = setTimeout(() => gradeAbort.abort(), 10_000);
+      gradeTimeout = setTimeout(() => gradeAbort.abort(), GRADE_TIMEOUT_MS);
       const response = await fetch("/zh-cn/api/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -278,8 +282,15 @@ export default function PracticePage() {
         signal: gradeAbort.signal,
       });
       clearTimeout(gradeTimeout);
+      gradeTimeout = null;
 
       const grade = await response.json();
+      if (!response.ok) {
+        throw new Error(grade.error || `Grading failed with status ${response.status}`);
+      }
+      if (!VALID_GRADES.includes(grade.overallGrade) || typeof grade.overallScore !== "number") {
+        throw new Error("Grading returned an invalid report.");
+      }
       const endedSession: Session = {
         ...session,
         endTime: Date.now(),
@@ -294,9 +305,17 @@ export default function PracticePage() {
       void pushSessionToCloud(endedSession);
       sessionStorage.setItem("hanyu_fresh_grade", "1");
       router.push("/zh-cn/results");
-    } catch {
+    } catch (err) {
+      if (gradeTimeout) clearTimeout(gradeTimeout);
       setIsGrading(false);
-      setGradingError("Grading timed out — your session is saved.");
+      const timedOut = err instanceof DOMException && err.name === "AbortError";
+      setGradingError(
+        timedOut
+          ? "Grading is taking longer than expected — your session is saved."
+          : err instanceof Error
+            ? err.message
+            : "Grading failed — your session is saved."
+      );
       const endedSession = { ...session, endTime: Date.now() };
       saveSession(endedSession);
       void pushSessionToCloud(endedSession);
