@@ -1,13 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export async function getBestAccountElo(supabase: SupabaseClient) {
+export async function getBestAccountElo(
+  supabase: SupabaseClient,
+  userId?: string
+) {
   try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
+    const user = userId
+      ? { id: userId }
+      : (
+          await supabase.auth.getSession()
+        ).data.session?.user;
 
-    if (!user) return null;
+    if (!user?.id) return null;
 
     const { data, error } = await supabase
       .from("user_language_elo")

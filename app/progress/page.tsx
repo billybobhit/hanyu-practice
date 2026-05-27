@@ -31,7 +31,7 @@ export default function ProgressPage() {
       try {
         setStorageUserId(userId);
         setSummaries(getSessionSummaries());
-        const accountElo = await getBestAccountElo(supabase);
+        const accountElo = await getBestAccountElo(supabase, userId);
         if (cancelled) return;
         setElo(accountElo ?? 0);
         console.log("[progress] fetch:success", { accountElo });
@@ -110,7 +110,12 @@ export default function ProgressPage() {
       }
 
       setAuthed(true);
-      void refresh(session.user.id);
+      setLoading(true);
+      setElo(0);
+      setSummaries([]);
+      window.setTimeout(() => {
+        if (!cancelled) void refresh(session.user.id);
+      }, 0);
     });
 
     window.addEventListener(RANK_UPDATED_EVENT, syncRank);

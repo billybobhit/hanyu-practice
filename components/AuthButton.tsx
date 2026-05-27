@@ -123,13 +123,10 @@ export default function AuthButton() {
     setElo(getUserProgress().currentElo);
 
     if (supabase) {
-      void Promise.race([
-        supabase.auth.signOut({ scope: "global" }),
-        new Promise((resolve) => setTimeout(resolve, 1200)),
-      ]).finally(() => {
-        clearSupabaseAuthStorage();
-        window.location.replace("/");
-      });
+      const { error } = await supabase.auth.signOut({ scope: "global" });
+      if (error) console.log("[auth-button] sign-out-error", error);
+      clearSupabaseAuthStorage();
+      window.location.replace("/");
       return;
     }
 
@@ -155,9 +152,24 @@ export default function AuthButton() {
     window.addEventListener(DEV_MODE_EVENT, syncDevMode);
     window.addEventListener(RANK_UPDATED_EVENT, syncRank);
 
+    const loadAccountState = async (activeUser: User, event?: string) => {
+      setStorageUserId(activeUser.id);
+      void syncSessionsWithCloud(supabase, activeUser.id);
+      await loadDevAccess(activeUser);
+      const accountElo = await getBestAccountElo(supabase, activeUser.id);
+      if (accountElo !== null) setElo(accountElo);
+
+      if (event === "SIGNED_IN") {
+        const next = sessionStorage.getItem("auth_next");
+        sessionStorage.removeItem("auth_next");
+        router.refresh();
+        if (next) router.push(next);
+      }
+    };
+
     supabase.auth
       .getSession()
-      .then(async ({ data }) => {
+      .then(({ data }) => {
         const sessionUser = data.session?.user ?? null;
         console.log("[auth-button] initial-session", {
           hasUser: Boolean(sessionUser),
@@ -166,10 +178,7 @@ export default function AuthButton() {
         setUser(sessionUser);
         setAuthResolved(true);
         if (sessionUser) {
-          setStorageUserId(sessionUser.id);
-          void syncSessionsWithCloud(supabase);
-          await loadDevAccess(sessionUser);
-          await refreshElo();
+          void loadAccountState(sessionUser);
         } else {
           setStorageUserId("guest");
           setElo(getUserProgress().currentElo);
@@ -185,7 +194,7 @@ export default function AuthButton() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (_event === "INITIAL_SESSION") return;
 
       console.log("[auth-button] auth-event", {
@@ -199,20 +208,15 @@ export default function AuthButton() {
       setShowMenu(false);
       if (session?.user) {
         setStorageUserId(session.user.id);
-        void syncSessionsWithCloud(supabase);
-        await loadDevAccess(session.user);
-        await refreshElo();
-        if (_event === "SIGNED_IN") {
-          const next = sessionStorage.getItem("auth_next");
-          if (next) {
-            sessionStorage.removeItem("auth_next");
-            router.push(next);
-          }
-        }
+        window.setTimeout(() => {
+          void loadAccountState(session.user, _event);
+        }, 0);
       } else {
         if (_event === "SIGNED_OUT") {
           setStorageUserId("guest");
           setIsDevUser(false);
+          setPersistedDevUser(false);
+          setElo(getUserProgress().currentElo);
         }
       }
     });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 interface LoginModalProps {
@@ -8,6 +9,7 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ onClose }: LoginModalProps) {
+  const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [isSignUp, setIsSignUp] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -24,7 +26,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     }
 
     sessionStorage.setItem("auth_next", window.location.pathname);
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
@@ -32,6 +34,11 @@ export default function LoginModal({ onClose }: LoginModalProps) {
         )}`,
       },
     });
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    router.refresh();
   };
 
   const handleEmail = async () => {
@@ -64,6 +71,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
       return;
     }
 
+    router.refresh();
     onClose();
   };
 

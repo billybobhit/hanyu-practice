@@ -86,11 +86,11 @@ export default function HistoryPage() {
   const [selected, setSelected] = useState<ConversationHistoryRow | null>(null);
 
   const loadHistory = useCallback(
-    async (sb: NonNullable<typeof supabase>) => {
-      console.log("[history] fetch:start");
+    async (sb: NonNullable<typeof supabase>, userId: string) => {
+      console.log("[history] fetch:start", { userId });
 
       try {
-        const rows = await getConversationHistory(sb);
+        const rows = await getConversationHistory(sb, userId);
         console.log("[history] fetch:success", { count: rows.length });
         setConversations(rows);
         setSelected(rows[0] ?? null);
@@ -138,7 +138,7 @@ export default function HistoryPage() {
         }
 
         setAuthed(true);
-        await loadHistory(supabase);
+        await loadHistory(supabase, session.user.id);
       } catch (error) {
         if (cancelled) return;
         console.log("[history] auth:session-check:failed", error);
@@ -172,7 +172,12 @@ export default function HistoryPage() {
       }
 
       setAuthed(true);
-      void loadHistory(supabase);
+      setLoading(true);
+      setConversations([]);
+      setSelected(null);
+      window.setTimeout(() => {
+        if (!cancelled) void loadHistory(supabase, session.user.id);
+      }, 0);
     });
 
     return () => {

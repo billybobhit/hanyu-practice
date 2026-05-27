@@ -49,10 +49,13 @@ async function getSignedInUser(supabase: SupabaseClient) {
   return session?.user ?? null;
 }
 
-export async function syncSessionsWithCloud(supabase: SupabaseClient) {
-  const user = await getSignedInUser(supabase);
+export async function syncSessionsWithCloud(
+  supabase: SupabaseClient,
+  userId?: string
+) {
+  const user = userId ? { id: userId } : await getSignedInUser(supabase);
 
-  if (!user) {
+  if (!user?.id) {
     setStorageUserId("guest");
     return { ok: true, synced: false, sessions: getSessions() };
   }

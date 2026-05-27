@@ -88,11 +88,12 @@ export async function addConversationHistory(
 }
 
 export async function getConversationHistory(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  userId?: string
 ): Promise<ConversationHistoryRow[]> {
   try {
-    const user = await getConfirmedUser(supabase);
-    if (!user) return [];
+    const user = userId ? { id: userId } : await getConfirmedUser(supabase);
+    if (!user?.id) return [];
 
     const { data, error } = await supabase
       .from("conversation_history")
