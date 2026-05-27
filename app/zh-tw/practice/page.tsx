@@ -10,9 +10,8 @@ import {
   getSessions,
   saveSession,
 } from "@/lib/storage";
-import { applyEloChange, getProgressFromSessions } from "@/lib/ranks";
+import { applyEloChange, getProgressFromSessions, getRankForElo } from "@/lib/ranks";
 import { pushSessionToCloud } from "@/lib/supabase/session-sync";
-import { createClient } from "@/lib/supabase/client";
 import type { Difficulty, Message, Session } from "@/lib/types";
 
 const difficultyLabels: Record<Difficulty, string> = {
@@ -260,10 +259,6 @@ export default function PracticePage() {
       const previousProgress = getProgressFromSessions(
         getSessions().filter((s) => s.id !== session.id && s.languageCode === "zh-tw")
       );
-      const supabase = createClient();
-      const userId = supabase
-        ? (await supabase.auth.getUser()).data.user?.id
-        : undefined;
 
       const gradeAbort = new AbortController();
       gradeTimeout = setTimeout(() => gradeAbort.abort(), GRADE_TIMEOUT_MS);
@@ -277,7 +272,6 @@ export default function PracticePage() {
           userRank: previousProgress.currentRank.name,
           userElo: previousProgress.currentElo,
           languageCode: "zh-tw",
-          userId,
         }),
         signal: gradeAbort.signal,
       });
@@ -296,11 +290,30 @@ export default function PracticePage() {
         endTime: Date.now(),
         grade,
       };
-      endedSession.rankEvent = applyEloChange(
-        previousProgress.currentElo,
-        grade.overallGrade,
-        grade.overallScore
-      );
+      endedSession.rankEvent =
+        typeof grade.languageEloBefore === "number" &&
+        typeof grade.languageEloAfter === "number"
+          ? {
+              eloBefore: grade.languageEloBefore,
+              eloAfter: grade.languageEloAfter,
+              eloChange:
+                typeof grade.languageEloChange === "number"
+                  ? grade.languageEloChange
+                  : grade.languageEloAfter - grade.languageEloBefore,
+              rankBefore:
+                typeof grade.languageRankBefore === "string"
+                  ? grade.languageRankBefore
+                  : getRankForElo(grade.languageEloBefore).name,
+              rankAfter:
+                typeof grade.languageRankAfter === "string"
+                  ? grade.languageRankAfter
+                  : getRankForElo(grade.languageEloAfter).name,
+            }
+          : applyEloChange(
+              previousProgress.currentElo,
+              grade.overallGrade,
+              grade.overallScore
+            );
       saveSession(endedSession);
       void pushSessionToCloud(endedSession);
       sessionStorage.setItem("hanyu_fresh_grade", "1");
