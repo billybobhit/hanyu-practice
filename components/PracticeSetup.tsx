@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import UploadZone from "@/components/UploadZone";
 import {
@@ -9,6 +9,8 @@ import {
   setCurrentSessionId,
 } from "@/lib/storage";
 import { pushSessionToCloud } from "@/lib/supabase/session-sync";
+import { createClient } from "@/lib/supabase/client";
+import { getPlacementStatus } from "@/lib/supabase/placement-status";
 import type { Difficulty, Session } from "@/lib/types";
 
 interface PracticeSetupProps {
@@ -46,6 +48,19 @@ export default function PracticeSetup({
 }: PracticeSetupProps) {
   const router = useRouter();
   const [difficulty, setDifficulty] = useState<Difficulty>("hard");
+  const [showPlacement, setShowPlacement] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+
+    void supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session?.user) return;
+      const langCode = basePath.slice(1) as "zh-cn" | "zh-tw";
+      const status = await getPlacementStatus(supabase, session.user.id, langCode);
+      setShowPlacement(!status.hasCompletedPlacement);
+    });
+  }, [basePath]);
 
   const handleMaterialReady = (content: string, title: string) => {
     const id = generateSessionId();
@@ -97,7 +112,20 @@ export default function PracticeSetup({
 
         <section className="space-y-3">
           <h2 className="text-sm font-medium text-cream-300">Difficulty</h2>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className={`grid gap-3 ${showPlacement ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+            {showPlacement && (
+              <button
+                onClick={() => router.push(`${basePath}/placement`)}
+                className="cursor-pointer rounded-xl border border-gold-700/60 bg-gold-800/20 p-4 text-left transition-all hover:border-gold-500 hover:bg-gold-800/30"
+              >
+                <div className="text-sm font-semibold text-gold-300">
+                  Placement
+                </div>
+                <div className="mt-1 text-xs leading-5 text-gold-500/80">
+                  Find your starting rank
+                </div>
+              </button>
+            )}
             {difficultyOptions.map((option) => (
               <button
                 key={option.value}
