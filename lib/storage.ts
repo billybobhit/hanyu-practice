@@ -1,8 +1,16 @@
 import type { Session, SessionSummary } from "./types";
 import { getProgressFromSessions, getRankEventsForSessions } from "@/lib/ranks";
 
-const SESSIONS_KEY = "hanyu_sessions";
+let currentUserId = "guest";
 const CURRENT_ID_KEY = "hanyu_current_id";
+
+export function setStorageUserId(id: string): void {
+  currentUserId = id;
+}
+
+function getSessionsKey(): string {
+  return `hanyu_sessions_${currentUserId}`;
+}
 
 export function saveSession(session: Session): void {
   const sessions = getSessions();
@@ -12,12 +20,12 @@ export function saveSession(session: Session): void {
   } else {
     sessions.push(session);
   }
-  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+  localStorage.setItem(getSessionsKey(), JSON.stringify(sessions));
 }
 
 export function getSessions(): Session[] {
   try {
-    const raw = localStorage.getItem(SESSIONS_KEY);
+    const raw = localStorage.getItem(getSessionsKey());
     const sessions = raw ? JSON.parse(raw) : [];
     return sessions.map((session: Session) => ({
       ...session,
@@ -36,7 +44,7 @@ export function replaceSessions(sessions: Session[]): void {
       difficulty: session.difficulty ?? "hard",
     });
   });
-  localStorage.setItem(SESSIONS_KEY, JSON.stringify(Array.from(unique.values())));
+  localStorage.setItem(getSessionsKey(), JSON.stringify(Array.from(unique.values())));
 }
 
 export function getSession(id: string): Session | null {
@@ -45,7 +53,7 @@ export function getSession(id: string): Session | null {
 
 export function deleteSession(id: string): void {
   const filtered = getSessions().filter((s) => s.id !== id);
-  localStorage.setItem(SESSIONS_KEY, JSON.stringify(filtered));
+  localStorage.setItem(getSessionsKey(), JSON.stringify(filtered));
 }
 
 export function getSessionSummaries(): SessionSummary[] {

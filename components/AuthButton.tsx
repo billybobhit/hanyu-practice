@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { syncSessionsWithCloud } from "@/lib/supabase/session-sync";
 import LoginModal from "@/components/LoginModal";
 import RankBadge from "@/components/RankBadge";
-import { getUserProgress } from "@/lib/storage";
+import { getUserProgress, setStorageUserId } from "@/lib/storage";
 import { RANK_UPDATED_EVENT, type RankUpdatedDetail } from "@/lib/rank-events";
 import { getBestAccountElo } from "@/lib/supabase/client-rank";
 import SimulateRankModal from "@/components/dev/SimulateRankModal";
@@ -154,6 +154,7 @@ export default function AuthButton() {
     supabase.auth.getUser().then(async ({ data }) => {
       setUser(data.user ?? null);
       if (data.user) {
+        setStorageUserId(data.user.id);
         void syncSessionsWithCloud(supabase);
         await loadDevAccess(data.user);
         await refreshElo();
@@ -167,6 +168,7 @@ export default function AuthButton() {
       setShowLogin(false);
       setShowMenu(false);
       if (session?.user) {
+        setStorageUserId(session.user.id);
         void syncSessionsWithCloud(supabase);
         await loadDevAccess(session.user);
         await refreshElo();
@@ -178,6 +180,7 @@ export default function AuthButton() {
           }
         }
       } else if (_event === "SIGNED_OUT") {
+        setStorageUserId("guest");
         setIsDevUser(false);
       }
     });
