@@ -261,15 +261,19 @@ export default function PracticePage() {
         getSessions().filter((s) => s.id !== session.id && s.languageCode === "zh-cn")
       );
       const supabase = createClient();
-      const userId = supabase
-        ? (await supabase.auth.getUser()).data.user?.id
-        : undefined;
+      const authSession = supabase
+        ? (await supabase.auth.getSession()).data.session
+        : null;
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (authSession?.access_token) {
+        headers.Authorization = `Bearer ${authSession.access_token}`;
+      }
 
       const gradeAbort = new AbortController();
       gradeTimeout = setTimeout(() => gradeAbort.abort(), GRADE_TIMEOUT_MS);
       const response = await fetch("/zh-cn/api/grade", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           messages: session.messages,
           material: session.materialContent,
@@ -277,7 +281,6 @@ export default function PracticePage() {
           userRank: previousProgress.currentRank.name,
           userElo: previousProgress.currentElo,
           languageCode: "zh-cn",
-          userId,
         }),
         signal: gradeAbort.signal,
       });

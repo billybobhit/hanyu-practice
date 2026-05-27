@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import GradeCard from "@/components/GradeCard";
 import RankProgress from "@/components/RankProgress";
@@ -9,6 +9,7 @@ import {
   getSession,
   getSessionSummaries,
   getUserProgress,
+  setStorageUserId,
 } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -43,31 +44,59 @@ export default function HistoryPage() {
     "local" | "syncing" | "synced" | "unavailable"
   >("local");
 
-  const refreshHistory = (selectedId?: string) => {
+  const refreshHistory = useCallback((selectedId?: string) => {
     const nextSummaries = getSessionSummaries();
     setSummaries(nextSummaries);
     setCurrentElo(getUserProgress().currentElo);
 
     const id = selectedId ?? nextSummaries[0]?.id;
     setSelectedSession(id ? getSession(id) : null);
-  };
+  }, []);
 
   useEffect(() => {
-    refreshHistory();
     if (!supabase) {
-      setSyncStatus("unavailable");
+      setStorageUserId("guest");
+      queueMicrotask(() => {
+        refreshHistory();
+        setSyncStatus("unavailable");
+      });
       return;
     }
 
-    const sync = async () => {
+    let cancelled = false;
+
+    const loadAccountHistory = async (userId: string | null) => {
+      setStorageUserId(userId ?? "guest");
+      setSelectedSession(null);
+
+      if (!userId) {
+        setSyncStatus("local");
+        refreshHistory();
+        return;
+      }
+
       setSyncStatus("syncing");
       const result = await syncSessionsWithCloud(supabase);
+      if (cancelled) return;
       setSyncStatus(result.synced ? "synced" : "unavailable");
-      refreshHistory(selectedSession?.id);
+      refreshHistory();
     };
 
-    void sync();
-  }, [supabase]);
+    void supabase.auth
+      .getUser()
+      .then(({ data }) => loadAccountHistory(data.user?.id ?? null));
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      void loadAccountHistory(session?.user?.id ?? null);
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [refreshHistory, supabase]);
 
   const handleSelect = (id: string) => {
     setSelectedSession(getSession(id));

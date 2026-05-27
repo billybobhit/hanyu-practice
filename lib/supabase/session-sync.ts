@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getSessions, replaceSessions } from "@/lib/storage";
+import { getSessions, replaceSessions, setStorageUserId } from "@/lib/storage";
 import type { Session } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 
@@ -53,9 +53,11 @@ export async function syncSessionsWithCloud(supabase: SupabaseClient) {
   const user = await getSignedInUser(supabase);
 
   if (!user) {
+    setStorageUserId("guest");
     return { ok: true, synced: false, sessions: getSessions() };
   }
 
+  setStorageUserId(user.id);
   const localSessions = getSessions();
   const { data, error } = await supabase
     .from(TABLE)

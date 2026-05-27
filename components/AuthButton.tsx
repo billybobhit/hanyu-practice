@@ -20,7 +20,6 @@ import {
   setDevMode,
   getDevMode,
   isDev,
-  isDevModeManuallyOff,
   setDevModeManuallyOff,
   getPersistedDevUser,
   setPersistedDevUser,
@@ -41,6 +40,8 @@ function isSupabaseAuthKey(key: string) {
 }
 
 function clearSupabaseAuthStorage() {
+  localStorage.removeItem("hanyu_user_id");
+
   [localStorage, sessionStorage].forEach((storage) => {
     Object.keys(storage)
       .filter(isSupabaseAuthKey)
@@ -65,7 +66,9 @@ export default function AuthButton() {
   const [elo, setElo] = useState(() =>
     typeof window === "undefined" ? 0 : getUserProgress().currentElo
   );
-  const [isDevUser, setIsDevUser] = useState(false);
+  const [isDevUser, setIsDevUser] = useState(() =>
+    typeof window === "undefined" ? false : getPersistedDevUser()
+  );
   const [devModeOn, setDevModeOn] = useState(() =>
     typeof window === "undefined" ? false : getDevMode()
   );
@@ -115,6 +118,8 @@ export default function AuthButton() {
     setUser(null);
     setIsDevUser(false);
     setPersistedDevUser(false);
+    setStorageUserId("guest");
+    setElo(getUserProgress().currentElo);
 
     if (supabase) {
       void Promise.race([
@@ -130,11 +135,6 @@ export default function AuthButton() {
     clearSupabaseAuthStorage();
     window.location.replace("/");
   };
-
-  // Restore dev user state synchronously on client mount before async auth resolves
-  useEffect(() => {
-    if (getPersistedDevUser()) setIsDevUser(true);
-  }, []);
 
   useEffect(() => {
     if (!supabase) return;
@@ -158,6 +158,11 @@ export default function AuthButton() {
         void syncSessionsWithCloud(supabase);
         await loadDevAccess(data.user);
         await refreshElo();
+      } else {
+        setStorageUserId("guest");
+        setElo(getUserProgress().currentElo);
+        setIsDevUser(false);
+        setPersistedDevUser(false);
       }
     });
 
@@ -190,7 +195,7 @@ export default function AuthButton() {
       window.removeEventListener(DEV_MODE_EVENT, syncDevMode);
       window.removeEventListener(RANK_UPDATED_EVENT, syncRank);
     };
-  }, [loadDevAccess, refreshElo, supabase]);
+  }, [loadDevAccess, refreshElo, router, supabase]);
 
   if (!user) {
     return (
