@@ -87,10 +87,20 @@ export default function HistoryPage() {
 
   const loadHistory = useCallback(
     async (sb: NonNullable<typeof supabase>) => {
-      const rows = await getConversationHistory(sb);
-      setConversations(rows);
-      setSelected(rows[0] ?? null);
-      setLoading(false);
+      console.log("[history] fetch:start");
+
+      try {
+        const rows = await getConversationHistory(sb);
+        console.log("[history] fetch:success", { count: rows.length });
+        setConversations(rows);
+        setSelected(rows[0] ?? null);
+      } catch (error) {
+        console.log("[history] fetch:failed-showing-empty", error);
+        setConversations([]);
+        setSelected(null);
+      } finally {
+        setLoading(false);
+      }
     },
     []
   );
@@ -105,22 +115,38 @@ export default function HistoryPage() {
 
     const loadForCurrentSession = async () => {
       setLoading(true);
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
 
-      if (cancelled) return;
+      try {
+        console.log("[history] auth:session-check:start");
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      if (!session?.user) {
+        if (cancelled) return;
+
+        console.log("[history] auth:session-check:complete", {
+          hasUser: Boolean(session?.user),
+          userId: session?.user?.id ?? null,
+        });
+
+        if (!session?.user) {
+          setAuthed(false);
+          setConversations([]);
+          setSelected(null);
+          setLoading(false);
+          return;
+        }
+
+        setAuthed(true);
+        await loadHistory(supabase);
+      } catch (error) {
+        if (cancelled) return;
+        console.log("[history] auth:session-check:failed", error);
         setAuthed(false);
         setConversations([]);
         setSelected(null);
         setLoading(false);
-        return;
       }
-
-      setAuthed(true);
-      await loadHistory(supabase);
     };
 
     void loadForCurrentSession();
@@ -129,6 +155,12 @@ export default function HistoryPage() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (cancelled) return;
+
+      console.log("[history] auth:event", {
+        event: _event,
+        hasUser: Boolean(session?.user),
+        userId: session?.user?.id ?? null,
+      });
 
       if (!session?.user) {
         setAuthed(false);
@@ -212,6 +244,9 @@ export default function HistoryPage() {
           <section className="space-y-4">
             {conversations.length === 0 ? (
               <div className="rounded-2xl border border-ink-500 bg-ink-800 p-8 text-center">
+                <p className="mb-1 font-medium text-cream-300">
+                  No history yet
+                </p>
                 <p className="text-sm text-cream-400">
                   Completed sessions will appear here.
                 </p>

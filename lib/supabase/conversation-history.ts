@@ -52,66 +52,84 @@ async function trimConversationHistory(
 export async function addConversationHistory(
   session: Session
 ): Promise<boolean> {
-  if (!session.grade) return false;
+  try {
+    if (!session.grade) return false;
 
-  const supabase = createClient();
-  if (!supabase) return false;
+    const supabase = createClient();
+    if (!supabase) return false;
 
-  const user = await getConfirmedUser(supabase);
-  if (!user) return false;
+    const user = await getConfirmedUser(supabase);
+    if (!user) return false;
 
-  const languageCode = session.languageCode ?? "general";
+    const languageCode = session.languageCode ?? "general";
 
-  const { error } = await supabase.from("conversation_history").insert({
-    user_id: user.id,
-    language_code: languageCode,
-    material_title: session.materialTitle,
-    difficulty: session.difficulty,
-    messages: session.messages,
-    grade: session.grade,
-    elo_change: session.rankEvent?.eloChange ?? null,
-    elo_after: session.rankEvent?.eloAfter ?? null,
-  });
+    const { error } = await supabase.from("conversation_history").insert({
+      user_id: user.id,
+      language_code: languageCode,
+      material_title: session.materialTitle,
+      difficulty: session.difficulty,
+      messages: session.messages,
+      grade: session.grade,
+      elo_change: session.rankEvent?.eloChange ?? null,
+      elo_after: session.rankEvent?.eloAfter ?? null,
+    });
 
-  if (error) {
+    if (error) {
+      console.error("Failed to save conversation history", error);
+      return false;
+    }
+
+    await trimConversationHistory(supabase, user.id, languageCode);
+    return true;
+  } catch (error) {
     console.error("Failed to save conversation history", error);
     return false;
   }
-
-  await trimConversationHistory(supabase, user.id, languageCode);
-  return true;
 }
 
 export async function getConversationHistory(
   supabase: SupabaseClient
 ): Promise<ConversationHistoryRow[]> {
-  const user = await getConfirmedUser(supabase);
-  if (!user) return [];
+  try {
+    const user = await getConfirmedUser(supabase);
+    if (!user) return [];
 
-  const { data, error } = await supabase
-    .from("conversation_history")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("conversation_history")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
-  if (error || !data) {
+    if (error || !data) {
+      console.error("Failed to load conversation history", error);
+      return [];
+    }
+
+    return data as ConversationHistoryRow[];
+  } catch (error) {
     console.error("Failed to load conversation history", error);
     return [];
   }
-
-  return data as ConversationHistoryRow[];
 }
 
 export async function deleteConversationHistoryEntry(
   supabase: SupabaseClient,
   id: string
 ): Promise<void> {
-  const user = await getConfirmedUser(supabase);
-  if (!user) return;
+  try {
+    const user = await getConfirmedUser(supabase);
+    if (!user) return;
 
-  await supabase
-    .from("conversation_history")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("id", id);
+    const { error } = await supabase
+      .from("conversation_history")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("id", id);
+
+    if (error) {
+      console.error("Failed to delete conversation history", error);
+    }
+  } catch (error) {
+    console.error("Failed to delete conversation history", error);
+  }
 }
