@@ -15,8 +15,10 @@ import {
   getSessionSummaries,
   deleteSession,
   getUserProgressForLanguage,
+  setStorageUserId,
 } from "@/lib/storage";
 import { deleteSessionFromCloud } from "@/lib/supabase/session-sync";
+import { createClient } from "@/lib/supabase/client";
 import { applyEloChange, getProgressFromSessions } from "@/lib/ranks";
 import type { Session, SessionSummary } from "@/lib/types";
 
@@ -87,7 +89,17 @@ export default function ResultsPage() {
       setCurrentSession(s);
       if (s?.grade && fresh) setShowReveal(true);
     }
-    setSummaries(getSessionSummaries());
+
+    // Load summaries after auth so we use the authenticated user's localStorage key.
+    const supabase = createClient();
+    if (supabase) {
+      void supabase.auth.getSession().then(({ data: { session } }) => {
+        setStorageUserId(session?.user?.id ?? "guest");
+        setSummaries(getSessionSummaries());
+      });
+    } else {
+      setSummaries(getSessionSummaries());
+    }
   }, []);
 
   const handleDelete = (id: string) => {

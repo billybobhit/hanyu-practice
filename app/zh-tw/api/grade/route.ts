@@ -314,7 +314,6 @@ Mode adjustments:
             user_id: accountUserId,
             language_code: languageCode,
             elo: newElo,
-            has_completed_placement: true,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "user_id,language_code" }
