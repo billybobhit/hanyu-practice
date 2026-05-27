@@ -12,6 +12,7 @@ import {
 } from "@/lib/storage";
 import { applyEloChange, getProgressFromSessions, getRankForElo } from "@/lib/ranks";
 import { pushSessionToCloud } from "@/lib/supabase/session-sync";
+import { createClient } from "@/lib/supabase/client";
 import type { Difficulty, Message, Session } from "@/lib/types";
 
 const difficultyLabels: Record<Difficulty, string> = {
@@ -38,6 +39,7 @@ export default function PracticePage() {
   const [isGrading, setIsGrading] = useState(false);
   const [gradingError, setGradingError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [userLanguageElo, setUserLanguageElo] = useState(0);
   const [devMode, setDevMode] = useState(false);
   const [devInput, setDevInput] = useState("");
   const [devMessages, setDevMessages] = useState<{ role: "sys" | "user"; text: string }[]>([
@@ -75,6 +77,31 @@ export default function PracticePage() {
       ]);
     }
   };
+
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+
+    const loadLanguageElo = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setUserLanguageElo(0);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("user_language_elo")
+        .select("elo")
+        .eq("user_id", user.id)
+        .eq("language_code", "zh-cn")
+        .maybeSingle();
+      setUserLanguageElo(typeof data?.elo === "number" ? data.elo : 0);
+    };
+
+    void loadLanguageElo();
+  }, []);
 
   useEffect(() => {
     const id = getCurrentSessionId();
@@ -271,6 +298,7 @@ export default function PracticePage() {
           difficulty: session.difficulty ?? "hard",
           userRank: previousProgress.currentRank.name,
           userElo: previousProgress.currentElo,
+          userLanguageElo,
           languageCode: "zh-cn",
         }),
         signal: gradeAbort.signal,

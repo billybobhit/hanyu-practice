@@ -18,273 +18,138 @@ const UNIVERSAL_RULES = `UNIVERSAL RULES FOR ALL RANKS (apply without exception)
 6. If the user self-corrects or shows awareness of their errors, reward that metacognitive awareness.`;
 
 // ── Per-rank rubrics ──────────────────────────────────────────────────────────
+const BEGINNER_RUBRIC = `Be extremely generous. Reward any genuine attempt in Chinese.
+Single words, broken sentences, heavy English mixing — all acceptable.
+The student is a true beginner. Encourage everything, penalize nothing except full English refusal.
+
+Grade scale:
+- A: Any Chinese used, understood the topic, made an effort
+- B: Mostly English but sprinkled Chinese, showed comprehension
+- C: Barely tried but attempted something in Chinese
+- D: Almost entirely English, minimal effort
+- F: Zero Chinese, refused to engage`;
+
 const RANK_RUBRICS: Record<string, string> = {
-  noob: `You are grading a complete beginner learning Chinese. Be extremely encouraging. The bar is very low — reward any genuine attempt.
+  noob: BEGINNER_RUBRIC,
+  beginner: BEGINNER_RUBRIC,
+  intermediate: BEGINNER_RUBRIC,
+
+  advanced: `You are grading a Chinese 2 curriculum level student.
+They can form sentences that make sense and communicate a clear idea.
+Expect correct basic sentence structure, familiar topics, no complex grammar.
+Think: a student who just finished their second year of Chinese class.
 
 Standards:
-- Vocabulary: Did they use ANY Chinese words correctly? Even one word counts.
-- Grammar: Ignore almost entirely. Reward attempts over correctness.
-- Comprehension: Did they understand the general topic? Basic yes/no counts.
-- Voice input errors: Ignore completely.
-- Mixing English and Chinese: Totally acceptable at this rank.
+- Can form one complete, grammatically reasonable sentence per response
+- Vocabulary matches HSK 2-3 level (food, family, daily life, simple opinions)
+- Grammar: basic SVO, simple connectors (因为, 所以, 但是)
+- No code-switching expected to be penalized heavily yet
+- Errors are fine as long as meaning is clear
 
-Example reference dialogue (A grade at Noob):
-Tutor: 你叫什么名字？
-User: 我 name is 小明, 我 like 中文!
-Tutor: 你喜欢吃什么？
-User: 我喜欢 pizza 和饺子
-→ A grade: tried, used Chinese words, understood questions, genuine effort.
+Example A-grade response at Advanced:
+Tutor: 你喜欢做什么运动？
+User: 我喜欢打篮球，因为很有意思，我和朋友一起打。
+→ Clear sentence, reason given, simple vocab, makes sense. A grade.`,
 
-Grade scale:
-- A: Responded in Chinese (even mixed), understood questions, used relevant words
-- B: Mostly understood, attempted Chinese even if heavily mixed with English
-- C: Barely understood, very minimal Chinese, but tried
-- D: Confused but attempted something
-- F: Responded entirely in English with zero Chinese effort`,
-
-  beginner: `You are grading an early learner who knows basic phrases and simple sentences. Be encouraging but start rewarding correct structure.
+  pro: `You are grading a Chinese 2-3 transition level student.
+They should hold a short, coherent conversation without English.
+3+ sentence responses expected. Vocabulary is decent but not rich.
+Think: someone who studied Chinese 2-3 years and uses it occasionally.
 
 Standards:
-- Vocabulary: HSK 1-2 level words, basic nouns and verbs
-- Grammar: Basic SVO structure (Subject + Verb + Object)
-- Comprehension: Understands simple direct questions, gives short answers
-- Voice errors: Ignore completely
-- English mixing: Penalize slightly but do not fail for it
+- 2-3 sentences minimum per response
+- No English mixing tolerated
+- HSK 3 level vocabulary
+- Can express opinions, describe situations, give reasons
+- Grammar doesn't have to be perfect but meaning must be clear`,
 
-Example reference dialogue (A grade at Beginner):
-Tutor: 你今天吃什么了？
-User: 我吃了面条，很好吃。
-Tutor: 你家有几口人？
-User: 我家有四口人，爸爸妈妈和我还有弟弟。
-→ A grade: correct simple sentences, understood all questions, HSK 1-2 vocab.
-
-Example reference dialogue (C grade at Beginner):
-Tutor: 你今天吃什么了？
-User: 我 eat 面条. 好吃.
-Tutor: 你家有几口人？
-User: Four people.
-→ C grade: heavy mixing, barely structured, understood but couldn't respond well.
-
-Grade scale:
-- A: Correct simple sentences, understood all questions, relevant answers
-- B: Mostly correct, minor errors, understood most questions
-- C: Some errors, understood about half, limited vocabulary
-- D: Frequent errors, struggled to understand
-- F: Cannot form basic sentences or understand simple questions`,
-
-  intermediate: `You are grading a learner who can hold basic conversations on familiar topics. Reward depth and penalize one-word answers.
+  iron: `You are grading a Chinese 3 curriculum level student.
+They can hold a real conversation on familiar topics.
+3 solid sentences with some vocabulary depth expected.
+Think: end of Chinese 3 class — can communicate comfortably.
 
 Standards:
-- Vocabulary: HSK 3-4 level, topic-specific words
-- Grammar: Compound sentences, 了/过/着 aspect markers, measure words
-- Comprehension: Can discuss familiar topics with some depth
-- Reward: Extended responses, opinions, asking questions back
-- Penalize: Repeating same simple phrases, refusing to elaborate
-- Voice errors: Ignore, grade meaning not transcription
+- 3+ sentences, coherent and on-topic
+- Some HSK 3-4 vocabulary used naturally
+- No English mixing
+- Can sustain a topic, give opinions with reasoning
+- Minor grammar errors acceptable if meaning is clear
 
-Example reference dialogue (A grade at Intermediate):
-Tutor: 你上周末做了什么有趣的事情？
-User: 上周末我和朋友去了电影院，看了一部科幻电影。故事很吸引人，讲的是未来世界的故事。我很喜欢，但是结局有点让我失望。
-→ A grade: extended response, opinions, specific details, natural flow.
+Example A-grade at Iron:
+Tutor: 你觉得城市生活和农村生活有什么区别？
+User: 城市生活比较方便，有很多商店和地铁，但是也很吵。农村比较安静，
+      空气也好一点，但是找工作比较难。我更喜欢城市因为我喜欢热闹。
+→ 3 sentences, comparison structure, some vocab (安静、方便、热闹), clear. A grade.`,
 
-Example reference dialogue (C grade at Intermediate):
-Tutor: 你上周末做了什么？
-User: 我在家。很无聊。
-→ C grade: understood but gave minimal response, no elaboration.
+  gold: `Same as Iron standard but slightly stricter.
+Expect richer vocabulary and smoother flow.
+An Iron-level response gets a B here, not an A.`,
 
-Grade scale:
-- A: Extended natural responses, topic depth, some grammatical complexity
-- B: Good responses, minor errors, adequate depth
-- C: Short responses, limited depth, noticeable vocabulary gaps
-- D: Struggles with topic development, frequent errors
-- F: Cannot sustain basic conversation on familiar topics`,
-
-  advanced: `You are grading a learner who can hold conversations on familiar topics with some depth. Standard is similar to a solid intermediate learner. Do not expect complexity — reward sustained conversation and topic development.
+  diamond: `You are grading a student approaching fluency.
+Iron-level responses get a C here.
+Expect 4+ sentences, varied vocabulary, natural transitions,
+and the ability to discuss abstract or opinion-based topics.
 
 Standards:
-- Vocabulary: HSK 3-4 level, can express opinions on familiar topics
-- Grammar: Compound sentences, basic aspect markers (了/过)
-- Comprehension: Can discuss familiar topics, gives more than one-sentence answers
-- Reward: Extended responses, simple opinions, staying on topic
-- Penalize: One-word answers, constant English switching, total avoidance of questions
-- Voice errors: Ignore completely
+- HSK 4-5 vocabulary
+- Natural sentence variety (not just SVO repeated)
+- Connectors and discourse markers used correctly
+- Can discuss feelings, comparisons, hypotheticals
+- No English. No formulaic repetition.`,
 
-Example reference dialogue (A grade at Advanced):
-Tutor: 你上周末做了什么？
-User: 上周末我去了朋友家，我们一起做饭，做了很多菜。我做了红烧肉，朋友做了凉拌黄瓜。吃完饭我们看了电影，很开心，下次还想再去。
-→ A grade: extended response, specific details, natural simple flow.
-
-Example reference dialogue (C grade at Advanced):
-Tutor: 你上周末做了什么？
-User: 我在家。很无聊。
-→ C grade: understood but no elaboration, minimal effort.
-
-Grade scale:
-- A: Extended responses, topic depth, simple but correct sentences
-- B: Good responses, minor errors, adequate depth
-- C: Short responses, limited depth, vocabulary gaps
-- D: Struggles to develop topics, frequent errors
-- F: Cannot hold basic conversation on familiar topics`,
-
-  pro: `You are grading someone who can hold a solid conversation entirely in Chinese without switching to English, with decent vocabulary. Not expecting fluency — expecting sustained effort and some range.
+  ethereal: `You are grading a native speaker or near-native speaker.
+This is someone who grew up speaking Chinese or has lived in a Chinese-speaking environment for years. Think: 10+ year speaker.
+Everyday fluency is the baseline — not the goal.
 
 Standards:
-- Vocabulary: HSK 4-5 level, topic-specific words, minimal English mixing
-- Grammar: Mostly correct compound sentences, some complexity attempted
-- Comprehension: Can handle unfamiliar topics with some struggle
-- Reward: No English, vocabulary range, attempts at complex ideas
-- Penalize: Heavy English mixing, refusal to engage harder questions, very repetitive simple sentence patterns
-- Voice errors: Ignore transcription, note consistent spoken grammar issues
+- Natural, idiomatic speech. No textbook phrasing.
+- Cultural references, tone-appropriate register
+- Complex sentences with subordinate clauses
+- Errors in tones or minor grammar do not matter — natural flow does
+- Cannot be formulaic. Must feel like a real native conversation.`,
 
-Example reference dialogue (A grade at Pro):
-Tutor: 你觉得大城市生活和小城市生活有什么不同？
-User: 大城市机会更多，工作选择也比较丰富，但是生活压力很大，房价很高，节奏很快。小城市比较轻松，但是发展机会少，很多年轻人还是选择去大城市。我觉得两种生活方式各有优缺点，要看个人的目标和性格。
-→ A grade: no English, decent vocabulary, balanced opinion, natural flow.
-
-Example reference dialogue (C grade at Pro):
-Tutor: 你觉得大城市和小城市有什么不同？
-User: 大城市 very busy. 小城市 more 轻松. 我喜欢大城市 because 机会多.
-→ C grade: heavy English mixing, shallow, not at Pro standard.
-
-Grade scale:
-- A: No English, decent vocabulary range, sustained conversation, opinions
-- B: Minimal English, good range, some depth
-- C: Some English mixing, limited range, shallow responses
-- D: Heavy English mixing or very limited vocabulary
-- F: Cannot sustain conversation without constant English`,
-
-  iron: `You are grading a near-fluent speaker. Expect near-native conversation quality. Minor errors acceptable but noted.
+  master: `You are grading a highly educated native speaker.
+Think: Chinese person who went to university, reads books,
+can discuss literature, history, society with depth and nuance.
+This is native level but polished — not scholar level yet.
 
 Standards:
-- Vocabulary: Rich and varied, literary words, chengyu encouraged
-- Grammar: Near-perfect complex grammar, rhetorical structures
-- Comprehension: Professional topics, abstract debate, cultural depth
-- Reward: Chengyu (成语), classical references, sophisticated reasoning
-- Penalize: Simple vocabulary when complex fits better, avoidance of difficult topics, unnatural sentence patterns
-- Voice errors: Ignore transcription, small penalty for consistent spoken grammar errors
+- Rich, varied vocabulary including chengyu and formal registers
+- Can shift between casual and formal effortlessly
+- Discussions of abstract topics: society, philosophy, culture
+- Zero tolerance for unnatural phrasing
+- Must feel like talking to a well-read, articulate native speaker`,
 
-Example reference dialogue (A grade at Iron):
-Tutor: 如果你是市长，你会如何解决城市交通拥堵的问题？
-User: 这个问题说起来容易做起来难。单纯限制私家车数量治标不治本，更重要的是完善公共交通体系，让人们觉得坐公交比开车更方便、更舒适。另外，推广远程办公也能从根本上减少通勤需求。当然，不同城市情况各异，不能一刀切。
-→ A grade: 治标不治本 chengyu, nuanced policy thinking, 一刀切, natural flow.
-
-Grade scale:
-- A: Near-native fluency, chengyu, sophisticated cultural awareness
-- B: Near-native, very minor non-native patterns
-- C: Fluent but some consistent non-native patterns
-- D: Multiple non-native patterns, limited to safe topics
-- F: Should not be at Iron rank`,
-
-  gold: `You are grading a near-fluent speaker, slightly stricter than Iron. Expect the same near-native quality but penalize inconsistency more.
+  eternal: `You are grading a scholar of the Chinese language.
+Think: a Chinese literature professor, a classical Chinese expert,
+or a professional writer/journalist at the top of their field.
+This is not just native fluency — it is mastery of the language itself.
 
 Standards:
-- Same as Iron but stricter:
-- Less tolerance for non-native patterns
-- Vocabulary should be consistently rich not occasionally rich
-- Transitions between topics should feel natural not mechanical
-- Reward: Everything Iron rewards plus stylistic consistency
-- Penalize: Inconsistency — great one moment, weak the next
-
-Example reference dialogue (A grade at Gold):
-Tutor: 谈谈你对当代教育制度的看法。
-User: 现行教育制度有其历史背景和合理性，但也存在明显的局限。过于注重考试成绩，往往忽视了学生的创造力和批判性思维的培养。当然，改革不能一蹴而就，需要在稳定与创新之间寻求平衡。我个人认为，教育的核心应该是点燃兴趣，而非灌输知识。
-→ A grade: consistently high throughout, 一蹴而就 chengyu, nuanced view, no weak moments, completely natural.
-
-Grade scale:
-- A: Consistently near-native throughout, no weak moments
-- B: Near-native with 1-2 inconsistent moments
-- C: Fluent but inconsistent quality throughout
-- D: Inconsistent, several clear non-native patterns
-- F: Should not be at Gold rank`,
-
-  diamond: `You are grading a speaker who should be indistinguishable from an educated native speaker. Be stricter — look for any non-native markers.
-
-Standards:
-- Vocabulary: Native range, colloquialisms, regional expressions appropriate
-- Grammar: Fully correct complex grammar, natural rhythm throughout
-- Comprehension: Any topic including technical, political, philosophical
-- Reward: Natural native-like flow, humor, cultural sensitivity, spontaneous topic connections
-- Penalize: Textbook-sounding phrases, unnatural transitions, overuse of simple connectors (然后然后然后), any awkwardness
-
-Example reference dialogue (A grade at Diamond):
-Tutor: 谈谈你对当代年轻人"躺平"现象的看法。
-User: "躺平"这个词本身就很有意思，折射出一代人对传统成功观的集体反思。与其说是懒惰，不如说是对内卷文化的一种无声抵抗。当然，躺平也有程度之分，完全放弃和适度降低期望是两回事。我觉得社会应该反思的是，为什么年轻人会走到这一步。
-→ A grade: 内卷, sophisticated sociological framing, nuanced distinction, completely native feel throughout.
-
-Grade scale:
-- A: Indistinguishable from educated native throughout
-- B: Near-indistinguishable, very subtle non-native markers
-- C: Clearly fluent but consistent patterns marking non-native
-- D: Strong but clear non-native speaker
-- F: Should not be at Diamond rank`,
-
-  ethereal: `You are grading a speaker at advanced fluent native level. Apply Iron standards strictly. Penalize anything below consistent near-native quality.
-
-Standards:
-- Native-like flow throughout entire conversation
-- Chengyu and literary references used naturally not forced
-- Cultural and historical awareness demonstrated organically
-- Matches Iron standard applied with zero tolerance for inconsistency
-- Penalize: Any forced literary references, any non-native patterns, any moments that feel like translation from English
-
-Example reference dialogue (A grade at Ethereal):
-Tutor: 请谈谈你对中国传统文化在现代社会中传承的看法。
-User: 我认为传统文化的传承面临两难困境。一方面，随着全球化的深入，年轻人越来越倾向于接受西方文化；另一方面，政府和社会各界也在积极推动文化复兴。以春节为例，虽然商业化色彩日益浓厚，但它依然是凝聚家庭情感的重要纽带。关键在于如何在现代化与传统之间找到平衡。
-→ A grade: 两难困境, 纽带, sophisticated argument, zero non-native feel.
-
-Grade scale:
-- A: Exceptional educated native quality throughout, natural literary touch
-- B: Strong educated native quality, very minor gaps
-- C: Near-native but limited stylistic range or occasional non-native patterns
-- D: Fluent but falls short of educated native standard
-- F: Should not be at Ethereal rank`,
-
-  master: `You are grading a potential heritage speaker, professor, or literary writer. The standard is publishing-quality Chinese.
-
-Standards:
-- Publishing-quality expression
-- Academic or literary register on demand
-- Classical Chinese references woven naturally
-- Argumentation at academic paper level
-- Penalize: Anything below publishing standard, any non-native markers, any word choice that could have been more precise
-
-Example reference dialogue (A grade at Master):
-Tutor: 请谈谈鲁迅的文学遗产对当代中国社会的意义。
-User: 鲁迅的价值不仅在于他的文字，更在于他敢于直面民族性格之痼疾的勇气。《阿Q正传》中那种精神胜利法，在当代社会以不同形式延续着。他的批判精神在某种意义上是超时代的——每当社会需要自我审视时，鲁迅就会被重新召唤出来。这本身就说明他的思想并未过时。
-→ A grade: 痼疾, literary analysis, classical reference, academic register, original insight, publishing quality throughout.
-
-Grade scale:
-- A: Publishing/academic quality, masterful control of language
-- B: Near-publishing quality, minor refinements needed
-- C: Very strong but not at publishing standard
-- D: Falls clearly short of Master level
-- F: Should not be at Master rank`,
-
-  eternal: `You are grading someone who has demonstrated transcendent mastery of Chinese. The bar is the highest living speakers and writers of Mandarin.
-
-Standards:
-- Equivalent to a celebrated Chinese author, orator, or scholar
-- Every word choice precise and intentional
-- Classical Chinese fluency demonstrated naturally
-- Cultural, historical, philosophical depth at scholar level
-- Penalize: Any word that could have been better chosen, any moment that feels less than transcendent
-
-Example reference dialogue (A grade at Eternal):
-Tutor: 如何理解庄子"逍遥游"的哲学境界？
-User: 逍遥游的核心，在于破除"有待"与"无待"之辨。鲲鹏之变固然壮观，然其南徙仍赖风之力，未臻真正自由。庄子理想中的至人、神人、圣人，乃是超越物我对立、与道合一的存在。这种境界非理性推导所能至，而是一种生命状态的彻底转化。以现代语言言之，近乎海德格尔所谓"诗意地栖居"，却又更为彻底，因为它连"栖居"本身的执念也要放下。
-→ A grade: classical Chinese fluency, original philosophical synthesis, cross-cultural reference used naturally, transcendent scholar level.
-
-Grade scale:
-- A: Transcendent — matches the best living speakers and scholars
-- B: Exceptional but not transcendent, near-Master quality
-- C: Master-level quality but clearly not Eternal
-- D: Clearly not at Eternal level
-- F: Should not be at Eternal rank`,
+- Classical references, literary allusions expected
+- Ability to use and explain chengyu in context
+- Academic register available when appropriate
+- Responses show depth of thought, not just correctness
+- An articulate native speaker gets a C here, not an A
+- Only true language scholars can sustain an A at Eternal`,
 };
 
 function getRubric(rankName: string): string {
   const key = rankName.trim().toLowerCase();
   return RANK_RUBRICS[key] ?? RANK_RUBRICS["noob"];
+}
+
+function getRubricRankNameForLanguageElo(elo: unknown): string {
+  const safeElo = Math.max(0, Math.floor(Number(elo) || 0));
+  if (safeElo >= 23000) return "Eternal";
+  if (safeElo >= 16000) return "Master";
+  if (safeElo >= 11000) return "Ethereal";
+  if (safeElo >= 7500) return "Diamond";
+  if (safeElo >= 5000) return "Gold";
+  if (safeElo >= 3300) return "Iron";
+  if (safeElo >= 2100) return "Pro";
+  if (safeElo >= 1250) return "Advanced";
+  return "Noob";
 }
 
 export async function POST(req: NextRequest) {
@@ -298,7 +163,7 @@ export async function POST(req: NextRequest) {
     apiKey,
   });
 
-  const { messages, material, difficulty, userRank, userElo, languageCode } = await req.json();
+  const { messages, material, difficulty, userRank, userElo, userLanguageElo, languageCode } = await req.json();
   const selectedDifficulty: Difficulty =
     difficulty === "easy" || difficulty === "medium" || difficulty === "hard"
       ? difficulty
@@ -306,6 +171,7 @@ export async function POST(req: NextRequest) {
 
   const rankName: string = typeof userRank === "string" && userRank ? userRank : "Noob";
   const rankElo: number = typeof userElo === "number" ? userElo : 0;
+  const requestedLanguageElo = typeof userLanguageElo === "number" ? userLanguageElo : 0;
   const bearerToken = req.headers
     .get("authorization")
     ?.match(/^Bearer\s+(.+)$/i)?.[1];
@@ -340,8 +206,8 @@ export async function POST(req: NextRequest) {
     }
   }
   const isSignedInAccount = Boolean(accountUserId);
-  const effectiveElo = isSignedInAccount ? (dbElo ?? 0) : rankElo;
-  const effectiveRank = isSignedInAccount ? getRankForElo(effectiveElo).name : rankName;
+  const effectiveElo = isSignedInAccount ? (dbElo ?? 0) : requestedLanguageElo;
+  const effectiveRank = getRubricRankNameForLanguageElo(effectiveElo);
 
   const userMessages = messages.filter(
     (m: { role: string }) => m.role === "user"
@@ -368,7 +234,8 @@ ${UNIVERSAL_RULES}
 
 ---
 
-Student rank: ${effectiveRank} (${effectiveElo} ELO)
+Displayed global rank: ${rankName} (${rankElo} ELO)
+Hidden local language ELO for rubric: ${effectiveElo} (${effectiveRank} rubric)
 Study Material Context: ${material || "(General conversation, no specific material)"}
 Difficulty: ${selectedDifficulty.toUpperCase()}
 
