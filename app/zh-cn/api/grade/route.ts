@@ -298,7 +298,7 @@ export async function POST(req: NextRequest) {
     apiKey,
   });
 
-  const { messages, material, difficulty, userRank, userElo, languageCode } = await req.json();
+  const { messages, material, difficulty, userRank, userElo, languageCode, userId } = await req.json();
   const selectedDifficulty: Difficulty =
     difficulty === "easy" || difficulty === "medium" || difficulty === "hard"
       ? difficulty
@@ -306,42 +306,24 @@ export async function POST(req: NextRequest) {
 
   const rankName: string = typeof userRank === "string" && userRank ? userRank : "Noob";
   const rankElo: number = typeof userElo === "number" ? userElo : 0;
-  const bearerToken = req.headers
-    .get("authorization")
-    ?.match(/^Bearer\s+(.+)$/i)?.[1];
 
-  const validLanguageCode =
-    typeof languageCode === "string" &&
-    (languageCode === "zh-cn" || languageCode === "zh-tw");
-  let accountUserId: string | undefined;
   let dbElo: number | undefined;
-  if (validLanguageCode) {
+  if (typeof languageCode === "string" && typeof userId === "string" && languageCode && userId) {
     try {
       const supabase = await createClient();
-      let {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user && bearerToken) {
-        const tokenResult = await supabase.auth.getUser(bearerToken);
-        user = tokenResult.data.user;
-      }
-      accountUserId = user?.id;
-      if (!accountUserId) throw new Error("No signed-in user");
-
       const { data } = await supabase
         .from("user_language_elo")
         .select("elo")
-        .eq("user_id", accountUserId)
+        .eq("user_id", userId)
         .eq("language_code", languageCode)
         .maybeSingle();
-      dbElo = typeof data?.elo === "number" ? data.elo : 0;
+      if (data != null) dbElo = data.elo;
     } catch {
-      // guests and unauthenticated requests use client-local progress
+      // fall back to client-sent values
     }
   }
-  const isSignedInAccount = Boolean(accountUserId);
-  const effectiveElo = isSignedInAccount ? (dbElo ?? 0) : rankElo;
-  const effectiveRank = isSignedInAccount ? getRankForElo(effectiveElo).name : rankName;
+  const effectiveElo = dbElo ?? rankElo;
+  const effectiveRank = dbElo != null ? getRankForElo(dbElo).name : rankName;
 
   const userMessages = messages.filter(
     (m: { role: string }) => m.role === "user"
@@ -375,7 +357,7 @@ Difficulty: ${selectedDifficulty.toUpperCase()}
 Full Conversation:
 ${conversation}
 
-Grade the student on their Chinese language performance at the ${effectiveRank} rank standard. Return ONLY valid JSON matching this exact structure:
+Grade the student on their Chinese language performance at the ${rankName} rank standard. Return ONLY valid JSON matching this exact structure:
 {
   "vocabularyScore": <integer 0-100>,
   "grammarScore": <integer 0-100>,
@@ -436,15 +418,14 @@ Mode adjustments:
     const grade = JSON.parse(jsonMatch[0]);
 
     let extraFields: Record<string, unknown> = {};
-    if (validLanguageCode && accountUserId) {
+    if (typeof languageCode === "string" && typeof userId === "string" && languageCode && userId) {
       try {
         const supabase = await createClient();
-        const currentElo = effectiveElo;
-        const eloChange = calculateEloChange(grade.overallGrade, grade.overallScore);
-        const newElo = Math.max(0, currentElo + eloChange);
+        const currentElo = dbElo ?? 0;
+        const newElo = Math.max(0, currentElo + calculateEloChange(grade.overallGrade, grade.overallScore));
         await supabase.from("user_language_elo").upsert(
           {
-            user_id: accountUserId,
+            user_id: userId,
             language_code: languageCode,
             elo: newElo,
             has_completed_placement: true,
@@ -453,16 +434,12 @@ Mode adjustments:
           { onConflict: "user_id,language_code" }
         );
         const [bestRank, { data: allRows }] = await Promise.all([
-          syncUserRank(accountUserId, supabase),
-          supabase.from("user_language_elo").select("elo").eq("user_id", accountUserId),
+          syncUserRank(userId, supabase),
+          supabase.from("user_language_elo").select("elo").eq("user_id", userId),
         ]);
         const globalEloSum = allRows?.reduce((sum: number, row: { elo: number }) => sum + (row.elo ?? 0), 0) ?? newElo;
         extraFields = {
-          languageEloBefore: currentElo,
           languageEloAfter: newElo,
-          languageEloChange: newElo - currentElo,
-          languageRankBefore: getRankForElo(currentElo).name,
-          languageRankAfter: getRankForElo(newElo).name,
           globalEloSum,
           bestRankName: bestRank?.rankName,
         };
