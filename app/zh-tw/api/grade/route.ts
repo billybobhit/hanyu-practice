@@ -1,6 +1,5 @@
-import OpenAI from "openai";
 import { NextRequest } from "next/server";
-import { OPENROUTER_TEXT_FALLBACK_MODELS } from "@/lib/openrouter-models";
+import { createAiClient, getTextProviderConfig } from "@/lib/ai-provider";
 import type { Difficulty } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { syncUserRank } from "@/lib/supabase/rankSync";
@@ -153,15 +152,15 @@ function getRubricRankNameForLanguageElo(elo: unknown): string {
 }
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.groqkey;
-  if (!apiKey) {
-    return Response.json({ error: "Server misconfigured: missing API key" }, { status: 500 });
+  const provider = getTextProviderConfig();
+  if (!provider.apiKey) {
+    return Response.json(
+      { error: `Server misconfigured: missing ${provider.providerName} API key` },
+      { status: 500 }
+    );
   }
 
-  const client = new OpenAI({
-    baseURL: "https://api.groq.com/openai/v1",
-    apiKey,
-  });
+  const client = createAiClient({ baseURL: provider.baseURL, apiKey: provider.apiKey });
 
   const { messages, material, difficulty, userRank, userElo, userLanguageElo, languageCode } = await req.json();
   const selectedDifficulty: Difficulty =
@@ -274,7 +273,7 @@ Mode adjustments:
     let text = "";
     let lastError: unknown;
 
-    for (const model of OPENROUTER_TEXT_FALLBACK_MODELS) {
+    for (const model of provider.models) {
       try {
         const response = await client.chat.completions.create({
           model,

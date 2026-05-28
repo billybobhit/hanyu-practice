@@ -1,6 +1,5 @@
-import OpenAI from "openai";
 import { NextRequest } from "next/server";
-import { OPENROUTER_TEXT_FALLBACK_MODELS } from "@/lib/openrouter-models";
+import { createAiClient, getTextProviderConfig } from "@/lib/ai-provider";
 
 const PLACEMENT_SYSTEM = `You are 汉语老师 (Master Chen), a Chinese language tutor quietly assessing a student's proficiency level.
 
@@ -27,15 +26,15 @@ Assessment guidelines:
 - Never tell the student this is a placement test or assessment`;
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.groqkey;
-  if (!apiKey) {
-    return Response.json({ error: "Server misconfigured: missing API key" }, { status: 500 });
+  const provider = getTextProviderConfig();
+  if (!provider.apiKey) {
+    return Response.json(
+      { error: `Server misconfigured: missing ${provider.providerName} API key` },
+      { status: 500 }
+    );
   }
 
-  const client = new OpenAI({
-    baseURL: "https://api.groq.com/openai/v1",
-    apiKey,
-  });
+  const client = createAiClient({ baseURL: provider.baseURL, apiKey: provider.apiKey });
 
   const { messages, mode } = await req.json();
   const isAdvanced = mode === "advanced";
@@ -53,7 +52,7 @@ export async function POST(req: NextRequest) {
       let hasSentContent = false;
       let lastError: unknown;
 
-      for (const model of OPENROUTER_TEXT_FALLBACK_MODELS) {
+      for (const model of provider.models) {
         try {
           const stream = client.chat.completions.stream({
             model,

@@ -1,11 +1,17 @@
-import OpenAI from "openai";
 import { NextRequest } from "next/server";
-import { OPENROUTER_VISION_MODEL } from "@/lib/openrouter-models";
+import { createAiClient, getVisionProviderConfig } from "@/lib/ai-provider";
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.groqkey;
-  if (!apiKey) {
-    return Response.json({ error: "Server misconfigured: missing API key" }, { status: 500 });
+  const provider = getVisionProviderConfig();
+  if (provider.disabledReason) {
+    return Response.json({ error: provider.disabledReason }, { status: 501 });
+  }
+
+  if (!provider.apiKey) {
+    return Response.json(
+      { error: `Server misconfigured: missing ${provider.providerName} API key` },
+      { status: 500 }
+    );
   }
 
   const { base64, mediaType } = await req.json();
@@ -19,14 +25,11 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Unsupported image type" }, { status: 400 });
   }
 
-  const client = new OpenAI({
-    baseURL: "https://api.groq.com/openai/v1",
-    apiKey,
-  });
+  const client = createAiClient({ baseURL: provider.baseURL, apiKey: provider.apiKey });
 
   try {
     const response = await client.chat.completions.create({
-      model: OPENROUTER_VISION_MODEL,
+      model: provider.model,
       max_tokens: 2048,
       messages: [
         {
