@@ -61,8 +61,6 @@ interface PlacementResultProps {
   grade: string;
   referenceLevel?: string;
   rankEvent: RankEvent;
-  advancedPlacementLabel?: string;
-  onAdvancedPlacement?: () => void;
   onComplete: () => void;
   onViewReport: () => void;
 }
@@ -71,8 +69,6 @@ export default function PlacementResult({
   grade,
   referenceLevel,
   rankEvent,
-  advancedPlacementLabel,
-  onAdvancedPlacement,
   onComplete,
   onViewReport,
 }: PlacementResultProps) {
@@ -193,15 +189,7 @@ export default function PlacementResult({
           >
             {grade}
           </div>
-          <div className="mt-2 flex flex-wrap justify-center gap-3">
-            {advancedPlacementLabel && onAdvancedPlacement && (
-              <button
-                onClick={onAdvancedPlacement}
-                className="cursor-pointer rounded-full bg-vermillion-600 px-6 py-2.5 text-sm font-bold text-cream-100 transition-all hover:bg-vermillion-500"
-              >
-                {advancedPlacementLabel}
-              </button>
-            )}
+          <div className="flex gap-3 mt-2">
             <button
               onClick={onViewReport}
               className="cursor-pointer rounded-full bg-gold-600 px-6 py-2.5 text-sm font-bold text-ink-900 transition-all hover:bg-gold-500"

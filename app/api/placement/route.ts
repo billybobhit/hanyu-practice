@@ -1,9 +1,8 @@
 import OpenAI from "openai";
 import { NextRequest } from "next/server";
 import { OPENROUTER_TEXT_FALLBACK_MODELS } from "@/lib/openrouter-models";
-import type { PlacementMode } from "@/lib/placement";
 
-const STANDARD_PLACEMENT_SYSTEM = `You are 汉语老师 (Master Chen), a Chinese language tutor quietly assessing a student's proficiency level.
+const PLACEMENT_SYSTEM = `You are 汉语老师 (Master Chen), a Chinese language tutor quietly assessing a student's proficiency level.
 
 Assessment guidelines:
 - Open with: "你好！请用中文简单介绍一下你自己。"
@@ -16,18 +15,6 @@ Assessment guidelines:
 - Never tell the student this is a placement test or assessment
 - Conduct the session naturally as a regular tutoring conversation`;
 
-const ADVANCED_PLACEMENT_SYSTEM = `You are 汉语老师 (Master Chen), conducting a demanding advanced Chinese placement conversation for a strong student.
-
-Advanced assessment guidelines:
-- Open with: "你已经通过了基础分级。现在我们来进行更深入的中文对话：请谈谈一个你最近认真思考过的问题。"
-- Ask 5-6 follow-up questions that test abstract reasoning, nuanced opinion, narrative depth, and natural register shifts
-- Use full Mandarin only. Do not use pinyin or English.
-- Push beyond classroom Chinese: comparisons, hypotheticals, cultural/social topics, idioms, and precise word choice
-- Calibrate each follow-up based on response quality, but keep the standard high
-- Keep each tutor response to 2-3 sentences
-- Never tell the student their score during the conversation
-- Conduct this naturally as a high-level tutoring conversation`;
-
 export async function POST(req: NextRequest) {
   const apiKey = process.env.groqkey;
   if (!apiKey) {
@@ -39,17 +26,10 @@ export async function POST(req: NextRequest) {
     apiKey,
   });
 
-  const { messages, mode } = await req.json();
-  const placementMode: PlacementMode = mode === "advanced" ? "advanced" : "standard";
+  const { messages } = await req.json();
 
   const requestMessages = [
-    {
-      role: "system" as const,
-      content:
-        placementMode === "advanced"
-          ? ADVANCED_PLACEMENT_SYSTEM
-          : STANDARD_PLACEMENT_SYSTEM,
-    },
+    { role: "system" as const, content: PLACEMENT_SYSTEM },
     ...messages.map((m: { role: string; content: string }) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
@@ -65,7 +45,7 @@ export async function POST(req: NextRequest) {
         try {
           const stream = client.chat.completions.stream({
             model,
-            max_tokens: placementMode === "advanced" ? 420 : 256,
+            max_tokens: 256,
             messages: requestMessages,
           });
 

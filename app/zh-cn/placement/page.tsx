@@ -4,17 +4,16 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getPlacementStatus } from "@/lib/supabase/placement-status";
-import { addConversationHistory } from "@/lib/supabase/conversation-history";
-import {
-  getPlacementRequiredTurns,
-  getPlacementTitle,
-  type PlacementMode,
-} from "@/lib/placement";
 import { saveSession, generateSessionId, setCurrentSessionId } from "@/lib/storage";
 import { getRankForElo } from "@/lib/ranks";
 import PlacementResult from "@/components/PlacementResult";
 import VoiceButton from "@/components/VoiceButton";
-import type { Message, RankEvent, Session } from "@/lib/types";
+import type { RankEvent } from "@/lib/types";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
 
 interface PlacementGradeResult {
   grade: string;
@@ -32,14 +31,11 @@ export default function ZhCnPlacementPage() {
   const [result, setResult] = useState<PlacementGradeResult | null>(null);
   const [autoSpeak, setAutoSpeak] = useState(false);
   const [placementElo, setPlacementElo] = useState(0);
-  const [placementMode, setPlacementMode] = useState<PlacementMode>("standard");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const userTurns = messages.filter((m) => m.role === "user").length;
-  const requiredTurns = getPlacementRequiredTurns(placementMode);
-  const canTakeAdvanced = result?.rankEvent.rankAfter === "Pro" && placementMode === "standard";
 
   const speakText = useCallback((text: string) => {
     if (!("speechSynthesis" in window)) return;
@@ -56,11 +52,6 @@ export default function ZhCnPlacementPage() {
 
   useEffect(() => {
     async function init() {
-      const params = new URLSearchParams(window.location.search);
-      const requestedMode: PlacementMode =
-        params.get("advanced") === "1" ? "advanced" : "standard";
-      setPlacementMode(requestedMode);
-
       const supabase = createClient();
       if (!supabase) {
         router.replace("/");
@@ -77,19 +68,14 @@ export default function ZhCnPlacementPage() {
 
       const placementStatus = await getPlacementStatus(supabase, user.id, "zh-cn");
 
-      if (requestedMode === "advanced") {
-        if (placementStatus.elo < 2100 || placementStatus.elo >= 11000) {
-          router.replace("/zh-cn");
-          return;
-        }
-      } else if (placementStatus.hasCompletedPlacement) {
+      if (placementStatus.hasCompletedPlacement) {
         router.replace("/zh-cn");
         return;
       }
 
       setPlacementElo(placementStatus.elo);
       setChecking(false);
-      void streamAssistant([], requestedMode);
+      startPlacement();
     }
     void init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -101,16 +87,13 @@ export default function ZhCnPlacementPage() {
     }, 50);
   }, [messages]);
 
-  const streamAssistant = useCallback(async (
-    history: Message[],
-    mode: PlacementMode = placementMode
-  ) => {
+  const streamAssistant = useCallback(async (history: Message[]) => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/placement", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, mode }),
+        body: JSON.stringify({ messages: history }),
       });
 
       if (!res.ok) return;
@@ -119,7 +102,7 @@ export default function ZhCnPlacementPage() {
       const decoder = new TextDecoder();
       let text = "";
 
-      const placeholder: Message = { role: "assistant", content: "", timestamp: Date.now() };
+      const placeholder: Message = { role: "assistant", content: "" };
       setMessages((prev) => [...prev, placeholder]);
 
       while (true) {
@@ -128,11 +111,7 @@ export default function ZhCnPlacementPage() {
         text += decoder.decode(value, { stream: true });
         setMessages((prev) => {
           const next = [...prev];
-          next[next.length - 1] = {
-            ...next[next.length - 1],
-            role: "assistant",
-            content: text,
-          };
+          next[next.length - 1] = { role: "assistant", content: text };
           return next;
         });
       }
@@ -141,15 +120,15 @@ export default function ZhCnPlacementPage() {
       setIsLoading(false);
       inputRef.current?.focus();
     }
-  }, [autoSpeak, placementMode, speakText]);
+  }, [autoSpeak, speakText]);
+
+  function startPlacement() {
+    streamAssistant([]);
+  }
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
-    const userMsg: Message = {
-      role: "user",
-      content: input.trim(),
-      timestamp: Date.now(),
-    };
+    const userMsg: Message = { role: "user", content: input.trim() };
     const next = [...messages, userMsg];
     setMessages(next);
     setInput("");
@@ -170,46 +149,32 @@ export default function ZhCnPlacementPage() {
       const res = await fetch("/api/placement-grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages, languageCode: "zh-cn", mode: placementMode }),
+        body: JSON.stringify({ messages, languageCode: "zh-cn" }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Placement grading failed");
-      }
+      const startingElo: number = data.startingElo ?? 0;
       const currentElo = placementElo;
-      const eloAfter =
-        typeof data.eloAfter === "number"
-          ? data.eloAfter
-          : currentElo + (data.startingElo ?? 0);
       const rankEvent: RankEvent = {
-        eloBefore: typeof data.eloBefore === "number" ? data.eloBefore : currentElo,
-        eloAfter,
-        eloChange:
-          typeof data.eloChange === "number"
-            ? data.eloChange
-            : eloAfter - currentElo,
+        eloBefore: currentElo,
+        eloAfter: currentElo + startingElo,
+        eloChange: startingElo,
         rankBefore: getRankForElo(currentElo).name,
-        rankAfter: getRankForElo(eloAfter).name,
+        rankAfter: getRankForElo(currentElo + startingElo).name,
       };
       const overallScore = data.overallScore ?? 65;
-      const overallGrade = (
-        ["A", "B", "C", "D", "F"].includes(data.overallGrade)
-          ? data.overallGrade
-          : "C"
-      ) as "A" | "B" | "C" | "D" | "F";
       const sessionId = generateSessionId();
       setCurrentSessionId(sessionId);
-      const endedSession: Session = {
+      saveSession({
         id: sessionId,
-        materialTitle: getPlacementTitle(placementMode, "Simplified Chinese"),
+        materialTitle: "Placement Assessment · Simplified Chinese",
         materialContent: "",
         difficulty: "hard",
-        messages,
+        messages: [],
         startTime: Date.now(),
         endTime: Date.now(),
         languageCode: "zh-cn",
         grade: {
-          overallGrade,
+          overallGrade: data.overallGrade ?? "C",
           overallScore,
           vocabularyScore: overallScore,
           grammarScore: overallScore,
@@ -222,11 +187,9 @@ export default function ZhCnPlacementPage() {
           referenceLevel: data.referenceLevel,
         },
         rankEvent,
-      };
-      saveSession(endedSession);
-      await addConversationHistory(endedSession);
+      });
       setResult({
-        grade: overallGrade,
+        grade: data.overallGrade ?? "C",
         referenceLevel: data.referenceLevel,
         rankEvent,
       });
@@ -249,14 +212,6 @@ export default function ZhCnPlacementPage() {
         grade={result.grade}
         referenceLevel={result.referenceLevel}
         rankEvent={result.rankEvent}
-        advancedPlacementLabel={
-          canTakeAdvanced ? "Take the advanced placement test" : undefined
-        }
-        onAdvancedPlacement={
-          canTakeAdvanced
-            ? () => router.push("/zh-cn/placement?advanced=1")
-            : undefined
-        }
         onComplete={() => router.push("/zh-cn")}
         onViewReport={() => router.push("/results")}
       />
@@ -277,13 +232,9 @@ export default function ZhCnPlacementPage() {
             className="text-cream-100 font-medium"
             style={{ fontFamily: "'Noto Serif SC', serif" }}
           >
-            {placementMode === "advanced"
-              ? "Advanced Placement Assessment"
-              : "Placement Assessment"}
+            Placement Assessment
           </h1>
-          <p className="text-cream-600 text-xs">
-            Simplified Chinese · {userTurns}/{requiredTurns} turns
-          </p>
+          <p className="text-cream-600 text-xs">Simplified Chinese · {userTurns} turns</p>
         </div>
         <button
           onClick={() => {
@@ -299,7 +250,7 @@ export default function ZhCnPlacementPage() {
         >
           🔊
         </button>
-        {userTurns >= requiredTurns && (
+        {userTurns >= 4 && (
           <button
             onClick={submitForAssessment}
             disabled={isGrading || isLoading}
@@ -313,9 +264,7 @@ export default function ZhCnPlacementPage() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         <div className="text-center">
           <span className="text-xs text-gold-600 bg-gold-800/20 border border-gold-800/30 rounded-full px-3 py-1">
-            {placementMode === "advanced"
-              ? "Advanced placement · Answer 6 deeper questions"
-              : "Have a natural conversation · Submit when ready"}
+            Have a natural conversation · Submit when ready
           </span>
         </div>
 
@@ -353,7 +302,7 @@ export default function ZhCnPlacementPage() {
         <div className="h-2" />
       </div>
 
-      {userTurns >= requiredTurns && !isLoading && (
+      {userTurns >= 4 && !isLoading && (
         <div className="px-4 pb-2 shrink-0">
           <button
             onClick={submitForAssessment}
