@@ -20,6 +20,14 @@ export const PLACEMENT_STARTING_ELO: Record<string, number> = {
   F: 0,
 };
 
+export const ADVANCED_PLACEMENT_ELO: Record<string, number> = {
+  A: 11000,
+  B: 7500,
+  C: 5000,
+  D: 3300,
+  F: 2100,
+};
+
 export function eloToRank(elo: number): string {
   return [...RANK_THRESHOLDS].reverse().find((r) => elo >= r.minElo)?.name ?? "Noob";
 }

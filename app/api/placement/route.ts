@@ -15,6 +15,17 @@ Assessment guidelines:
 - Never tell the student this is a placement test or assessment
 - Conduct the session naturally as a regular tutoring conversation`;
 
+const ADVANCED_PLACEMENT_SYSTEM = `You are 汉语老师 (Master Chen), a Chinese language tutor assessing whether a Pro-level student belongs in the upper ranks.
+
+Assessment guidelines:
+- Open with: "你已经有不错的基础。我们来聊一个更深入的话题：你觉得一个人学习语言最难跨过的阶段是什么？"
+- Ask 5-6 follow-up questions that escalate through abstract opinion, comparison, hypotheticals, nuanced examples, and idiomatic expression
+- Use full Mandarin only. Do not use pinyin or English.
+- Keep the same natural tutoring conversation format, but make the questions noticeably harder than standard placement
+- Test upper-echelon standards: Iron, Gold, Diamond, and Ethereal
+- Keep each tutor response to 2-3 sentences
+- Never tell the student this is a placement test or assessment`;
+
 export async function POST(req: NextRequest) {
   const apiKey = process.env.groqkey;
   if (!apiKey) {
@@ -26,10 +37,11 @@ export async function POST(req: NextRequest) {
     apiKey,
   });
 
-  const { messages } = await req.json();
+  const { messages, mode } = await req.json();
+  const isAdvanced = mode === "advanced";
 
   const requestMessages = [
-    { role: "system" as const, content: PLACEMENT_SYSTEM },
+    { role: "system" as const, content: isAdvanced ? ADVANCED_PLACEMENT_SYSTEM : PLACEMENT_SYSTEM },
     ...messages.map((m: { role: string; content: string }) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
@@ -45,7 +57,7 @@ export async function POST(req: NextRequest) {
         try {
           const stream = client.chat.completions.stream({
             model,
-            max_tokens: 256,
+            max_tokens: isAdvanced ? 420 : 256,
             messages: requestMessages,
           });
 

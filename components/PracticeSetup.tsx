@@ -49,6 +49,7 @@ export default function PracticeSetup({
   const router = useRouter();
   const [difficulty, setDifficulty] = useState<Difficulty>("hard");
   const [showPlacement, setShowPlacement] = useState(false);
+  const [showAdvancedPlacement, setShowAdvancedPlacement] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -59,6 +60,7 @@ export default function PracticeSetup({
       const langCode = basePath.slice(1) as "zh-cn" | "zh-tw";
       const status = await getPlacementStatus(supabase, session.user.id, langCode);
       setShowPlacement(!status.hasCompletedPlacement);
+      setShowAdvancedPlacement(status.elo >= 2100 && status.elo < 3300);
     });
   }, [basePath]);
 
@@ -112,7 +114,7 @@ export default function PracticeSetup({
 
         <section className="space-y-3">
           <h2 className="text-sm font-medium text-cream-300">Difficulty</h2>
-          <div className={`grid gap-3 ${showPlacement ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+          <div className={`grid gap-3 ${showPlacement || showAdvancedPlacement ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
             {showPlacement && (
               <button
                 onClick={() => router.push(`${basePath}/placement`)}
@@ -123,6 +125,19 @@ export default function PracticeSetup({
                 </div>
                 <div className="mt-1 text-xs leading-5 text-gold-500/80">
                   Find your starting rank
+                </div>
+              </button>
+            )}
+            {showAdvancedPlacement && (
+              <button
+                onClick={() => router.push(`${basePath}/placement?advanced=1`)}
+                className="cursor-pointer rounded-xl border border-vermillion-600/70 bg-vermillion-700/15 p-4 text-left transition-all hover:border-vermillion-400 hover:bg-vermillion-700/25"
+              >
+                <div className="text-sm font-semibold text-vermillion-200">
+                  Advanced Placement
+                </div>
+                <div className="mt-1 text-xs leading-5 text-vermillion-300/80">
+                  Test for upper ranks
                 </div>
               </button>
             )}
