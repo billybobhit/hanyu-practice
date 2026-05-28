@@ -12,14 +12,6 @@ export const RANK_THRESHOLDS = [
   { name: "Eternal", minElo: 23000 },
 ];
 
-export const PLACEMENT_STARTING_ELO: Record<string, number> = {
-  A: 2100,
-  B: 1250,
-  C: 650,
-  D: 250,
-  F: 0,
-};
-
 export function eloToRank(elo: number): string {
   return [...RANK_THRESHOLDS].reverse().find((r) => elo >= r.minElo)?.name ?? "Noob";
 }
