@@ -51,9 +51,7 @@ Turn 6: Scholar/literary territory. Classical reference applied to
 Ask ONE focused question per turn. Only Chinese. Never English.
 Adapt: if the user struggles at turn 2, do not escalate further —
   stay at that level or drop down one turn to confirm the floor.
-If the user excels through turn 4+, push hard on turns 5–6.
-After turn 6 (or earlier if the level is clearly established),
-output ONLY the JSON verdict — no prose before or after.`;
+If the user excels through turn 4+, push hard on turns 5–6.`;
 
 const ADVANCED_PLACEMENT_SYSTEM = PLACEMENT_SYSTEM;
 
