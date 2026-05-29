@@ -53,4 +53,7 @@ export interface RankEvent {
   eloChange: number;
   rankBefore: string;
   rankAfter: string;
+  sessionEloGain?: number;
+  globalContribution?: number;
+  languageRank?: string;
 }

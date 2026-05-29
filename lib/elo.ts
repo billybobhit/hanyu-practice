@@ -28,8 +28,33 @@ export const ADVANCED_PLACEMENT_ELO: Record<string, number> = {
   F: 2100,
 };
 
+export const LANGUAGE_RANK_WEIGHT: Record<string, number> = {
+  Noob: 0.1,
+  Beginner: 0.18,
+  Intermediate: 0.28,
+  Advanced: 0.38,
+  Pro: 0.5,
+  Iron: 0.62,
+  Gold: 0.75,
+  Diamond: 0.87,
+  Ethereal: 1,
+  Master: 1,
+  Eternal: 1,
+};
+
 export function eloToRank(elo: number): string {
   return [...RANK_THRESHOLDS].reverse().find((r) => elo >= r.minElo)?.name ?? "Noob";
+}
+
+export function calculateGlobalEloContribution(
+  sessionEloGain: number,
+  languageRank: string
+): number {
+  const gain = Math.trunc(Number(sessionEloGain) || 0);
+  if (gain < 0) return gain;
+
+  const weight = LANGUAGE_RANK_WEIGHT[languageRank] ?? LANGUAGE_RANK_WEIGHT.Noob;
+  return Math.round(gain * weight);
 }
 
 export function getBestLanguageRank(

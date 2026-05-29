@@ -14,18 +14,17 @@ export async function getBestAccountElo(
     if (!user?.id) return null;
 
     const { data, error } = await supabase
-      .from("user_language_elo")
+      .from("user_profiles")
       .select("elo")
       .eq("user_id", user.id)
-      .order("elo", { ascending: false })
-      .limit(1);
+      .maybeSingle();
 
     if (error) {
       console.log("[rank] fetch:failed", error);
       return null;
     }
 
-    return data?.[0]?.elo ?? null;
+    return typeof data?.elo === "number" ? data.elo : null;
   } catch (error) {
     console.log("[rank] fetch:failed", error);
     return null;

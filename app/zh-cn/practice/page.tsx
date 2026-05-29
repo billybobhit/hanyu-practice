@@ -14,6 +14,7 @@ import { applyEloChange, getProgressFromSessions, getRankForElo } from "@/lib/ra
 import { pushSessionToCloud } from "@/lib/supabase/session-sync";
 import { addConversationHistory } from "@/lib/supabase/conversation-history";
 import { createClient } from "@/lib/supabase/client";
+import { dispatchRankUpdated } from "@/lib/rank-events";
 import type { Difficulty, Message, Session } from "@/lib/types";
 
 const difficultyLabels: Record<Difficulty, string> = {
@@ -320,29 +321,46 @@ export default function PracticePage() {
         grade,
       };
       endedSession.rankEvent =
-        typeof grade.languageEloBefore === "number" &&
-        typeof grade.languageEloAfter === "number"
+        typeof grade.globalEloBefore === "number" &&
+        typeof grade.globalEloAfter === "number"
           ? {
-              eloBefore: grade.languageEloBefore,
-              eloAfter: grade.languageEloAfter,
+              eloBefore: grade.globalEloBefore,
+              eloAfter: grade.globalEloAfter,
               eloChange:
-                typeof grade.languageEloChange === "number"
-                  ? grade.languageEloChange
-                  : grade.languageEloAfter - grade.languageEloBefore,
+                typeof grade.globalContribution === "number"
+                  ? grade.globalContribution
+                  : grade.globalEloAfter - grade.globalEloBefore,
               rankBefore:
-                typeof grade.languageRankBefore === "string"
-                  ? grade.languageRankBefore
-                  : getRankForElo(grade.languageEloBefore).name,
+                typeof grade.globalRankBefore === "string"
+                  ? grade.globalRankBefore
+                  : getRankForElo(grade.globalEloBefore).name,
               rankAfter:
-                typeof grade.languageRankAfter === "string"
-                  ? grade.languageRankAfter
-                  : getRankForElo(grade.languageEloAfter).name,
+                typeof grade.globalRankAfter === "string"
+                  ? grade.globalRankAfter
+                  : getRankForElo(grade.globalEloAfter).name,
+              sessionEloGain:
+                typeof grade.sessionEloGain === "number"
+                  ? grade.sessionEloGain
+                  : undefined,
+              globalContribution:
+                typeof grade.globalContribution === "number"
+                  ? grade.globalContribution
+                  : undefined,
+              languageRank:
+                typeof grade.languageRank === "string" ? grade.languageRank : undefined,
             }
           : applyEloChange(
               previousProgress.currentElo,
               grade.overallGrade,
               grade.overallScore
             );
+      if (endedSession.rankEvent) {
+        dispatchRankUpdated({
+          elo: endedSession.rankEvent.eloAfter,
+          languageCode: "zh-cn",
+          rankEvent: endedSession.rankEvent,
+        });
+      }
       saveSession(endedSession);
       void pushSessionToCloud(endedSession);
       await addConversationHistory(endedSession);

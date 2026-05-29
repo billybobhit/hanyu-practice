@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 import { createAiClient, formatAiError, getTextProviderConfig, isRateLimitError } from "@/lib/ai-provider";
 import type { Difficulty } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
-import { syncUserRank } from "@/lib/supabase/rankSync";
 import { calculateEloChange, getRankForElo } from "@/lib/ranks";
+import { calculateGlobalEloContribution } from "@/lib/elo";
 
 export const maxDuration = 60;
 
@@ -306,37 +306,79 @@ Mode adjustments:
 
     let extraFields: Record<string, unknown> = {};
     if (validLanguageCode && accountUserId) {
-      try {
-        const supabase = await createClient();
-        const currentElo = effectiveElo;
-        const eloChange = calculateEloChange(grade.overallGrade, grade.overallScore);
-        const newElo = Math.max(0, currentElo + eloChange);
-        await supabase.from("user_language_elo").upsert(
+      const supabase = await createClient();
+      const currentLanguageElo = effectiveElo;
+      const languageRank = getRankForElo(currentLanguageElo).name;
+      const sessionEloGain = calculateEloChange(grade.overallGrade, grade.overallScore);
+      const newLanguageElo = Math.max(0, currentLanguageElo + sessionEloGain);
+      const globalContribution = calculateGlobalEloContribution(
+        sessionEloGain,
+        languageRank
+      );
+
+      const { data: currentProfile, error: profileReadError } = await supabase
+        .from("user_profiles")
+        .select("elo")
+        .eq("user_id", accountUserId)
+        .maybeSingle();
+
+      if (profileReadError) {
+        throw new Error(`Failed to read global ELO: ${profileReadError.message}`);
+      }
+
+      const currentGlobalElo = Math.max(0, Number(currentProfile?.elo ?? 0));
+      const newGlobalElo = Math.max(0, currentGlobalElo + globalContribution);
+      const globalRankBefore = getRankForElo(currentGlobalElo).name;
+      const globalRankAfter = getRankForElo(newGlobalElo).name;
+      const updatedAt = new Date().toISOString();
+
+      const { error: languageWriteError } = await supabase
+        .from("user_language_elo")
+        .upsert(
           {
             user_id: accountUserId,
             language_code: languageCode,
-            elo: newElo,
-            updated_at: new Date().toISOString(),
+            elo: newLanguageElo,
+            updated_at: updatedAt,
           },
           { onConflict: "user_id,language_code" }
         );
-        const [bestRank, { data: allRows }] = await Promise.all([
-          syncUserRank(accountUserId, supabase),
-          supabase.from("user_language_elo").select("elo").eq("user_id", accountUserId),
-        ]);
-        const globalEloSum = allRows?.reduce((sum: number, row: { elo: number }) => sum + (row.elo ?? 0), 0) ?? newElo;
-        extraFields = {
-          languageEloBefore: currentElo,
-          languageEloAfter: newElo,
-          languageEloChange: newElo - currentElo,
-          languageRankBefore: getRankForElo(currentElo).name,
-          languageRankAfter: getRankForElo(newElo).name,
-          globalEloSum,
-          bestRankName: bestRank?.rankName,
-        };
-      } catch {
-        // non-fatal
+
+      if (languageWriteError) {
+        throw new Error(`Failed to update local language ELO: ${languageWriteError.message}`);
       }
+
+      const { error: globalWriteError } = await supabase
+        .from("user_profiles")
+        .upsert(
+          {
+            user_id: accountUserId,
+            elo: newGlobalElo,
+            rank: globalRankAfter,
+            updated_at: updatedAt,
+          },
+          { onConflict: "user_id" }
+        );
+
+      if (globalWriteError) {
+        throw new Error(`Failed to update global ELO: ${globalWriteError.message}`);
+      }
+
+      extraFields = {
+        sessionEloGain,
+        globalContribution,
+        languageRank,
+        languageEloBefore: currentLanguageElo,
+        languageEloAfter: newLanguageElo,
+        languageEloChange: sessionEloGain,
+        languageEloAppliedChange: newLanguageElo - currentLanguageElo,
+        languageRankBefore: languageRank,
+        languageRankAfter: getRankForElo(newLanguageElo).name,
+        globalEloBefore: currentGlobalElo,
+        globalEloAfter: newGlobalElo,
+        globalRankBefore,
+        globalRankAfter,
+      };
     }
 
     return Response.json({ ...grade, ...extraFields });

@@ -10,6 +10,12 @@ export default function EloChangeSummary({ event }: EloChangeSummaryProps) {
 
   const positive = event.eloChange >= 0;
   const promoted = event.rankBefore !== event.rankAfter;
+  const hasScaledGlobal =
+    typeof event.sessionEloGain === "number" &&
+    typeof event.globalContribution === "number" &&
+    event.sessionEloGain !== event.globalContribution;
+  const localGain = event.sessionEloGain ?? event.eloChange;
+  const globalGain = event.globalContribution ?? event.eloChange;
 
   return (
     <div className="rounded-2xl border border-ink-600 bg-ink-800 p-5">
@@ -34,10 +40,33 @@ export default function EloChangeSummary({ event }: EloChangeSummaryProps) {
             positive ? "text-green-400" : "text-vermillion-400"
           }`}
         >
-          {positive ? "+" : ""}
-          {event.eloChange}
+          {hasScaledGlobal ? (
+            <div>
+              <span className={localGain >= 0 ? "text-green-400" : "text-vermillion-400"}>
+                {localGain >= 0 ? "+" : ""}
+                {localGain}
+              </span>
+              <span className="text-base text-cream-500"> local · </span>
+              <span className={globalGain >= 0 ? "text-green-400" : "text-vermillion-400"}>
+                {globalGain >= 0 ? "+" : ""}
+                {globalGain}
+              </span>
+              <span className="text-base text-cream-500"> global ELO</span>
+            </div>
+          ) : (
+            <>
+              {globalGain >= 0 ? "+" : ""}
+              {globalGain} ELO
+            </>
+          )}
         </div>
       </div>
+      {hasScaledGlobal && (
+        <p className="mt-3 rounded-xl border border-ink-600 bg-ink-900 px-4 py-2 text-sm text-cream-400">
+          Global contribution scaled to your {event.languageRank ?? "current"} rank
+          in this language
+        </p>
+      )}
       {promoted && (
         <p className="mt-3 rounded-xl border border-gold-700 bg-gold-800/20 px-4 py-2 text-sm text-gold-300">
           Promoted from {event.rankBefore} to {event.rankAfter}

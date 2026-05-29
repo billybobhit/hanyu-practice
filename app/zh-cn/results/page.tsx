@@ -10,10 +10,8 @@ import RankProgress from "@/components/RankProgress";
 import {
   getCurrentSessionId,
   getSession,
-  getSessions,
-  getUserProgressForLanguage,
 } from "@/lib/storage";
-import { applyEloChange, getProgressFromSessions } from "@/lib/ranks";
+import { applyEloChange } from "@/lib/ranks";
 import type { Session } from "@/lib/types";
 
 const gradeColor: Record<string, string> = {
@@ -152,10 +150,9 @@ export default function ResultsPage() {
                 )}
 
                 <EloChangeSummary event={currentSession.rankEvent} />
-                <RankProgress
-                  elo={getUserProgressForLanguage("zh-cn").currentElo}
-                  compact
-                />
+                {currentSession.rankEvent && (
+                  <RankProgress elo={currentSession.rankEvent.eloAfter} compact />
+                )}
 
                 {/* Session meta */}
                 <div className="grid grid-cols-2 gap-3">
