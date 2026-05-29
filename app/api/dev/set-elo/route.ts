@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   const { languageCode, elo } = await req.json();
 
-  const validLanguages = ["zh-tw", "zh-cn"];
+  const validLanguages = ["zh-tw", "zh-cn", "fr"];
   if (!validLanguages.includes(languageCode)) {
     return Response.json({ error: "Invalid language" }, { status: 400 });
   }

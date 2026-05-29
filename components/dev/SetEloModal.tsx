@@ -12,7 +12,7 @@ interface SetEloModalProps {
 }
 
 export default function SetEloModal({ onClose }: SetEloModalProps) {
-  const [languageCode, setLanguageCode] = useState<"zh-tw" | "zh-cn">("zh-tw");
+  const [languageCode, setLanguageCode] = useState<"zh-tw" | "zh-cn" | "fr">("zh-tw");
   const [eloInput, setEloInput] = useState("1000");
   const [loading, setLoading] = useState(false);
   const [confirm, setConfirm] = useState<string | null>(null);
@@ -88,11 +88,12 @@ export default function SetEloModal({ onClose }: SetEloModalProps) {
             <label className="text-cream-500 text-xs uppercase tracking-[0.15em] block mb-1.5">Language</label>
             <select
               value={languageCode}
-              onChange={(e) => setLanguageCode(e.target.value as "zh-tw" | "zh-cn")}
+              onChange={(e) => setLanguageCode(e.target.value as "zh-tw" | "zh-cn" | "fr")}
               className="w-full bg-ink-700 border border-ink-500 rounded-xl px-3 py-2 text-cream-200 text-sm focus:outline-none focus:border-gold-600"
             >
               <option value="zh-tw">Traditional Chinese (zh-tw)</option>
               <option value="zh-cn">Simplified Chinese (zh-cn)</option>
+              <option value="fr">French (fr)</option>
             </select>
           </div>
 

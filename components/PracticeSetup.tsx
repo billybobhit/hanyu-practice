@@ -18,12 +18,12 @@ import {
 import type { Difficulty, Session } from "@/lib/types";
 
 interface PracticeSetupProps {
-  basePath: "/zh-cn" | "/zh-tw";
+  basePath: "/zh-cn" | "/zh-tw" | "/fr";
   variantLabel: string;
   variantNative: string;
 }
 
-const difficultyOptions: {
+const baseDifficultyOptions: {
   value: Difficulty;
   label: string;
   description: string;
@@ -61,7 +61,7 @@ export default function PracticeSetup({
 
     void supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session?.user) return;
-      const langCode = basePath.slice(1) as "zh-cn" | "zh-tw";
+      const langCode = basePath.slice(1) as "zh-cn" | "zh-tw" | "fr";
       const status = await getPlacementStatus(supabase, session.user.id, langCode);
       setShowPlacement(canTakeStandardPlacement(status.elo));
       setShowAdvancedPlacement(canTakeAdvancedPlacement(status.elo));
@@ -70,6 +70,7 @@ export default function PracticeSetup({
 
   const handleMaterialReady = (content: string, title: string) => {
     const id = generateSessionId();
+    const languageCode = basePath.slice(1);
     const session: Session = {
       id,
       materialTitle: title,
@@ -77,6 +78,7 @@ export default function PracticeSetup({
       difficulty,
       messages: [],
       startTime: Date.now(),
+      languageCode,
     };
 
     saveSession(session);
@@ -145,24 +147,35 @@ export default function PracticeSetup({
                 </div>
               </button>
             )}
-            {difficultyOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setDifficulty(option.value)}
-                className={`cursor-pointer rounded-xl border p-4 text-left transition-all ${
-                  difficulty === option.value
-                    ? "border-vermillion-500 bg-vermillion-700/20"
-                    : "border-ink-500 bg-ink-800 hover:border-ink-300"
-                }`}
-              >
-                <div className="text-sm font-semibold text-cream-100">
-                  {option.label}
-                </div>
-                <div className="mt-1 text-xs leading-5 text-cream-500">
-                  {option.description}
-                </div>
-              </button>
-            ))}
+            {baseDifficultyOptions.map((option) => {
+              const frenchDescriptions: Record<Difficulty, string> = {
+                hard: "French-only tutor responses",
+                medium: "French with English hints",
+                easy: "English explanations with French terms",
+              };
+              const description = basePath === "/fr"
+                ? frenchDescriptions[option.value]
+                : option.description;
+
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => setDifficulty(option.value)}
+                  className={`cursor-pointer rounded-xl border p-4 text-left transition-all ${
+                    difficulty === option.value
+                      ? "border-vermillion-500 bg-vermillion-700/20"
+                      : "border-ink-500 bg-ink-800 hover:border-ink-300"
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-cream-100">
+                    {option.label}
+                  </div>
+                  <div className="mt-1 text-xs leading-5 text-cream-500">
+                    {description}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </section>
 

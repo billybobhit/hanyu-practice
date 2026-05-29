@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   );
   if (!rank) return Response.json({ error: "Unknown rank" }, { status: 400 });
 
-  const validLanguages = ["zh-tw", "zh-cn"];
+  const validLanguages = ["zh-tw", "zh-cn", "fr"];
   if (!validLanguages.includes(languageCode)) {
     return Response.json({ error: "Invalid language" }, { status: 400 });
   }

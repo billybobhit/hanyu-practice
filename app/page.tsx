@@ -14,6 +14,11 @@ const languages = [
     subtitle: "Practice with Simplified characters",
     path: "/zh-cn",
   },
+  {
+    title: "French",
+    subtitle: "Practice conversational French",
+    path: "/fr",
+  },
 ];
 
 export default function HomePage() {
@@ -210,9 +215,9 @@ export default function HomePage() {
               className="mb-6 text-center text-xl font-semibold text-cream-100"
               style={{ fontFamily: "'Cormorant Garamond', serif" }}
             >
-              Choose Your Chinese
+              Choose a Language
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-3">
               {languages.map((language) => (
                 <button
                   key={language.path}

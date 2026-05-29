@@ -326,7 +326,10 @@ export async function POST(req: NextRequest) {
   const { messages, languageCode, mode } = await req.json();
   const isAdvanced = mode === "advanced";
 
-  if (!languageCode) {
+  const validLanguageCode =
+    languageCode === "zh-cn" || languageCode === "zh-tw" || languageCode === "fr";
+
+  if (!validLanguageCode) {
     return Response.json({ error: "languageCode required" }, { status: 400 });
   }
 
@@ -357,11 +360,16 @@ export async function POST(req: NextRequest) {
   const conversation = messages
     .map(
       (m: { role: string; content: string }) =>
-        `[${m.role === "user" ? "学生" : "老师"}]: ${m.content}`
+        `[${m.role === "user" ? "Student" : "Tutor"}]: ${m.content}`
     )
     .join("\n");
 
-  const prompt = `${isAdvanced ? ADVANCED_PLACEMENT_GRADE_PROMPT : PLACEMENT_GRADE_PROMPT}\n\nConversation:\n${conversation}`;
+  const languageGradingNote =
+    languageCode === "fr"
+      ? `LANGUAGE NOTE: This is a French placement conversation. Apply the same rank ladder and ELO rubric to French proficiency. Do not assess Chinese characters, tones, pinyin, HSK levels, or Chinese-specific markers. Assess French grammar, vocabulary range, fluency, register awareness, idiomatic usage, and cultural competence.`
+      : `LANGUAGE NOTE: This is a Mandarin Chinese placement conversation. Apply the rubric to the requested Chinese variant.`;
+
+  const prompt = `${isAdvanced ? ADVANCED_PLACEMENT_GRADE_PROMPT : PLACEMENT_GRADE_PROMPT}\n\n${languageGradingNote}\n\nConversation:\n${conversation}`;
 
   let text = "";
   let lastError: unknown;

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type PlacementLanguageCode = "zh-tw" | "zh-cn";
+export type PlacementLanguageCode = "zh-tw" | "zh-cn" | "fr";
 
 export interface PlacementStatus {
   hasCompletedPlacement: boolean;

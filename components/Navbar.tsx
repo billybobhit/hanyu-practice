@@ -6,11 +6,11 @@ import AuthButton from "@/components/AuthButton";
 
 export default function Navbar() {
   const router = useRouter();
-  const [showChineseModal, setShowChineseModal] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setShowChineseModal(false);
+      if (event.key === "Escape") setShowLanguageModal(false);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -29,12 +29,12 @@ export default function Navbar() {
 
         <div className="hidden items-center gap-2 md:flex">
           <button
-            onClick={() => setShowChineseModal(true)}
+            onClick={() => setShowLanguageModal(true)}
             className="cursor-pointer rounded-full bg-vermillion-700 px-4 py-1.5 text-sm text-cream-100 transition-colors hover:bg-vermillion-600"
           >
-            Chinese
+            Languages
           </button>
-          {["Japanese", "Korean", "Spanish", "French"].map((language) => (
+          {["Japanese", "Korean", "Spanish"].map((language) => (
             <span
               key={language}
               title="Coming Soon"
@@ -48,19 +48,19 @@ export default function Navbar() {
         <AuthButton />
       </nav>
 
-      {showChineseModal && (
+      {showLanguageModal && (
         <div
           className="fixed inset-0 z-[55] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          onClick={() => setShowChineseModal(false)}
+          onClick={() => setShowLanguageModal(false)}
         >
           <div
             className="relative w-full max-w-md rounded-2xl border border-ink-600 bg-ink-900 p-8"
             onClick={(event) => event.stopPropagation()}
           >
             <button
-              onClick={() => setShowChineseModal(false)}
+              onClick={() => setShowLanguageModal(false)}
               className="absolute right-4 top-4 cursor-pointer text-cream-600 transition-colors hover:text-cream-300"
-              aria-label="Close Chinese chooser"
+              aria-label="Close language chooser"
             >
               X
             </button>
@@ -68,9 +68,9 @@ export default function Navbar() {
               className="mb-6 text-center text-xl font-semibold text-cream-100"
               style={{ fontFamily: "'Cormorant Garamond', serif" }}
             >
-              Choose Your Chinese
+              Choose a Language
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-3">
               <button
                 onClick={() => router.push("/zh-tw")}
                 className="cursor-pointer rounded-xl border border-ink-500 bg-ink-800 p-6 text-center transition-all hover:border-vermillion-600"
@@ -97,6 +97,17 @@ export default function Navbar() {
                   style={{ fontFamily: "'Noto Serif SC', serif" }}
                 >
                   简体中文
+                </div>
+              </button>
+              <button
+                onClick={() => router.push("/fr")}
+                className="cursor-pointer rounded-xl border border-ink-500 bg-ink-800 p-6 text-center transition-all hover:border-vermillion-600"
+              >
+                <div className="text-sm font-medium text-cream-300">
+                  French
+                </div>
+                <div className="mt-2 text-3xl text-cream-100">
+                  Français
                 </div>
               </button>
             </div>

@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 interface VoiceButtonProps {
   onTranscript: (text: string) => void;
   disabled?: boolean;
-  language?: "zh-CN" | "zh-TW";
+  language?: "zh-CN" | "zh-TW" | "fr-FR";
 }
 
 export default function VoiceButton({ onTranscript, disabled, language = "zh-CN" }: VoiceButtonProps) {

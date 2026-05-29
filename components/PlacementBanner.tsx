@@ -9,7 +9,7 @@ import { getPlacementStatus } from "@/lib/supabase/placement-status";
 import LoginModal from "@/components/LoginModal";
 
 interface PlacementBannerProps {
-  languageCode: "zh-tw" | "zh-cn";
+  languageCode: "zh-tw" | "zh-cn" | "fr";
 }
 
 export default function PlacementBanner({ languageCode }: PlacementBannerProps) {

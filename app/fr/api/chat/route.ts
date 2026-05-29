@@ -1,0 +1,112 @@
+import { NextRequest } from "next/server";
+import { createAiClient, formatAiError, getTextProviderConfig, isRateLimitError } from "@/lib/ai-provider";
+import type { Difficulty } from "@/lib/types";
+
+const BASE_SYSTEM = `You are Professeur Dupont, a strict but encouraging French tutor conducting an immersive French conversation session. The student has provided study materials — your job is to test their deep comprehension through Socratic dialogue.
+
+Core teaching rules:
+- Ask probing questions that move from recall → analysis → application → synthesis
+- When the student makes French grammar errors, correct them briefly and continue naturally
+- When vocabulary is wrong, briefly suggest a more accurate word
+- Vary your Socratic methods: hypotheticals, analogies, follow-up "why?", devil's advocate
+- Keep responses conversational: 2-3 sentences max per turn
+- Encourage good responses with brief affirmations before pushing deeper
+
+Difficulty mode:
+{DIFFICULTY_INSTRUCTION}
+
+Study Materials:
+---
+{MATERIAL}
+---`;
+
+export async function POST(req: NextRequest) {
+  const provider = getTextProviderConfig();
+  if (!provider.apiKey) {
+    return Response.json(
+      { error: `Server misconfigured: missing ${provider.providerName} API key` },
+      { status: 500 }
+    );
+  }
+
+  const client = createAiClient({ baseURL: provider.baseURL, apiKey: provider.apiKey });
+
+  const { messages, material, difficulty } = await req.json();
+  const selectedDifficulty: Difficulty =
+    difficulty === "easy" || difficulty === "medium" || difficulty === "hard"
+      ? difficulty
+      : "hard";
+
+  const difficultyInstruction: Record<Difficulty, string> = {
+    hard:
+      "- HARD: Conduct the entire conversation in French only. Do not switch to English. Corrections should be brief and in French.",
+    medium:
+      "- MEDIUM: Respond primarily in French, with occasional brief English clarification only when needed. Keep corrections simple.",
+    easy:
+      "- EASY: Respond in plain English. Teach French concepts gently by introducing key French words or phrases with meanings, but explain questions and corrections in clear English.",
+  };
+
+  const systemPrompt = BASE_SYSTEM.replace(
+    "{DIFFICULTY_INSTRUCTION}",
+    difficultyInstruction[selectedDifficulty]
+  ).replace(
+    "{MATERIAL}",
+    material || "(No material provided — have a general French conversation)"
+  );
+
+  const requestMessages = [
+    { role: "system" as const, content: systemPrompt },
+    ...messages.map((m: { role: string; content: string }) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    })),
+  ];
+
+  const readable = new ReadableStream({
+    async start(controller) {
+      let hasSentContent = false;
+      let lastError: unknown;
+      let lastModel: string | undefined;
+
+      for (const model of provider.models) {
+        lastModel = model;
+        try {
+          const stream = client.chat.completions.stream({
+            model,
+            max_tokens: 512,
+            messages: requestMessages,
+          });
+
+          for await (const chunk of stream) {
+            const text = chunk.choices[0]?.delta?.content;
+            if (text) {
+              hasSentContent = true;
+              controller.enqueue(new TextEncoder().encode(text));
+            }
+          }
+
+          controller.close();
+          return;
+        } catch (err) {
+          lastError = err;
+          if (hasSentContent || !isRateLimitError(err)) {
+            break;
+          }
+        }
+      }
+
+      const msg = formatAiError(provider, lastModel, lastError);
+      try {
+        controller.enqueue(
+          new TextEncoder().encode(`\n\n[ERROR: ${msg}]`)
+        );
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(readable, {
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
+}
