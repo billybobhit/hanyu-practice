@@ -162,13 +162,12 @@ export async function POST(req: NextRequest) {
 
   const client = createAiClient({ baseURL: provider.baseURL, apiKey: provider.apiKey });
 
-  const { messages, material, difficulty, userRank, userElo, userLanguageElo, languageCode } = await req.json();
+  const { messages, material, difficulty, userElo, userLanguageElo, languageCode } = await req.json();
   const selectedDifficulty: Difficulty =
     difficulty === "easy" || difficulty === "medium" || difficulty === "hard"
       ? difficulty
       : "hard";
 
-  const rankName: string = typeof userRank === "string" && userRank ? userRank : "Noob";
   const rankElo: number = typeof userElo === "number" ? userElo : 0;
   const requestedLanguageElo = typeof userLanguageElo === "number" ? userLanguageElo : 0;
   const bearerToken = req.headers
@@ -179,7 +178,8 @@ export async function POST(req: NextRequest) {
     typeof languageCode === "string" &&
     (languageCode === "zh-cn" || languageCode === "zh-tw");
   let accountUserId: string | undefined;
-  let dbElo: number | undefined;
+  let dbLanguageElo: number | undefined;
+  let dbGlobalElo: number | undefined;
   if (validLanguageCode) {
     try {
       const supabase = await createClient();
@@ -193,20 +193,30 @@ export async function POST(req: NextRequest) {
       accountUserId = user?.id;
       if (!accountUserId) throw new Error("No signed-in user");
 
-      const { data } = await supabase
-        .from("user_language_elo")
-        .select("elo")
-        .eq("user_id", accountUserId)
-        .eq("language_code", languageCode)
-        .maybeSingle();
-      dbElo = typeof data?.elo === "number" ? data.elo : 0;
+      const [{ data: languageRow }, { data: profile }] = await Promise.all([
+        supabase
+          .from("user_language_elo")
+          .select("elo")
+          .eq("user_id", accountUserId)
+          .eq("language_code", languageCode)
+          .maybeSingle(),
+        supabase
+          .from("user_account_elo")
+          .select("elo")
+          .eq("user_id", accountUserId)
+          .maybeSingle(),
+      ]);
+      dbLanguageElo = typeof languageRow?.elo === "number" ? languageRow.elo : 0;
+      dbGlobalElo = typeof profile?.elo === "number" ? profile.elo : 0;
     } catch {
       // guests and unauthenticated requests use client-local progress
     }
   }
   const isSignedInAccount = Boolean(accountUserId);
-  const effectiveElo = isSignedInAccount ? (dbElo ?? 0) : requestedLanguageElo;
+  const effectiveElo = isSignedInAccount ? (dbLanguageElo ?? 0) : requestedLanguageElo;
   const effectiveRank = getRubricRankNameForLanguageElo(effectiveElo);
+  const effectiveGlobalElo = isSignedInAccount ? (dbGlobalElo ?? 0) : rankElo;
+  const effectiveGlobalRank = getRankForElo(effectiveGlobalElo).name;
 
   const userMessages = messages.filter(
     (m: { role: string }) => m.role === "user"
@@ -233,7 +243,7 @@ ${UNIVERSAL_RULES}
 
 ---
 
-Displayed global rank: ${rankName} (${rankElo} ELO)
+Displayed global rank: ${effectiveGlobalRank} (${effectiveGlobalElo} ELO)
 Hidden local language ELO for rubric: ${effectiveElo} (${effectiveRank} rubric)
 Study Material Context: ${material || "(General conversation, no specific material)"}
 Difficulty: ${selectedDifficulty.toUpperCase()}
@@ -316,17 +326,7 @@ Mode adjustments:
         languageRank
       );
 
-      const { data: currentProfile, error: profileReadError } = await supabase
-        .from("user_profiles")
-        .select("elo")
-        .eq("user_id", accountUserId)
-        .maybeSingle();
-
-      if (profileReadError) {
-        throw new Error(`Failed to read global ELO: ${profileReadError.message}`);
-      }
-
-      const currentGlobalElo = Math.max(0, Number(currentProfile?.elo ?? 0));
+      const currentGlobalElo = Math.max(0, effectiveGlobalElo);
       const newGlobalElo = Math.max(0, currentGlobalElo + globalContribution);
       const globalRankBefore = getRankForElo(currentGlobalElo).name;
       const globalRankAfter = getRankForElo(newGlobalElo).name;
@@ -349,7 +349,7 @@ Mode adjustments:
       }
 
       const { error: globalWriteError } = await supabase
-        .from("user_profiles")
+        .from("user_account_elo")
         .upsert(
           {
             user_id: accountUserId,

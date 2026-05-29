@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getUserProgressForLanguage } from "@/lib/storage";
 import { eloToRank } from "@/lib/elo";
 import { RANK_UPDATED_EVENT, type RankUpdatedDetail } from "@/lib/rank-events";
 import { DEV_MODE_KEY, DEV_MODE_EVENT } from "@/lib/dev";
@@ -51,9 +50,14 @@ export default function DevOverlay() {
         .from("user_language_elo")
         .select("language_code, elo, has_completed_placement")
         .eq("user_id", user.id);
+      const { data: profile } = await supabase
+        .from("user_account_elo")
+        .select("elo")
+        .eq("user_id", user.id)
+        .maybeSingle();
       if (data) {
         setLangElos(data);
-        setAccountElo(data.length ? Math.max(...data.map((row) => row.elo)) : null);
+        setAccountElo(typeof profile?.elo === "number" ? profile.elo : null);
       }
     }
     void fetchLangElos();
@@ -102,14 +106,12 @@ export default function DevOverlay() {
           <span className="text-cream-200">{displayedRank}</span>
         </div>
         {langElos.map((r) => {
-          const localLangElo = typeof window !== "undefined"
-            ? getUserProgressForLanguage(r.language_code).currentElo
-            : 0;
+          const languageRank = eloToRank(r.elo);
           return (
             <div key={r.language_code} className="flex justify-between">
               <span className="text-cream-600">{r.language_code}</span>
               <span className="text-cream-300">
-                acct:{r.elo.toLocaleString()} local:{localLangElo.toLocaleString()} · {eloToRank(r.elo)}{" "}
+                local:{r.elo.toLocaleString()} · {languageRank}{" "}
                 <span className={r.has_completed_placement ? "text-green-400" : "text-vermillion-400"}>
                   {r.has_completed_placement ? "✓" : "✗"}
                 </span>

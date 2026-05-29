@@ -14,7 +14,7 @@ export async function getBestAccountElo(
     if (!user?.id) return null;
 
     const { data, error } = await supabase
-      .from("user_profiles")
+      .from("user_account_elo")
       .select("elo")
       .eq("user_id", user.id)
       .maybeSingle();

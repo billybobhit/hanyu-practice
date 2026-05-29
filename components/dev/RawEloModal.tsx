@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getUserProgress } from "@/lib/storage";
-import { eloToRank, getBestLanguageRank } from "@/lib/elo";
+import { eloToRank } from "@/lib/elo";
 
 interface LanguageRow {
   language_code: string;
@@ -18,9 +17,8 @@ interface RawEloModalProps {
 
 export default function RawEloModal({ onClose }: RawEloModalProps) {
   const [rows, setRows] = useState<LanguageRow[]>([]);
+  const [accountElo, setAccountElo] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  const localElo = getUserProgress().currentElo;
 
   useEffect(() => {
     async function load() {
@@ -34,15 +32,18 @@ export default function RawEloModal({ onClose }: RawEloModalProps) {
         .from("user_language_elo")
         .select("language_code, elo, has_completed_placement")
         .eq("user_id", user.id);
+      const { data: profile } = await supabase
+        .from("user_account_elo")
+        .select("elo")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
       setRows(data ?? []);
+      setAccountElo(Math.max(0, Number(profile?.elo ?? 0)));
       setLoading(false);
     }
     void load();
   }, []);
-
-  const globalElo = rows.reduce((sum, r) => sum + r.elo, 0);
-  const bestLang = getBestLanguageRank(rows);
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -62,7 +63,7 @@ export default function RawEloModal({ onClose }: RawEloModalProps) {
                 <thead>
                   <tr className="bg-ink-700 text-cream-500 uppercase tracking-wider">
                     <th className="px-3 py-2 text-left">Language</th>
-                    <th className="px-3 py-2 text-right">Hidden ELO</th>
+                    <th className="px-3 py-2 text-right">Local ELO</th>
                     <th className="px-3 py-2 text-left">Rank</th>
                     <th className="px-3 py-2 text-center">Placed</th>
                   </tr>
@@ -89,20 +90,16 @@ export default function RawEloModal({ onClose }: RawEloModalProps) {
             {/* Summary */}
             <div className="rounded-xl border border-ink-600 bg-ink-700/50 px-4 py-3 space-y-1.5 text-xs">
               <div className="flex justify-between">
-                <span className="text-cream-500">Global ELO (Supabase sum)</span>
-                <span className="text-gold-300 font-mono">{globalElo.toLocaleString()}</span>
+                <span className="text-cream-500">Account ELO</span>
+                <span className="text-gold-300 font-mono">{accountElo.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-cream-500">Local ELO (localStorage)</span>
-                <span className="text-gold-300 font-mono">{localElo.toLocaleString()}</span>
+                <span className="text-cream-500">Account Rank</span>
+                <span className="text-cream-200">{eloToRank(accountElo)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-cream-500">Best Language Rank</span>
-                <span className="text-cream-200">{bestLang ? `${bestLang.rankName} (${bestLang.languageCode})` : "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-cream-500">Displayed Rank (local)</span>
-                <span className="text-cream-200">{eloToRank(localElo)}</span>
+                <span className="text-cream-500">Language rows</span>
+                <span className="text-cream-200">{rows.length}</span>
               </div>
             </div>
           </div>
