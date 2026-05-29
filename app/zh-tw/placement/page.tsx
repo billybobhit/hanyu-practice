@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getPlacementStatus } from "@/lib/supabase/placement-status";
+import {
+  canTakeAdvancedPlacement,
+  canTakeStandardPlacement,
+  getPlacementStatus,
+} from "@/lib/supabase/placement-status";
 import { addConversationHistory } from "@/lib/supabase/conversation-history";
 import { saveSession, generateSessionId, setCurrentSessionId } from "@/lib/storage";
 import { getRankForElo } from "@/lib/ranks";
@@ -31,6 +35,8 @@ export default function ZhTwPlacementPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const startedRef = useRef(false);
+  const streamInFlightRef = useRef(false);
 
   const userTurns = messages.filter((m) => m.role === "user").length;
   const requiredTurns = isAdvancedPlacement ? 6 : 4;
@@ -50,6 +56,9 @@ export default function ZhTwPlacementPage() {
 
   useEffect(() => {
     async function init() {
+      if (startedRef.current) return;
+      startedRef.current = true;
+
       const params = new URLSearchParams(window.location.search);
       const wantsAdvanced = params.get("advanced") === "1";
       setIsAdvancedPlacement(wantsAdvanced);
@@ -71,11 +80,11 @@ export default function ZhTwPlacementPage() {
       const placementStatus = await getPlacementStatus(supabase, user.id, "zh-tw");
 
       if (wantsAdvanced) {
-        if (placementStatus.elo < 2100 || placementStatus.elo >= 3300) {
+        if (!canTakeAdvancedPlacement(placementStatus.elo)) {
           router.replace("/zh-tw");
           return;
         }
-      } else if (placementStatus.hasCompletedPlacement) {
+      } else if (!canTakeStandardPlacement(placementStatus.elo)) {
         router.replace("/zh-tw");
         return;
       }
@@ -98,6 +107,8 @@ export default function ZhTwPlacementPage() {
     history: Message[],
     advanced = isAdvancedPlacement
   ) => {
+    if (streamInFlightRef.current) return;
+    streamInFlightRef.current = true;
     setIsLoading(true);
     try {
       const res = await fetch("/api/placement", {
@@ -105,11 +116,20 @@ export default function ZhTwPlacementPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: history,
+          languageCode: "zh-tw",
           mode: advanced ? "advanced" : "standard",
         }),
       });
 
-      if (!res.ok) return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        const message = data?.error || "Placement could not start. Please try again.";
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: message, timestamp: Date.now() },
+        ]);
+        return;
+      }
 
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
@@ -136,8 +156,21 @@ export default function ZhTwPlacementPage() {
           return next;
         });
       }
+      if (!text.trim()) {
+        setMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = {
+            ...next[next.length - 1],
+            role: "assistant",
+            content: "Placement response was empty. Please try again.",
+          };
+          return next;
+        });
+        return;
+      }
       if (autoSpeak && text) speakText(text);
     } finally {
+      streamInFlightRef.current = false;
       setIsLoading(false);
       inputRef.current?.focus();
     }
@@ -368,6 +401,7 @@ export default function ZhTwPlacementPage() {
           <VoiceButton
             onTranscript={(text) => setInput((prev) => prev + text)}
             disabled={isLoading || isGrading}
+            language="zh-TW"
           />
           <textarea
             ref={inputRef}

@@ -10,7 +10,11 @@ import {
 } from "@/lib/storage";
 import { pushSessionToCloud } from "@/lib/supabase/session-sync";
 import { createClient } from "@/lib/supabase/client";
-import { getPlacementStatus } from "@/lib/supabase/placement-status";
+import {
+  canTakeAdvancedPlacement,
+  canTakeStandardPlacement,
+  getPlacementStatus,
+} from "@/lib/supabase/placement-status";
 import type { Difficulty, Session } from "@/lib/types";
 
 interface PracticeSetupProps {
@@ -59,8 +63,8 @@ export default function PracticeSetup({
       if (!session?.user) return;
       const langCode = basePath.slice(1) as "zh-cn" | "zh-tw";
       const status = await getPlacementStatus(supabase, session.user.id, langCode);
-      setShowPlacement(!status.hasCompletedPlacement);
-      setShowAdvancedPlacement(status.elo >= 2100 && status.elo < 3300);
+      setShowPlacement(canTakeStandardPlacement(status.elo));
+      setShowAdvancedPlacement(canTakeAdvancedPlacement(status.elo));
     });
   }, [basePath]);
 

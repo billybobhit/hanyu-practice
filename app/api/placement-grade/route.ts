@@ -1,8 +1,12 @@
 import { NextRequest } from "next/server";
-import { createAiClient, getTextProviderConfig } from "@/lib/ai-provider";
+import { createAiClient, formatAiError, getTextProviderConfig, isRateLimitError } from "@/lib/ai-provider";
 import { createClient } from "@/lib/supabase/server";
 import { syncUserRank } from "@/lib/supabase/rankSync";
 import { ADVANCED_PLACEMENT_ELO, PLACEMENT_STARTING_ELO, eloToRank } from "@/lib/elo";
+import {
+  canTakeAdvancedPlacement,
+  canTakeStandardPlacement,
+} from "@/lib/supabase/placement-status";
 
 const PLACEMENT_GRADE_PROMPT = `You are grading a Chinese language placement assessment conversation. Based on the conversation, determine the student's proficiency level.
 
@@ -73,9 +77,16 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   const currentElo = Math.max(0, Number(currentRow?.elo ?? 0));
-  if (isAdvanced && (currentElo < 2100 || currentElo >= 3300)) {
+  if (isAdvanced && !canTakeAdvancedPlacement(currentElo)) {
     return Response.json(
-      { error: "Advanced placement is only available at Pro rank" },
+      { error: "Advanced placement is only available at Pro local language ELO" },
+      { status: 403 }
+    );
+  }
+
+  if (!isAdvanced && !canTakeStandardPlacement(currentElo)) {
+    return Response.json(
+      { error: "Standard placement is only available at Noob local language ELO" },
       { status: 403 }
     );
   }
@@ -93,8 +104,10 @@ export async function POST(req: NextRequest) {
 
   let text = "";
   let lastError: unknown;
+  let lastModel: string | undefined;
 
   for (const model of provider.models) {
+    lastModel = model;
     try {
       const response = await client.chat.completions.create({
         model,
@@ -106,11 +119,12 @@ export async function POST(req: NextRequest) {
       break;
     } catch (err) {
       lastError = err;
+      if (!isRateLimitError(err)) break;
     }
   }
 
   if (lastError) {
-    const msg = lastError instanceof Error ? lastError.message : String(lastError);
+    const msg = formatAiError(provider, lastModel, lastError);
     return Response.json({ error: msg }, { status: 502 });
   }
 

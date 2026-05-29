@@ -5,9 +5,10 @@ import { useState, useRef, useEffect } from "react";
 interface VoiceButtonProps {
   onTranscript: (text: string) => void;
   disabled?: boolean;
+  language?: "zh-CN" | "zh-TW";
 }
 
-export default function VoiceButton({ onTranscript, disabled }: VoiceButtonProps) {
+export default function VoiceButton({ onTranscript, disabled, language = "zh-CN" }: VoiceButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [supported, setSupported] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,7 +38,7 @@ export default function VoiceButton({ onTranscript, disabled }: VoiceButtonProps
 
     const recognition = new SpeechRecognitionCtor();
     recognitionRef.current = recognition;
-    recognition.lang = "zh-CN";
+    recognition.lang = language;
     recognition.continuous = true;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;

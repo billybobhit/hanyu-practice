@@ -499,6 +499,7 @@ export default function PracticePage() {
           <VoiceButton
             onTranscript={(text) => setInput((prev) => prev + text)}
             disabled={isLoading}
+            language="zh-TW"
           />
 
           <textarea

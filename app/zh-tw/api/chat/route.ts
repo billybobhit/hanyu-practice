@@ -1,10 +1,12 @@
 import { NextRequest } from "next/server";
-import { createAiClient, getTextProviderConfig } from "@/lib/ai-provider";
+import { createAiClient, formatAiError, getTextProviderConfig, isRateLimitError } from "@/lib/ai-provider";
 import type { Difficulty } from "@/lib/types";
 
 const BASE_SYSTEM = `You are 汉语老师 (Master Chen), a strict but encouraging Chinese tutor conducting an immersive Mandarin conversation session. The student has provided study materials — your job is to test their deep comprehension through Socratic dialogue.
 
 Core teaching rules:
+- Use Traditional Chinese characters only for all Chinese text.
+- Do not use Simplified Chinese characters.
 - Ask probing questions that move from recall → analysis → application → synthesis
 - When the student makes grammar errors, correct them briefly and continue naturally
 - When vocabulary is wrong, briefly suggest a more accurate word
@@ -41,11 +43,11 @@ export async function POST(req: NextRequest) {
 
   const difficultyInstruction: Record<Difficulty, string> = {
     hard:
-      "- HARD: Conduct the entire conversation in Mandarin Chinese only. Do not switch to English. Corrections should be brief and in Chinese.",
+      "- HARD: Conduct the entire conversation in Mandarin Chinese only using Traditional characters. Do not switch to English. Corrections should be brief and in Traditional Chinese.",
     medium:
-      "- MEDIUM: Respond in Mandarin Chinese and include pinyin in parentheses immediately after each Chinese word or short phrase so the UI can stack pinyin above the Chinese text. Format every Chinese segment as 汉字(pinyin), with spaces between segments. Example: 你(nǐ) 今天(jīn tiān) 想(xiǎng) 讨论(tǎo lùn) 什么(shén me)？ Do not put pinyin on separate lines. Keep corrections simple.",
+      "- MEDIUM: Respond in Mandarin Chinese using Traditional characters and include pinyin in parentheses immediately after each Chinese word or short phrase so the UI can stack pinyin above the Chinese text. Format every Chinese segment as 漢字(pinyin), with spaces between segments. Example: 你(nǐ) 今天(jīn tiān) 想(xiǎng) 討論(tǎo lùn) 什麼(shén me)？ Do not put pinyin on separate lines. Keep corrections simple.",
     easy:
-      "- EASY: Respond in plain English. Teach Chinese concepts gently by introducing key Chinese words with pinyin and meaning, but explain questions and corrections in clear English.",
+      "- EASY: Respond in plain English. Teach Chinese concepts gently by introducing key Chinese words in Traditional characters with pinyin and meaning, but explain questions and corrections in clear English.",
   };
 
   const systemPrompt = BASE_SYSTEM.replace(
@@ -68,8 +70,10 @@ export async function POST(req: NextRequest) {
     async start(controller) {
       let hasSentContent = false;
       let lastError: unknown;
+      let lastModel: string | undefined;
 
       for (const model of provider.models) {
+        lastModel = model;
         try {
           const stream = client.chat.completions.stream({
             model,
@@ -89,13 +93,13 @@ export async function POST(req: NextRequest) {
           return;
         } catch (err) {
           lastError = err;
-          if (hasSentContent) {
+          if (hasSentContent || !isRateLimitError(err)) {
             break;
           }
         }
       }
 
-      const msg = lastError instanceof Error ? lastError.message : String(lastError);
+      const msg = formatAiError(provider, lastModel, lastError);
       try {
         controller.enqueue(
           new TextEncoder().encode(`\n\n[ERROR: ${msg}]`)

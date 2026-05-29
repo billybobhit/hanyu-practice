@@ -7,6 +7,15 @@ export interface PlacementStatus {
   elo: number;
 }
 
+export function canTakeStandardPlacement(elo: number): boolean {
+  return Math.max(0, Number(elo) || 0) < 250;
+}
+
+export function canTakeAdvancedPlacement(elo: number): boolean {
+  const safeElo = Math.max(0, Number(elo) || 0);
+  return safeElo >= 2100 && safeElo < 3300;
+}
+
 export async function getPlacementStatus(
   supabase: SupabaseClient,
   userId: string,
@@ -29,10 +38,10 @@ export async function getPlacementStatus(
   }
 
   const elo = Math.max(0, Number(data?.elo ?? 0));
-  // Placement is available until the user escapes Noob rank (ELO >= 250).
-  // has_completed_placement is irrelevant for visibility — ELO alone determines it.
+  // Placement is rank-gated by local language ELO:
+  // standard placement only in Noob, advanced placement only in Pro.
   return {
-    hasCompletedPlacement: elo >= 250,
+    hasCompletedPlacement: !canTakeStandardPlacement(elo),
     elo,
   };
 }

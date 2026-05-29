@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createAiClient, getTextProviderConfig } from "@/lib/ai-provider";
+import { createAiClient, formatAiError, getTextProviderConfig, isRateLimitError } from "@/lib/ai-provider";
 import type { Difficulty } from "@/lib/types";
 
 const BASE_SYSTEM = `You are 汉语老师 (Master Chen), a strict but encouraging Chinese tutor conducting an immersive Mandarin conversation session. The student has provided study materials — your job is to test their deep comprehension through Socratic dialogue.
@@ -68,8 +68,10 @@ export async function POST(req: NextRequest) {
     async start(controller) {
       let hasSentContent = false;
       let lastError: unknown;
+      let lastModel: string | undefined;
 
       for (const model of provider.models) {
+        lastModel = model;
         try {
           const stream = client.chat.completions.stream({
             model,
@@ -89,13 +91,13 @@ export async function POST(req: NextRequest) {
           return;
         } catch (err) {
           lastError = err;
-          if (hasSentContent) {
+          if (hasSentContent || !isRateLimitError(err)) {
             break;
           }
         }
       }
 
-      const msg = lastError instanceof Error ? lastError.message : String(lastError);
+      const msg = formatAiError(provider, lastModel, lastError);
       try {
         controller.enqueue(
           new TextEncoder().encode(`\n\n[ERROR: ${msg}]`)

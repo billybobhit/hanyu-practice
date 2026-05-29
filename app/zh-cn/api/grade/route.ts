@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createAiClient, getTextProviderConfig } from "@/lib/ai-provider";
+import { createAiClient, formatAiError, getTextProviderConfig, isRateLimitError } from "@/lib/ai-provider";
 import type { Difficulty } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { syncUserRank } from "@/lib/supabase/rankSync";
@@ -272,8 +272,10 @@ Mode adjustments:
   try {
     let text = "";
     let lastError: unknown;
+    let lastModel: string | undefined;
 
     for (const model of provider.models) {
+      lastModel = model;
       try {
         const response = await client.chat.completions.create({
           model,
@@ -286,11 +288,12 @@ Mode adjustments:
         break;
       } catch (err) {
         lastError = err;
+        if (!isRateLimitError(err)) break;
       }
     }
 
     if (lastError) {
-      throw lastError;
+      throw new Error(formatAiError(provider, lastModel, lastError));
     }
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
