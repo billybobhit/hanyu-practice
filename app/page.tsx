@@ -3,21 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const languages = [
+const languagePods = [
   {
-    title: "Traditional Chinese",
-    subtitle: "Practice with Traditional characters",
-    path: "/zh-tw",
+    label: "🇨🇳 Chinese",
+    variants: [
+      { title: "Traditional", subtitle: "繁體中文", path: "/zh-tw" },
+      { title: "Simplified", subtitle: "简体中文", path: "/zh-cn" },
+    ],
   },
   {
-    title: "Simplified Chinese",
-    subtitle: "Practice with Simplified characters",
-    path: "/zh-cn",
-  },
-  {
-    title: "French",
-    subtitle: "Practice conversational French",
-    path: "/fr",
+    label: "🇫🇷 French",
+    variants: [
+      { title: "French", subtitle: "Français", path: "/fr" },
+    ],
   },
 ];
 
@@ -217,20 +215,25 @@ export default function HomePage() {
             >
               Choose a Language
             </h3>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {languages.map((language) => (
-                <button
-                  key={language.path}
-                  onClick={() => router.push(language.path)}
-                  className="cursor-pointer rounded-xl border border-ink-500 bg-ink-800 p-6 text-center transition-all hover:border-vermillion-600"
-                >
-                  <div className="text-sm font-medium text-cream-100">
-                    {language.title}
+            <div className="flex flex-col gap-3">
+              {languagePods.map((pod) => (
+                <div key={pod.label} className="rounded-xl border border-ink-500 bg-ink-800 p-4">
+                  <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-cream-500">
+                    {pod.label}
                   </div>
-                  <div className="mt-2 text-xs leading-5 text-cream-500">
-                    {language.subtitle}
+                  <div className="flex gap-2">
+                    {pod.variants.map((v) => (
+                      <button
+                        key={v.path}
+                        onClick={() => router.push(v.path)}
+                        className="flex-1 cursor-pointer rounded-lg border border-ink-600 bg-ink-700 px-4 py-3 text-center transition-all hover:border-vermillion-600 hover:bg-ink-600"
+                      >
+                        <div className="text-sm font-medium text-cream-100">{v.title}</div>
+                        <div className="mt-1 text-xs text-cream-500">{v.subtitle}</div>
+                      </button>
+                    ))}
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </div>
