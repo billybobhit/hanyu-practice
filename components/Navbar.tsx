@@ -70,46 +70,40 @@ export default function Navbar() {
             >
               Choose a Language
             </h3>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <button
-                onClick={() => router.push("/zh-tw")}
-                className="cursor-pointer rounded-xl border border-ink-500 bg-ink-800 p-6 text-center transition-all hover:border-vermillion-600"
-              >
-                <div className="text-sm font-medium text-cream-300">
-                  Traditional Chinese
+            <div className="flex flex-col gap-3">
+              <div className="rounded-xl border border-ink-500 bg-ink-800 p-4">
+                <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-cream-500">
+                  🇨🇳 Chinese
                 </div>
-                <div
-                  className="mt-2 text-3xl text-cream-100"
-                  style={{ fontFamily: "'Noto Serif SC', serif" }}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => router.push("/zh-tw")}
+                    className="flex-1 cursor-pointer rounded-lg border border-ink-600 bg-ink-700 px-4 py-3 text-center transition-all hover:border-vermillion-600 hover:bg-ink-600"
+                  >
+                    <div className="text-sm font-medium text-cream-100">Traditional</div>
+                    <div className="mt-1 text-xs text-cream-500" style={{ fontFamily: "'Noto Serif SC', serif" }}>繁體中文</div>
+                  </button>
+                  <button
+                    onClick={() => router.push("/zh-cn")}
+                    className="flex-1 cursor-pointer rounded-lg border border-ink-600 bg-ink-700 px-4 py-3 text-center transition-all hover:border-vermillion-600 hover:bg-ink-600"
+                  >
+                    <div className="text-sm font-medium text-cream-100">Simplified</div>
+                    <div className="mt-1 text-xs text-cream-500" style={{ fontFamily: "'Noto Serif SC', serif" }}>简体中文</div>
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-xl border border-ink-500 bg-ink-800 p-4">
+                <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-cream-500">
+                  🇫🇷 French
+                </div>
+                <button
+                  onClick={() => router.push("/fr")}
+                  className="w-full cursor-pointer rounded-lg border border-ink-600 bg-ink-700 px-4 py-3 text-center transition-all hover:border-vermillion-600 hover:bg-ink-600"
                 >
-                  繁體中文
-                </div>
-              </button>
-              <button
-                onClick={() => router.push("/zh-cn")}
-                className="cursor-pointer rounded-xl border border-ink-500 bg-ink-800 p-6 text-center transition-all hover:border-vermillion-600"
-              >
-                <div className="text-sm font-medium text-cream-300">
-                  Simplified Chinese
-                </div>
-                <div
-                  className="mt-2 text-3xl text-cream-100"
-                  style={{ fontFamily: "'Noto Serif SC', serif" }}
-                >
-                  简体中文
-                </div>
-              </button>
-              <button
-                onClick={() => router.push("/fr")}
-                className="cursor-pointer rounded-xl border border-ink-500 bg-ink-800 p-6 text-center transition-all hover:border-vermillion-600"
-              >
-                <div className="text-sm font-medium text-cream-300">
-                  French
-                </div>
-                <div className="mt-2 text-3xl text-cream-100">
-                  Français
-                </div>
-              </button>
+                  <div className="text-sm font-medium text-cream-100">French</div>
+                  <div className="mt-1 text-xs text-cream-500">Français</div>
+                </button>
+              </div>
             </div>
           </div>
         </div>
