@@ -44,10 +44,7 @@ const PLACEMENT_SCORE_BY_GRADE: Record<"A" | "B" | "C" | "D" | "F", number> = {
   F: 30,
 };
 
-const PLACEMENT_GRADE_PROMPT = `You are evaluating a Mandarin Chinese placement conversation to assign
-a starting rank and ELO on the HanYu platform.
-
-RANK LADDER AND ELO:
+const SHARED_RANK_RUBRIC = `RANK LADDER AND ELO:
 - Noob: 0 ELO
 - Beginner: 150 ELO
 - Intermediate: 400 ELO
@@ -129,7 +126,64 @@ handled naturally and deployed with purpose. Diction is extraordinary
 register fully available. Responses show linguistic artistry, not just
 correctness — rhythm, rhetoric, stylistic awareness.
 An educated articulate native gets B here. Only true language scholars
-sustain A at Eternal.
+sustain A at Eternal.`;
+
+const JSON_OUTPUT_SCHEMA = `Output ONLY this JSON, no prose before or after:
+{
+  "rank": "one of the 11 rank names exactly as spelled above",
+  "elo": starting ELO number for that rank,
+  "reasoning": "2–3 sentences in English explaining the placement",
+  "strengths": ["up to 3 specific things they demonstrated well"],
+  "areasToImprove": ["up to 3 specific gaps or missing competencies"],
+  "rankFeedback": "one sentence on what to work on to reach the next rank"
+}
+
+Do NOT include any text outside the JSON block.`;
+
+const PLACEMENT_GRADE_PROMPT = `You are evaluating a Mandarin Chinese placement conversation to assign
+a starting rank and ELO on the HanYu platform.
+
+${SHARED_RANK_RUBRIC}
+
+RANK ASSIGNMENT RULE — GRADE THE CEILING, NOT THE FLOOR:
+Always assign rank based on the HIGHEST level demonstrated, not
+weakest moments. One exceptional response outweighs two average ones.
+Learners underperform due to nerves or topic familiarity — their
+ceiling is their true level.
+
+CONTRADICTION CHECK — mandatory before outputting JSON:
+If your strengths list includes ANY of:
+- "abstract topic handling"
+- "structured argument"
+- "clear expression of opinions"
+- "good use of connectors"
+- "balanced analysis"
+- "nuanced distinction"
+- "cultural understanding"
+...the rank CANNOT be Noob, Beginner, Intermediate, or Advanced.
+These are Pro-minimum indicators.
+
+WHAT DOES NOT LOWER RANK:
+- Some grammar errors → never drops more than one rank
+- Occasional simple sentences mixed with complex ones → irrelevant
+- Vocabulary could be more varied → only relevant at Diamond and above
+- Shorter answers on some turns → grade the best turns
+
+WHAT DOES LOWER RANK:
+- Heavy English switching → significant drop
+- Could not sustain the topic → significant drop
+- Responses were mostly single sentences with no development → drop
+- Vocabulary stayed entirely at HSK 1–3 throughout → drop
+
+CALIBRATION ANCHORS:
+- Discusses modern stress with 第一/第二/第三 structure, stays in
+  Chinese, basic vocab → Pro (1400)
+- Discusses tech and relationships with 反而/即使/另外, balanced
+  argument, vocab includes 依賴/表面/陪伴 → Iron (2200)
+- Distinguishes 面子 vs 尊嚴 conceptually with conflict scenario,
+  uses 外在/內在 framework, culturally grounded → Gold (3300)
+- Handles 内卷 as sociological phenomenon, uses 折射/結構性/
+  集體焦慮, connects individual to systemic → Diamond (4800)
 
 SCORING RULES:
 - Be generous at the bottom (Noob–Intermediate): reward effort.
@@ -144,17 +198,76 @@ SCORING RULES:
 - Assign the ELO at the BOTTOM of the range for that rank
   (e.g. Diamond = 4800, not 6999) — users earn up from placement.
 
-Output ONLY this JSON, no prose before or after:
-{
-  "rank": "one of the 11 rank names exactly as spelled above",
-  "elo": starting ELO number for that rank,
-  "reasoning": "2–3 sentences in English explaining the placement",
-  "strengths": ["up to 3 specific things they demonstrated well"],
-  "areasToImprove": ["up to 3 specific gaps or missing competencies"],
-  "rankFeedback": "one sentence on what to work on to reach the next rank"
-}
+${JSON_OUTPUT_SCHEMA}`;
 
-Do NOT include any text outside the JSON block.`;
+const ADVANCED_PLACEMENT_GRADE_PROMPT = `You are evaluating a Mandarin Chinese advanced placement conversation
+to assign a new rank and ELO on the HanYu platform. The user is
+already at Pro level or above and believes they belong higher.
+
+${SHARED_RANK_RUBRIC}
+
+PHILOSOPHY: Strict but honest. Grade accurately — do not inflate,
+but do not punish unfairly either. A strong performance at Gold
+level should land at Gold, not Iron. The goal is precision, not
+deflation.
+
+RANK ASSIGNMENT RULE — GRADE THE SUSTAINED AVERAGE, NOT THE CEILING:
+Unlike regular placement, advanced placement grades on SUSTAINED
+performance across the full conversation. One exceptional response
+does not override consistently weaker ones. The user should
+demonstrate their level consistently across most turns.
+
+CONTRADICTION CHECK — mandatory before outputting JSON:
+The rank assigned must be consistent with the feedback given.
+If strengths include abstract topic handling and nuanced analysis,
+rank cannot be below Pro. If gaps include shallow vocabulary and
+simple structures throughout, rank cannot be above Iron.
+
+WHAT DOES NOT LOWER RANK:
+- Minor grammar errors (1–2 per response) → no rank impact
+- One weaker turn out of six → no rank impact
+- Slightly formal or textbook-sounding phrasing → minor note only
+
+WHAT DOES LOWER RANK:
+- Vocabulary consistently stays below the expected HSK range for
+  the rank claimed → drop one rank
+- Could not handle the harder turns (turns 4–6) → drop one rank
+- Any English switching → drop one rank per instance
+- Arguments are surface-level throughout with no depth → drop one rank
+- 成語 forced or used incorrectly when attempted → note it
+
+HSK VOCABULARY EXPECTATIONS BY RANK (strictly enforced):
+- Iron/Gold: HSK 4–6 range must appear naturally. If vocabulary
+  stays at HSK 3 throughout, cannot place above Pro.
+- Diamond: HSK 6–7 must appear. 权衡, 折射, 潜移默化, 语境 etc.
+  If absent throughout, cannot place at Diamond.
+- Ethereal: HSK 7–9 must appear with native richness. 蕴含, 渗透,
+  诠释, 凸显, 深邃 etc. Native flow required. If vocabulary is strong
+  but clearly learner-range, place at Diamond maximum.
+- Master: Educated native diction. 成語 natural. 字斟句酌 quality.
+  If native but not loquacious, place at Ethereal.
+- Eternal: Scholarly register. Classical references deployed naturally.
+  Rhetorical awareness. If not demonstrably scholarly, place at Master.
+
+FAIR GRADING RULE:
+Strict does not mean punishing. If a user genuinely demonstrated
+Gold-level Chinese consistently across the conversation, award Gold —
+do not drop to Iron just because they did not reach Diamond moments.
+The goal is accurate placement, not deflation.
+
+SCORING RULES:
+- Be strict at the top (Ethereal–Eternal): vocabulary depth and
+  diction are the primary differentiators, not just fluency.
+- A very strong learner should reach Diamond at most.
+  Ethereal requires genuinely native-level vocab richness.
+- Master and Eternal require diction that would impress an educated
+  native Chinese speaker — not just fluency.
+- Do NOT award Eternal or Master unless you saw actual evidence of
+  scholarly or native-educated diction in the conversation.
+- Assign the ELO at the BOTTOM of the range for that rank
+  (e.g. Diamond = 4800, not 6999) — users earn up from placement.
+
+${JSON_OUTPUT_SCHEMA}`;
 
 function normalizePlacementRank(value: unknown) {
   const rank = Object.keys(PLACEMENT_ELO_BY_RANK).find(
@@ -219,7 +332,7 @@ export async function POST(req: NextRequest) {
     )
     .join("\n");
 
-  const prompt = `${PLACEMENT_GRADE_PROMPT}\n\nConversation:\n${conversation}`;
+  const prompt = `${isAdvanced ? ADVANCED_PLACEMENT_GRADE_PROMPT : PLACEMENT_GRADE_PROMPT}\n\nConversation:\n${conversation}`;
 
   let text = "";
   let lastError: unknown;
