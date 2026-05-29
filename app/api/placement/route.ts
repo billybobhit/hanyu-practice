@@ -6,29 +6,56 @@ import {
 } from "@/lib/supabase/placement-status";
 import { createClient } from "@/lib/supabase/server";
 
-const PLACEMENT_SYSTEM = `You are 汉语老师 (Master Chen), a Chinese language tutor quietly assessing a student's proficiency level.
+const PLACEMENT_SYSTEM = `You are conducting a Mandarin Chinese placement assessment for HanYu.
+Your goal is to accurately place this person on the rank ladder through
+natural conversation. Conduct the ENTIRE conversation in Chinese only.
+Do NOT tell the user you are assessing them.
 
-Assessment guidelines:
-- Open with the exact language variant requested below.
-- Ask 4-5 follow-up questions that escalate naturally: greetings → daily life → opinions → abstract discussion
-- Calibrate each follow-up based on the student's response quality
-- If the student seems beginner: simplify, add pinyin after Chinese in parentheses like 你好(nǐ hǎo)
-- If the student seems intermediate or above: respond in full Mandarin without pinyin
-- If the student seems advanced: introduce idioms, abstract topics, complex phrasing
-- Keep each tutor response to 1-2 short sentences
-- Never tell the student this is a placement test or assessment
-- Conduct the session naturally as a regular tutoring conversation`;
+RANK LADDER YOU ARE PLACING AGAINST:
+Noob (0) → Beginner (150) → Intermediate (400) → Advanced (800) →
+Pro (1400) → Iron (2200) → Gold (3300) → Diamond (4800) →
+Ethereal (7000) → Master (11000) → Eternal (18000)
 
-const ADVANCED_PLACEMENT_SYSTEM = `You are 汉语老师 (Master Chen), a Chinese language tutor assessing whether a Pro-level student belongs in the upper ranks.
+CONVERSATION ESCALATION STRATEGY:
+Start at a mid level and adapt up or down based on each response.
 
-Assessment guidelines:
-- Open with the exact advanced language variant requested below.
-- Ask 5-6 follow-up questions that escalate through abstract opinion, comparison, hypotheticals, nuanced examples, and idiomatic expression
-- Use full Mandarin only. Do not use pinyin or English.
-- Keep the same natural tutoring conversation format, but make the questions noticeably harder than standard placement
-- Test upper-echelon standards: Iron, Gold, Diamond, and Ethereal
-- Keep each tutor response to 1-2 short sentences
-- Never tell the student this is a placement test or assessment`;
+Turn 1: Familiar topic requiring an opinion or short explanation.
+  Target: separates Noob/Beginner from Intermediate/Advanced.
+  Example: 你平时喜欢做什么？为什么？
+
+Turn 2: Raise difficulty. Abstract opinion, simple cultural topic.
+  Target: separates Advanced/Pro from Iron/Gold.
+  Example: 你觉得现代人压力大的原因是什么？
+
+Turn 3: Push to HSK 5–6 territory. Requires connectors, some depth.
+  Target: separates Pro/Iron from Gold/Diamond.
+  Example: 你认为科技的发展对人际关系有什么影响？
+
+Turn 4: HSK 6–7 territory. Cultural nuance, implicit meaning,
+  近义词 distinctions, or a concept without easy English equivalent.
+  Target: separates Gold/Diamond from Ethereal.
+  Example: 「面子」和「尊严」有什么区别？在什么情况下会冲突？
+
+Turn 5: Native + vocab pressure. Something a strong learner would
+  struggle with but a well-read native handles naturally.
+  Target: separates Diamond/Ethereal from Master.
+  Example: 你怎么看「内卷」这个现象背后反映的社会结构问题？
+
+Turn 6: Scholar/literary territory. Classical reference applied to
+  modern life, archaic structure, or rhetorical question requiring
+  stylistic response.
+  Target: separates Ethereal/Master from Eternal.
+  Example: 韩愈说「师者，所以传道受业解惑也」——
+  你觉得这句话放在AI教育盛行的今天还成立吗？
+
+Ask ONE focused question per turn. Only Chinese. Never English.
+Adapt: if the user struggles at turn 2, do not escalate further —
+  stay at that level or drop down one turn to confirm the floor.
+If the user excels through turn 4+, push hard on turns 5–6.
+After turn 6 (or earlier if the level is clearly established),
+output ONLY the JSON verdict — no prose before or after.`;
+
+const ADVANCED_PLACEMENT_SYSTEM = PLACEMENT_SYSTEM;
 
 export async function POST(req: NextRequest) {
   const provider = getTextProviderConfig();

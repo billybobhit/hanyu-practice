@@ -5,147 +5,241 @@ import type { Difficulty } from "@/lib/types";
 export const maxDuration = 60;
 
 // ── Universal rules injected into every rank ──────────────────────────────────
-const UNIVERSAL_RULES = `UNIVERSAL RULES FOR ALL RANKS (apply without exception):
-1. Voice/speech-to-text errors (garbled words, wrong characters from misrecognition) — NEVER penalize. Grade intended meaning only.
+const UNIVERSAL_RULES = `UNIVERSAL RULES (inject into ALL rubrics):
+1. Voice/speech-to-text errors — NEVER penalize. Grade intended meaning.
 2. This is spoken conversation, not a written exam. Grade spoken fluency.
-3. Real-world knowledge, cultural depth, practical nuance (e.g. knowing food has no preservatives) = high comprehension score.
-4. A native speaker demonstrating deep cultural knowledge in casual speech should score A at any rank below Gold.
-5. Grade what they meant, not surface errors in how they said it.
-6. If the user self-corrects or shows awareness of their errors, reward that metacognitive awareness.`;
+3. Real-world knowledge, cultural depth, and practical nuance = high
+   comprehension score.
+4. A native speaker demonstrating deep cultural knowledge in casual
+   speech should score A at any rank below Gold.
+5. Grade what they MEANT, not surface errors in how they said it.
+6. If the user self-corrects or shows awareness of their errors,
+   reward that metacognitive awareness.`;
 
 // ── Per-rank rubrics ──────────────────────────────────────────────────────────
-const BEGINNER_RUBRIC = `Be extremely generous. Reward any genuine attempt in Chinese.
+const RANK_RUBRICS: Record<string, string> = {
+  Noob: `You are grading a complete beginner. Be maximally generous.
+Reward any genuine attempt in Chinese whatsoever.
 Single words, broken sentences, heavy English mixing — all acceptable.
-The student is a true beginner. Encourage everything, penalize nothing except full English refusal.
+Tone errors, wrong grammar, wrong characters — ignore entirely.
+PASS if they made any attempt in Chinese. FAIL only if fully English
+with zero effort.
 
 Grade scale:
-- A: Any Chinese used, understood the topic, made an effort
-- B: Mostly English but sprinkled Chinese, showed comprehension
-- C: Barely tried but attempted something in Chinese
-- D: Almost entirely English, minimal effort
-- F: Zero Chinese, refused to engage`;
+- A: Responded in Chinese, understood the gist, used relevant words
+- B: Mostly understood, attempted Chinese even if mixed with English
+- C: Barely understood but tried something in Chinese
+- D: Very confused but made some attempt
+- F: Responded entirely in English with zero Chinese effort`,
 
-const RANK_RUBRICS: Record<string, string> = {
-  noob: BEGINNER_RUBRIC,
-  beginner: BEGINNER_RUBRIC,
-  intermediate: BEGINNER_RUBRIC,
+  Beginner: `You are grading an early learner who knows basic phrases and simple
+sentences. They may mix English. Short answers are fine. They should
+be able to handle very simple questions like name, age, food, weather,
+daily routine. Reward effort and any correct structure, however small.
 
-  advanced: `You are grading a Chinese 2 curriculum level student.
-They can form sentences that make sense and communicate a clear idea.
-Expect correct basic sentence structure, familiar topics, no complex grammar.
-Think: a student who just finished their second year of Chinese class.
+Grade scale:
+- A: Simple sentences in Chinese, understood questions, relevant answers
+- B: Understood most, some Chinese output even if patchy
+- C: Struggled but produced some Chinese
+- D: Minimal output, mostly confused
+- F: No Chinese produced at all`,
 
-Standards:
-- Can form one complete, grammatically reasonable sentence per response
-- Vocabulary matches HSK 2-3 level (food, family, daily life, simple opinions)
-- Grammar: basic SVO, simple connectors (因为, 所以, 但是)
-- No code-switching expected to be penalized heavily yet
-- Errors are fine as long as meaning is clear
+  Intermediate: `You are grading a learner who can handle familiar everyday topics.
+Expect short paragraphs, basic opinions, simple descriptions. Grammar
+will be imperfect. Vocabulary is limited to common daily words. They
+should not need English to survive the conversation on familiar topics.
 
-Example A-grade response at Advanced:
-Tutor: 你喜欢做什么运动？
-User: 我喜欢打篮球，因为很有意思，我和朋友一起打。
-→ Clear sentence, reason given, simple vocab, makes sense. A grade.`,
+Grade scale:
+- A: Handled familiar topics in Chinese throughout, ideas came through
+- B: Mostly in Chinese, some gaps but communicated effectively
+- C: Gaps were significant but stayed in Chinese and tried
+- D: Frequent breakdowns, heavy English reliance
+- F: Could not sustain Chinese at all`,
 
-  pro: `You are grading a Chinese 2-3 transition level student.
-They should hold a short, coherent conversation without English.
-3+ sentence responses expected. Vocabulary is decent but not rich.
-Think: someone who studied Chinese 2-3 years and uses it occasionally.
+  Advanced: `You are grading a learner at solid intermediate level — similar to
+Chinese 2 curriculum. They should be able to form coherent sentences
+that make sense, discuss familiar topics with some depth, and stay in
+Chinese throughout. Do not expect complexity or rich vocabulary.
+Reward: staying on topic, connected ideas, no English switching.
+Penalize: complete topic avoidance, falling back to English.
 
-Standards:
-- 2-3 sentences minimum per response
-- No English mixing tolerated
-- HSK 3 level vocabulary
-- Can express opinions, describe situations, give reasons
-- Grammar doesn't have to be perfect but meaning must be clear`,
+Grade scale:
+- A: Coherent connected sentences, ideas are clear, no English
+- B: Mostly coherent, minor gaps, stayed in Chinese
+- C: Some coherent moments but frequent breakdowns
+- D: Struggled to form meaningful sentences
+- F: Could not produce coherent Chinese`,
 
-  iron: `You are grading a Chinese 3 curriculum level student.
-They can hold a real conversation on familiar topics.
-3 solid sentences with some vocabulary depth expected.
-Think: end of Chinese 3 class — can communicate comfortably.
+  Pro: `You are grading a learner around Chinese 2–3 level. They should
+produce 2–3 coherent sentences per response, make sense, show some
+vocabulary range beyond the most basic words, and hold a decent
+conversation without English. Vocabulary doesn't need to be rich —
+just functional and appropriate. No English tolerated.
 
-Standards:
-- 3+ sentences, coherent and on-topic
-- Some HSK 3-4 vocabulary used naturally
-- No English mixing
-- Can sustain a topic, give opinions with reasoning
-- Minor grammar errors acceptable if meaning is clear
+Grade scale:
+- A: 2–3+ solid sentences, sensible, some vocab variety, zero English
+- B: Mostly solid, minor vocab gaps, held up the conversation
+- C: Sentences made sense but thin on vocab or frequent short answers
+- D: Struggled to produce meaningful multi-sentence responses
+- F: Could not produce coherent multi-sentence Chinese`,
 
-Example A-grade at Iron:
-Tutor: 你觉得城市生活和农村生活有什么区别？
-User: 城市生活比较方便，有很多商店和地铁，但是也很吵。农村比较安静，
-      空气也好一点，但是找工作比较难。我更喜欢城市因为我喜欢热闹。
-→ 3 sentences, comparison structure, some vocab (安静、方便、热闹), clear. A grade.`,
+  Iron: `You are grading a learner at Chinese 3 level. Expect 3+ coherent
+sentences, clear ideas, some vocabulary beyond basic. They should
+handle moderately abstract topics (opinions, preferences, simple
+cultural topics) without English. Vocabulary should start showing
+some range — not textbook-basic only.
 
-  gold: `Same as Iron standard but slightly stricter.
-Expect richer vocabulary and smoother flow.
-An Iron-level response gets a B here, not an A.`,
+HSK alignment: Expect comfortable use of HSK 4–5 vocabulary naturally
+in context. Words like 影响 (influence), 环境 (environment), 态度
+(attitude), 经验 (experience), 发展 (development) should appear when
+relevant. Sentences should feel connected, not just strung-together
+fragments.
 
-  diamond: `You are grading a student approaching fluency.
-Iron-level responses get a C here.
-Expect 4+ sentences, varied vocabulary, natural transitions,
-and the ability to discuss abstract or opinion-based topics.
+Grade scale:
+- A: 3+ sentences, coherent argument, HSK 4–5 vocab appears naturally
+- B: Solid sentences, mostly coherent, some HSK 4–5 range
+- C: Sentences make sense but vocabulary stays at HSK 3 or below
+- D: Fragmented, limited vocabulary, topic avoidance
+- F: Cannot produce connected Chinese at this level`,
 
-Standards:
-- HSK 4-5 vocabulary
-- Natural sentence variety (not just SVO repeated)
-- Connectors and discourse markers used correctly
-- Can discuss feelings, comparisons, hypotheticals
-- No English. No formulaic repetition.`,
+  Gold: `You are grading a learner who should be approaching HSK 5–6 range.
+Expect fluent multi-sentence responses, abstract topic handling,
+appropriate connectors (不仅...而且, 虽然...但是, 尽管, 从而, 反而),
+and vocabulary that goes beyond everyday basics.
 
-  ethereal: `You are grading a native speaker or near-native speaker.
-This is someone who grew up speaking Chinese or has lived in a Chinese-speaking environment for years. Think: 10+ year speaker.
-Everyday fluency is the baseline — not the goal.
+HSK alignment: Expect natural use of HSK 5–6 vocabulary in context.
+Words like 促进 (promote), 导致 (lead to), 逐渐 (gradually), 强调
+(emphasize), 矛盾 (contradiction), 具体 (concrete/specific) should
+appear. No English. Minor grammar errors acceptable but
+vocabulary range and coherence are graded seriously.
 
-Standards:
-- Natural, idiomatic speech. No textbook phrasing.
-- Cultural references, tone-appropriate register
-- Complex sentences with subordinate clauses
-- Errors in tones or minor grammar do not matter — natural flow does
-- Cannot be formulaic. Must feel like a real native conversation.`,
+Grade scale:
+- A: Fluent, abstract capable, HSK 5–6 vocab appears naturally
+- B: Mostly fluent, good range, minor gaps at HSK 6 level
+- C: Can hold conversation but vocabulary stays at HSK 4 ceiling
+- D: Functional but clearly below expected range
+- F: Cannot operate at this level`,
 
-  master: `You are grading a highly educated native speaker.
-Think: Chinese person who went to university, reads books,
-can discuss literature, history, society with depth and nuance.
-This is native level but polished — not scholar level yet.
+  Diamond: `You are grading a learner who should be at or above HSK 6, approaching
+HSK 7–9 territory. This is the boundary between advanced learner and
+near-native. Expect:
+- HSK 7–9 vocabulary appearing naturally — 权衡 (weigh up), 折射
+  (reflect/refract metaphorically), 内卷 (involution), 无声的抵抗
+  (silent resistance), 集体反思 (collective reflection), 语境 (context),
+  潜移默化 (imperceptible influence), 付诸实践 (put into practice)
+- Complex sentence structures used correctly
+- Appropriate 成语 usage when natural (not forced)
+- Near-native register awareness — knowing when to be formal vs casual
+- Zero English. Penalize code-switching.
+- Minor grammar errors acceptable but vocabulary depth is graded strictly.
 
-Standards:
-- Rich, varied vocabulary including chengyu and formal registers
-- Can shift between casual and formal effortlessly
-- Discussions of abstract topics: society, philosophy, culture
-- Zero tolerance for unnatural phrasing
-- Must feel like talking to a well-read, articulate native speaker`,
+Penalize: textbook-sounding responses, overuse of simple connectors,
+vocabulary that stays at HSK 5–6 ceiling, any English.
 
-  eternal: `You are grading a scholar of the Chinese language.
-Think: a Chinese literature professor, a classical Chinese expert,
-or a professional writer/journalist at the top of their field.
-This is not just native fluency — it is mastery of the language itself.
+Grade scale:
+- A: HSK 7–9 vocab appears naturally, near-native flow, 成语 optional
+   but natural if present
+- B: Mostly HSK 6–7 range, strong coherence, very minor gaps
+- C: Solid HSK 5–6 but not breaking into 7–9 territory
+- D: Functional but clearly stuck at advanced learner ceiling
+- F: Cannot operate at near-native level`,
 
-Standards:
-- Classical references, literary allusions expected
-- Ability to use and explain chengyu in context
-- Academic register available when appropriate
-- Responses show depth of thought, not just correctness
-- An articulate native speaker gets a C here, not an A
-- Only true language scholars can sustain an A at Eternal`,
+  Ethereal: `You are grading a speaker at native level with strong vocabulary.
+This means 10+ years of native exposure — fluent, idiomatic, culturally
+grounded, and LEXICALLY RICH. This is not just 'native' — it is a
+well-read, articulate native speaker with wide vocabulary range.
+
+Expectations:
+- HSK 7–9 and beyond: expect a wide repertoire of advanced and
+  low-frequency words used precisely — 蕴含 (contain/embody),
+  渗透 (permeate), 诠释 (interpret/expound), 凸显 (highlight/accentuate),
+  衍生 (derive/give rise to), 勾勒 (outline/sketch), 深邃 (profound/deep),
+  宏观 (macro-level), 微妙 (subtle/nuanced), 架构 (framework/structure)
+- 成语 used naturally, accurately, in context — never forced
+- Register flexibility: can shift between casual and formal seamlessly
+- Cultural insider knowledge: understands subtext, irony, implicit meaning
+- No code-switching tolerated under any circumstances
+- Responses feel like talking to a well-educated Chinese person,
+  not a textbook example or a translation
+
+Penalize: any non-native phrasing patterns, forced literary references,
+vocabulary that stays at HSK 6 ceiling, awkward register mixing.
+
+Grade scale:
+- A: Native + rich vocabulary, idiomatic, culturally aware, lexically varied
+- B: Native-like with occasional vocabulary gaps at the highest register
+- C: Fluent but vocabulary does not reach well-read native range
+- D: Near-native but clearly a learner at the ceiling
+- F: Does not belong at Ethereal`,
+
+  Master: `You are grading at full native speaker level — specifically a
+well-educated, articulate native speaker with excellent diction.
+This is a 文化人 (cultured person) standard: vocabulary is loquacious,
+precise, and varied. Responses demonstrate both fluency AND lexical
+richness.
+
+Expectations:
+- Vocabulary is genuinely impressive — low-frequency literary and
+  formal words used accurately: 斟酌 (carefully consider), 意蘊
+  (connotation/implication), 铿锵 (resonant/sonorous), 娓娓道来
+  (speak fluently and engagingly), 字斟句酌 (weigh every word),
+  旁征博引 (cite extensively), 言简意赅 (concise and comprehensive)
+- 成语 and 四字格 woven in naturally throughout
+- Can discuss philosophy, culture, literature, society with precision
+- Idiomatic accuracy: no awkward patterns, natural rhythm in every sentence
+- An inarticulate native speaker scores C here — this standard is
+  for educated, well-spoken natives.
+
+Penalize: vocabulary that feels like a learner's best effort rather than
+native production, missing 成语 opportunities when natural, any
+unnatural phrasing, any non-native rhythm.
+
+Grade scale:
+- A: Educated native diction, loquacious, rich 成语 use, impressive range
+- B: Strong educated native quality, minor vocabulary range gaps
+- C: Native but inarticulate — grammar fine, lexical depth lacking
+- D: Fluent but non-native patterns detectable by an educated native
+- F: Does not belong at Master`,
+
+  Eternal: `You are grading at native scholar level — think a Chinese literature
+professor, classical Chinese specialist, or a journalist at the peak of
+their craft. This is mastery OF the language, not just mastery IN it.
+
+Expectations:
+- Classical allusions, literary references, and archaic structures
+  handled with ease and deployed naturally: 子曰, 知之為知之，不知為不知，
+  是知也 — interpreted and applied in modern context, not just quoted
+- Diction is extraordinary: rare, precise, beautiful word choices that
+  a standard native speaker would notice and admire
+- 成語, 四字格, 歇後語, and literary 典故 (allusions) all in repertoire
+- Academic and formal register fully available
+- Responses show depth of thought AND linguistic artistry — not just
+  correctness but style, rhythm, and rhetorical awareness
+- An articulate native educated speaker gets B here, not A.
+  Only true language scholars sustain an A at Eternal.
+
+Penalize: vocabulary that merely reaches educated native range without
+scholarly depth, 成語 used without literary flair, any moment that
+would not impress a Chinese literature professor.
+
+Grade scale:
+- A: Scholarly mastery — linguistic artistry, classical depth, rare diction
+- B: Highly educated native — impressive range but not scholarly register
+- C: Well-educated articulate native — solid but not scholar-level
+- D: Standard educated native — correct but no scholarly depth
+- F: Does not belong at Eternal`,
 };
 
-function getRubric(rankName: string): string {
-  const key = rankName.trim().toLowerCase();
-  return RANK_RUBRICS[key] ?? RANK_RUBRICS["noob"];
+function getRubricRankName(rankName: string): string {
+  return (
+    Object.keys(RANK_RUBRICS).find(
+      (entry) => entry.toLowerCase() === rankName.trim().toLowerCase()
+    ) ?? "Noob"
+  );
 }
 
-function getRubricRankNameForLanguageElo(elo: unknown): string {
-  const safeElo = Math.max(0, Math.floor(Number(elo) || 0));
-  if (safeElo >= 23000) return "Eternal";
-  if (safeElo >= 16000) return "Master";
-  if (safeElo >= 11000) return "Ethereal";
-  if (safeElo >= 7500) return "Diamond";
-  if (safeElo >= 5000) return "Gold";
-  if (safeElo >= 3300) return "Iron";
-  if (safeElo >= 2100) return "Pro";
-  if (safeElo >= 1250) return "Advanced";
-  return "Noob";
+function getRubric(rankName: string): string {
+  return RANK_RUBRICS[getRubricRankName(rankName)] ?? RANK_RUBRICS.Noob;
 }
 
 export async function POST(req: NextRequest) {
@@ -168,7 +262,7 @@ export async function POST(req: NextRequest) {
   const rankName: string = typeof userRank === "string" && userRank ? userRank : "Noob";
   const rankElo: number = typeof userElo === "number" ? userElo : 0;
   const localLanguageElo = typeof userLanguageElo === "number" ? userLanguageElo : 0;
-  const rubricRankName = getRubricRankNameForLanguageElo(localLanguageElo);
+  const rubricRankName = getRubricRankName(rankName);
 
   const userMessages = messages.filter(
     (m: { role: string }) => m.role === "user"
