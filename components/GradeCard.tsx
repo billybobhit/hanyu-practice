@@ -77,9 +77,9 @@ export default function GradeCard({ grade, materialTitle, messageCount }: GradeC
         </div>
 
         <div className="space-y-3">
-          <ScoreBar label="词汇准确度" score={grade.vocabularyScore} color={gradeColor} />
-          <ScoreBar label="语法正确性" score={grade.grammarScore} color={gradeColor} />
-          <ScoreBar label="理解深度" score={grade.comprehensionScore} color={gradeColor} />
+          <ScoreBar label="Vocabulary Accuracy" score={grade.vocabularyScore} color={gradeColor} />
+          <ScoreBar label="Grammar Control" score={grade.grammarScore} color={gradeColor} />
+          <ScoreBar label="Comprehension Depth" score={grade.comprehensionScore} color={gradeColor} />
         </div>
 
         {/* Feedback */}
