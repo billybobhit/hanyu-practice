@@ -2,38 +2,36 @@ import { NextRequest } from "next/server";
 import { createAiClient, formatAiError, getTextProviderConfig, isRateLimitError } from "@/lib/ai-provider";
 import { createClient } from "@/lib/supabase/server";
 import { syncUserRank } from "@/lib/supabase/rankSync";
-import { eloToRank } from "@/lib/elo";
+import { RANK_THRESHOLDS, eloToRank } from "@/lib/elo";
 import {
   canTakeAdvancedPlacement,
   canTakeStandardPlacement,
 } from "@/lib/supabase/placement-status";
 
-const PLACEMENT_ELO_BY_RANK: Record<string, number> = {
-  Noob: 0,
-  Beginner: 150,
-  Intermediate: 400,
-  Advanced: 800,
-  Pro: 1400,
-  Iron: 2200,
-  Gold: 3300,
-  Diamond: 4800,
-  Ethereal: 7000,
-  Master: 11000,
-  Eternal: 18000,
+const PLACEMENT_ELO_BY_RANK: Record<string, number> = Object.fromEntries(
+  RANK_THRESHOLDS.map((r) => [r.name, r.minElo])
+);
+
+const MAX_REGULAR_ELO = PLACEMENT_ELO_BY_RANK["Pro"]; // 2100
+
+// Regular placement grades: Pro = A (ceiling), down from there
+const REGULAR_PLACEMENT_GRADE_BY_RANK: Record<string, "A" | "B" | "C" | "D" | "F"> = {
+  Pro: "A",
+  Advanced: "B",
+  Intermediate: "C",
+  Beginner: "D",
+  Noob: "F",
 };
 
-const PLACEMENT_GRADE_BY_RANK: Record<string, "A" | "B" | "C" | "D" | "F"> = {
+// Advanced placement grades: Ethereal+ = A, down to Pro = F (no advancement)
+const ADVANCED_PLACEMENT_GRADE_BY_RANK: Record<string, "A" | "B" | "C" | "D" | "F"> = {
   Eternal: "A",
   Master: "A",
   Ethereal: "A",
   Diamond: "B",
-  Gold: "B",
-  Iron: "C",
-  Pro: "C",
-  Advanced: "C",
-  Intermediate: "D",
-  Beginner: "D",
-  Noob: "F",
+  Gold: "C",
+  Iron: "D",
+  Pro: "F",
 };
 
 const PLACEMENT_SCORE_BY_GRADE: Record<"A" | "B" | "C" | "D" | "F", number> = {
@@ -46,16 +44,16 @@ const PLACEMENT_SCORE_BY_GRADE: Record<"A" | "B" | "C" | "D" | "F", number> = {
 
 const SHARED_RANK_RUBRIC = `RANK LADDER AND ELO:
 - Noob: 0 ELO
-- Beginner: 150 ELO
-- Intermediate: 400 ELO
-- Advanced: 800 ELO
-- Pro: 1400 ELO
-- Iron: 2200 ELO
-- Gold: 3300 ELO
-- Diamond: 4800 ELO
-- Ethereal: 7000 ELO
-- Master: 11000 ELO
-- Eternal: 18000 ELO
+- Beginner: 250 ELO
+- Intermediate: 650 ELO
+- Advanced: 1250 ELO
+- Pro: 2100 ELO
+- Iron: 3300 ELO
+- Gold: 5000 ELO
+- Diamond: 7500 ELO
+- Ethereal: 11000 ELO
+- Master: 16000 ELO
+- Eternal: 23000 ELO
 
 RUBRIC — assess the full conversation against these standards:
 
@@ -79,30 +77,30 @@ Coherent connected sentences on familiar topics. Makes sense
 throughout. No English switching. Some depth on familiar subjects.
 Around Chinese 2 curriculum level. HSK 3–4 passive range.
 
-PRO (1400–2199 ELO):
+PRO (2100–3299 ELO):
 2–3 coherent sentences per response. Functional vocabulary beyond
 basics. Can hold a decent conversation without English. Some
 vocabulary variety. Around Chinese 2–3 curriculum. HSK 4 range.
 
-IRON (2200–3299 ELO):
+IRON (3300–4999 ELO):
 3+ coherent sentences. Moderately abstract topics (opinions, cultural
 topics) handled without English. HSK 4–5 vocabulary appearing
 naturally — words like 影响, 环境, 态度, 经验, 发展 used correctly
 in context. Connected argument, not just strung fragments.
 
-GOLD (3300–4799 ELO):
+GOLD (5000–7499 ELO):
 Fluent multi-sentence responses on abstract topics. Appropriate
 connectors used (不仅...而且, 虽然...但是, 从而, 反而, 尽管).
 HSK 5–6 vocabulary appearing naturally — 促进, 导致, 逐渐, 强调,
 矛盾, 具体. No English. Minor grammar errors acceptable.
 
-DIAMOND (4800–6999 ELO):
+DIAMOND (7500–10999 ELO):
 At or above HSK 6, approaching HSK 7–9 territory. Near-native flow.
 Advanced vocabulary appearing naturally — 权衡, 折射, 内卷,
 潜移默化, 付诸实践, 语境, 集体反思. Appropriate 成语 usage when
 natural. Near-native register awareness. Zero English tolerated.
 
-ETHEREAL (7000–10999 ELO):
+ETHEREAL (11000–15999 ELO):
 Native level with genuinely rich vocabulary — a well-read, articulate
 native speaker with 10+ years exposure. HSK 7–9 and beyond:
 蕴含, 渗透, 诠释, 凸显, 衍生, 勾勒, 深邃, 宏观, 微妙, 架构 used
@@ -110,7 +108,7 @@ precisely and naturally. 成语 natural and accurate. Register
 flexibility between casual and formal. Cultural insider knowledge —
 understands subtext, irony, implicit meaning. No code-switching.
 
-MASTER (11000–17999 ELO):
+MASTER (16000–22999 ELO):
 Educated, articulate native with impressive diction — 文化人 standard.
 Loquacious and lexically rich: 斟酌, 意蘊, 娓娓道来, 字斟句酌,
 旁征博引, 言简意赅. 成语 and 四字格 woven in naturally. Can discuss
@@ -118,7 +116,7 @@ philosophy, culture, literature with precision and style.
 An inarticulate native scores C here — this is for well-spoken,
 well-read natives with strong diction.
 
-ETERNAL (18000 ELO):
+ETERNAL (23000+ ELO):
 Native scholar level. Classical allusions and archaic structures
 handled naturally and deployed with purpose. Diction is extraordinary
 — rare, precise, beautiful choices a standard native would admire.
@@ -143,17 +141,17 @@ Do NOT include any text outside the JSON block.`;
 const PLACEMENT_GRADE_PROMPT = `You are evaluating a Mandarin Chinese placement conversation to assign
 a starting rank and ELO on the HanYu platform.
 
-HARD CAP: The maximum rank you may award is Pro (1400 ELO).
+HARD CAP: The maximum rank you may award is Pro (2100 ELO).
 No matter how strong the performance, do NOT assign Iron or above.
 Users who clearly exceed Pro will unlock the advanced placement test
 to reach higher ranks. Your job here is only to place up to Pro.
 
 RANK LADDER FOR THIS TEST (Noob through Pro only):
 - Noob: 0 ELO
-- Beginner: 150 ELO
-- Intermediate: 400 ELO
-- Advanced: 800 ELO
-- Pro: 1400 ELO
+- Beginner: 250 ELO
+- Intermediate: 650 ELO
+- Advanced: 1250 ELO
+- Pro: 2100 ELO
 
 RUBRIC — assess the full conversation against these standards:
 
@@ -177,7 +175,7 @@ Coherent connected sentences on familiar topics. Makes sense
 throughout. No English switching. Some depth on familiar subjects.
 Around Chinese 2 curriculum level. HSK 3–4 passive range.
 
-PRO (1400 ELO — CEILING):
+PRO (2100 ELO — CEILING):
 2–3 coherent sentences per response. Functional vocabulary beyond
 basics. Can hold a decent conversation without English. Some
 vocabulary variety. Around Chinese 2–3 curriculum. HSK 4 range.
@@ -216,18 +214,18 @@ WHAT DOES LOWER RANK:
 
 CALIBRATION ANCHORS:
 - Single words, attempts at phrases, heavy English → Noob (0)
-- Simple sentences on daily life, some English mixing → Beginner (150)
-- Familiar topics without English, short paragraphs → Intermediate (400)
-- Coherent connected sentences, no English switching → Advanced (800)
+- Simple sentences on daily life, some English mixing → Beginner (250)
+- Familiar topics without English, short paragraphs → Intermediate (650)
+- Coherent connected sentences, no English switching → Advanced (1250)
 - Discusses modern stress with structure, stays in Chinese,
-  basic vocab beyond survival level → Pro (1400)
+  basic vocab beyond survival level → Pro (2100)
 
 SCORING RULES:
 - Be generous at the bottom (Noob–Intermediate): reward effort.
 - Anyone who can hold a real conversation without English switching
   and shows some vocabulary range beyond HSK 1–3 → Pro.
 - When in doubt between Advanced and Pro, award Pro.
-- Assign 1400 ELO for Pro — users earn up from there.
+- Assign 2100 ELO for Pro — users earn up from there.
 
 ${JSON_OUTPUT_SCHEMA}`;
 
@@ -398,13 +396,13 @@ export async function POST(req: NextRequest) {
 
   const gradeData = JSON.parse(jsonMatch[0]);
   const placedRank = normalizePlacementRank(gradeData.rank);
-  const promptElo = Math.max(0, Number(gradeData.elo) || 0);
-  const rawTargetElo = PLACEMENT_ELO_BY_RANK[placedRank] ?? promptElo;
-  const MAX_REGULAR_ELO = 1400;
+  const rawTargetElo = PLACEMENT_ELO_BY_RANK[placedRank] ?? 0;
   const targetElo = isAdvanced ? rawTargetElo : Math.min(rawTargetElo, MAX_REGULAR_ELO);
   const eloAfter = isAdvanced ? Math.max(currentElo, targetElo) : targetElo;
   const eloChange = Math.max(0, eloAfter - currentElo);
-  const overallGrade = PLACEMENT_GRADE_BY_RANK[eloToRank(eloAfter)] ?? "F";
+  const finalRank = eloToRank(eloAfter);
+  const gradeMap = isAdvanced ? ADVANCED_PLACEMENT_GRADE_BY_RANK : REGULAR_PLACEMENT_GRADE_BY_RANK;
+  const overallGrade = gradeMap[finalRank] ?? "F";
   const overallScore = PLACEMENT_SCORE_BY_GRADE[overallGrade];
 
   await supabase.from("user_language_elo").upsert(
@@ -440,7 +438,7 @@ export async function POST(req: NextRequest) {
     eloAfter,
     eloChange,
     placementMode: isAdvanced ? "advanced" : "standard",
-    rankName: eloToRank(eloAfter),
+    rankName: finalRank,
     globalEloSum,
     bestRankName: bestRank?.rankName ?? eloToRank(eloAfter),
   });
