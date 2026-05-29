@@ -143,7 +143,46 @@ Do NOT include any text outside the JSON block.`;
 const PLACEMENT_GRADE_PROMPT = `You are evaluating a Mandarin Chinese placement conversation to assign
 a starting rank and ELO on the HanYu platform.
 
-${SHARED_RANK_RUBRIC}
+HARD CAP: The maximum rank you may award is Pro (1400 ELO).
+No matter how strong the performance, do NOT assign Iron or above.
+Users who clearly exceed Pro will unlock the advanced placement test
+to reach higher ranks. Your job here is only to place up to Pro.
+
+RANK LADDER FOR THIS TEST (Noob through Pro only):
+- Noob: 0 ELO
+- Beginner: 150 ELO
+- Intermediate: 400 ELO
+- Advanced: 800 ELO
+- Pro: 1400 ELO
+
+RUBRIC — assess the full conversation against these standards:
+
+NOOB (0–149 ELO):
+Any genuine Chinese attempt qualifies. Single words, heavy English
+mixing, broken sentences — all count. Tone/grammar errors irrelevant.
+Fails only if response was entirely English with zero Chinese effort.
+
+BEGINNER (150–399 ELO):
+Basic phrases and simple sentences on everyday topics (name, food,
+daily routine). English mixing acceptable. Short answers fine.
+Vocabulary is HSK 1–2 range.
+
+INTERMEDIATE (400–799 ELO):
+Handles familiar everyday topics in Chinese without needing English.
+Short paragraphs, basic opinions, simple descriptions. Grammar
+imperfect. HSK 2–3 vocabulary range.
+
+ADVANCED (800–1399 ELO):
+Coherent connected sentences on familiar topics. Makes sense
+throughout. No English switching. Some depth on familiar subjects.
+Around Chinese 2 curriculum level. HSK 3–4 passive range.
+
+PRO (1400 ELO — CEILING):
+2–3 coherent sentences per response. Functional vocabulary beyond
+basics. Can hold a decent conversation without English. Some
+vocabulary variety. Around Chinese 2–3 curriculum. HSK 4 range.
+Award Pro whenever the user clearly exceeds Advanced — do not
+try to differentiate above Pro here.
 
 RANK ASSIGNMENT RULE — GRADE THE CEILING, NOT THE FLOOR:
 Always assign rank based on the HIGHEST level demonstrated, not
@@ -176,27 +215,19 @@ WHAT DOES LOWER RANK:
 - Vocabulary stayed entirely at HSK 1–3 throughout → drop
 
 CALIBRATION ANCHORS:
-- Discusses modern stress with 第一/第二/第三 structure, stays in
-  Chinese, basic vocab → Pro (1400)
-- Discusses tech and relationships with 反而/即使/另外, balanced
-  argument, vocab includes 依賴/表面/陪伴 → Iron (2200)
-- Distinguishes 面子 vs 尊嚴 conceptually with conflict scenario,
-  uses 外在/內在 framework, culturally grounded → Gold (3300)
-- Handles 内卷 as sociological phenomenon, uses 折射/結構性/
-  集體焦慮, connects individual to systemic → Diamond (4800)
+- Single words, attempts at phrases, heavy English → Noob (0)
+- Simple sentences on daily life, some English mixing → Beginner (150)
+- Familiar topics without English, short paragraphs → Intermediate (400)
+- Coherent connected sentences, no English switching → Advanced (800)
+- Discusses modern stress with structure, stays in Chinese,
+  basic vocab beyond survival level → Pro (1400)
 
 SCORING RULES:
 - Be generous at the bottom (Noob–Intermediate): reward effort.
-- Be strict at the top (Ethereal–Eternal): vocabulary depth and
-  diction are the primary differentiators, not just fluency.
-- A very strong learner should reach Diamond at most.
-  Ethereal requires genuinely native-level vocab richness.
-- Master and Eternal require diction that would impress an educated
-  native Chinese speaker — not just fluency.
-- Do NOT award Eternal or Master unless you saw actual evidence of
-  scholarly or native-educated diction in the conversation.
-- Assign the ELO at the BOTTOM of the range for that rank
-  (e.g. Diamond = 4800, not 6999) — users earn up from placement.
+- Anyone who can hold a real conversation without English switching
+  and shows some vocabulary range beyond HSK 1–3 → Pro.
+- When in doubt between Advanced and Pro, award Pro.
+- Assign 1400 ELO for Pro — users earn up from there.
 
 ${JSON_OUTPUT_SCHEMA}`;
 
@@ -368,7 +399,9 @@ export async function POST(req: NextRequest) {
   const gradeData = JSON.parse(jsonMatch[0]);
   const placedRank = normalizePlacementRank(gradeData.rank);
   const promptElo = Math.max(0, Number(gradeData.elo) || 0);
-  const targetElo = PLACEMENT_ELO_BY_RANK[placedRank] ?? promptElo;
+  const rawTargetElo = PLACEMENT_ELO_BY_RANK[placedRank] ?? promptElo;
+  const MAX_REGULAR_ELO = 1400;
+  const targetElo = isAdvanced ? rawTargetElo : Math.min(rawTargetElo, MAX_REGULAR_ELO);
   const eloAfter = isAdvanced ? Math.max(currentElo, targetElo) : targetElo;
   const eloChange = Math.max(0, eloAfter - currentElo);
   const overallGrade = PLACEMENT_GRADE_BY_RANK[eloToRank(eloAfter)] ?? "F";
