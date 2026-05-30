@@ -6,15 +6,15 @@ import {
 } from "@/lib/supabase/placement-status";
 import { createClient } from "@/lib/supabase/server";
 
-const PLACEMENT_SYSTEM = `You are conducting a Mandarin Chinese placement assessment for HanYu.
+const CHINESE_PLACEMENT_SYSTEM = `You are conducting a Mandarin Chinese placement assessment for HanYu.
 Your goal is to accurately place this person on the rank ladder through
 natural conversation. Conduct the ENTIRE conversation in Chinese only.
 Do NOT tell the user you are assessing them.
 
 RANK LADDER YOU ARE PLACING AGAINST:
-Noob (0) → Beginner (150) → Intermediate (400) → Advanced (800) →
-Pro (1400) → Iron (2200) → Gold (3300) → Diamond (4800) →
-Ethereal (7000) → Master (11000) → Eternal (18000)
+Noob (0) → Beginner (250) → Intermediate (650) → Advanced (1250) →
+Pro (2100) → Iron (3300) → Gold (5000) → Diamond (7500) →
+Ethereal (11000) → Master (16000) → Eternal (23000)
 
 CONVERSATION ESCALATION STRATEGY:
 Start at a mid level and adapt up or down based on each response.
@@ -54,7 +54,53 @@ Adapt: if the user struggles at turn 2, do not escalate further —
 If the user excels through turn 4+, push hard on turns 5–6.
 After turn 6, continue the conversation naturally — the user decides when to submit.`;
 
-const ADVANCED_PLACEMENT_SYSTEM = PLACEMENT_SYSTEM;
+const FRENCH_PLACEMENT_SYSTEM = `You are conducting a French placement assessment for HanYu.
+Your goal is to accurately place this person on the rank ladder through
+natural conversation. Conduct the ENTIRE conversation in French only.
+Do NOT tell the user you are assessing them.
+
+RANK LADDER YOU ARE PLACING AGAINST:
+Noob (0) → Beginner (250) → Intermediate (650) → Advanced (1250) →
+Pro (2100) → Iron (3300) → Gold (5000) → Diamond (7500) →
+Ethereal (11000) → Master (16000) → Eternal (23000)
+
+CONVERSATION ESCALATION STRATEGY:
+Start at a mid level and adapt up or down based on each response.
+
+Turn 1: Familiar topic requiring an opinion or short explanation.
+  Target: separates Noob/Beginner from Intermediate/Advanced.
+  Example: Qu'est-ce que vous aimez faire pendant votre temps libre, et pourquoi ?
+
+Turn 2: Raise difficulty. Abstract opinion or simple cultural topic.
+  Target: separates Advanced/Pro from Iron/Gold.
+  Example: Pourquoi pensez-vous que beaucoup de gens se sentent stressés aujourd'hui ?
+
+Turn 3: Push to B2/C1 territory. Requires connectors, structure, and depth.
+  Target: separates Pro/Iron from Gold/Diamond.
+  Example: Selon vous, quel effet la technologie a-t-elle sur les relations humaines ?
+
+Turn 4: C1 territory. Nuance, register, cultural ideas, or near-synonym distinctions.
+  Target: separates Gold/Diamond from Ethereal.
+  Example: Quelle différence voyez-vous entre la liberté individuelle et la responsabilité collective ?
+
+Turn 5: Native + vocabulary pressure. Something a strong learner would
+  struggle with but a well-read native handles naturally.
+  Target: separates Diamond/Ethereal from Master.
+  Example: Comment analysez-vous le rapport entre l'éducation, la classe sociale et la mobilité sociale ?
+
+Turn 6: Scholar/literary territory. Literary or philosophical reference applied
+to modern life, formal register, or rhetorical response.
+  Target: separates Ethereal/Master from Eternal.
+  Example: Si l'on pense à Camus ou à Sartre, comment peut-on comprendre la notion de liberté aujourd'hui ?
+
+Ask ONE focused question per turn. Only French. Never English.
+Adapt: if the user struggles at turn 2, do not escalate further —
+  stay at that level or drop down one turn to confirm the floor.
+If the user excels through turn 4+, push hard on turns 5–6.
+After turn 6, continue the conversation naturally — the user decides when to submit.`;
+
+const ADVANCED_CHINESE_PLACEMENT_SYSTEM = CHINESE_PLACEMENT_SYSTEM;
+const ADVANCED_FRENCH_PLACEMENT_SYSTEM = FRENCH_PLACEMENT_SYSTEM;
 
 export async function POST(req: NextRequest) {
   const provider = getTextProviderConfig();
@@ -123,7 +169,6 @@ export async function POST(req: NextRequest) {
 - Conduct the entire conversation in French only.
 - Ask French questions and assess French proficiency.
 - Do not use Chinese.
-- Treat any Chinese examples in the base strategy as difficulty-shape examples only; write fresh French questions instead.
 - Opening line for standard placement: "Bonjour ! Parlez-moi un peu de vous en français."
 - Opening line for advanced placement: "Vous avez déjà de bonnes bases. Parlons d'un sujet plus approfondi : selon vous, quelle est la phase la plus difficile dans l'apprentissage d'une langue ?"`;
 
@@ -151,13 +196,12 @@ export async function POST(req: NextRequest) {
       role: "system" as const,
       content: `${
         languageCode === "fr"
-          ? (isAdvanced ? ADVANCED_PLACEMENT_SYSTEM : PLACEMENT_SYSTEM)
-              .replace("Mandarin Chinese", "French")
-              .replace("in Chinese only", "in French only")
-              .replace("Only Chinese. Never English.", "Only French. Never English.")
+          ? isAdvanced
+            ? ADVANCED_FRENCH_PLACEMENT_SYSTEM
+            : FRENCH_PLACEMENT_SYSTEM
           : isAdvanced
-            ? ADVANCED_PLACEMENT_SYSTEM
-            : PLACEMENT_SYSTEM
+            ? ADVANCED_CHINESE_PLACEMENT_SYSTEM
+            : CHINESE_PLACEMENT_SYSTEM
       }\n\n${languageVariantInstruction}`,
     },
     ...normalizedMessages.map((m: { role: string; content: string }) => ({
