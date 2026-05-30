@@ -188,6 +188,59 @@ If strengths include ANY of:
 If the reference is to a canonical French author or philosopher applied
 conceptually, the rank CANNOT be below Ethereal (11000).`;
 
+const SPANISH_CALIBRATION_ANCHORS = `SPANISH CALIBRATION ANCHORS:
+- Iron: Gives opinions on everyday topics (el estrés, la tecnología) in connected
+  sentences with B1–B2 vocabulary. Basic connectors (pero, porque, entonces, además).
+  Grammar imperfect but communicates. No sophisticated register awareness.
+- Gold: Handles abstract topics with B2-level connectors (no solo...sino también,
+  aunque, sin embargo, por lo tanto, a pesar de). Expresses structured opinions
+  with supporting reasons. Vocabulary range beyond survival Spanish. Minor grammar errors fine.
+  Example competency: explains why technology affects human relationships with
+  supporting arguments in fluent Spanish.
+- Diamond: Engages with culturally loaded concepts (el machismo, la identidad
+  latinoamericana/española, el realismo mágico, la Generación del 98, la Conquista)
+  at a conceptual level with C1 vocabulary and register awareness. Can distinguish
+  near-synonyms and navigate formal/informal registers accurately.
+  Example competency: articulates the tension between indigenous identity and
+  colonial legacy in Latin America with precision.
+- Ethereal: Applies canonical Spanish literary or philosophical authors
+  (Cervantes, Lope de Vega, Quevedo, Góngora, Sor Juana, Unamuno, Ortega y Gasset,
+  García Lorca, Pablo Neruda, Jorge Luis Borges, Gabriel García Márquez,
+  Octavio Paz, Isabel Allende, etc.) conceptually to modern questions — not just
+  naming them but using their ideas to reason. Accurate knowledge of the work is
+  required. Native richness: C1–C2 vocabulary, nuanced register, rhetorical awareness.
+  Example competency: uses García Márquez's solitude as a lens to analyze modern
+  isolation with stylistic grace.
+- Master: Rhetorical elegance. Well-read native diction with impressive lexical
+  range across literary, historical, and philosophical domains. Word choices are
+  deliberate and precise — a cultivated Spanish speaker. Subjunctive, conditional,
+  and complex subordination used correctly and naturally throughout.
+- Eternal: Scholarly register. Archaic or Golden Age constructions deployed with
+  rhetorical intent. Precise, beautiful Spanish a standard educated native would
+  admire. Academic register fully available. True scholar of the language — could
+  teach Cervantes or contemporary Latin American literature.
+
+CRITICAL RULE — ETHEREAL FLOOR (Spanish):
+If the user accurately applies a canonical Spanish-language literary or philosophical
+author (Cervantes, Borges, García Márquez, Neruda, Paz, Unamuno, Lorca, Sor Juana,
+Quevedo, Ortega y Gasset, etc.) conceptually — not just naming but using their ideas
+to reason about the question — the minimum placement is Ethereal (11000).
+No exceptions. Accurate application of canonical works at this level is the hallmark
+of a literary education in Spanish.
+
+CONTRADICTION CHECK — SPANISH (mandatory before outputting JSON):
+If strengths include ANY of:
+- "literary or philosophical references"
+- "application of canonical Spanish works"
+- "academic register"
+- "cultural insider knowledge" (machismo, Reconquista, magical realism, etc.)
+- "rhetorical awareness"
+- "conceptual depth"
+- "sophisticated register"
+...the rank CANNOT be below Diamond (7500). These are Diamond-minimum indicators.
+If the reference is to a canonical Spanish-language author applied conceptually,
+the rank CANNOT be below Ethereal (11000).`;
+
 const JSON_OUTPUT_SCHEMA = `Output ONLY this JSON, no prose before or after:
 {
   "rank": "one of the 11 rank names exactly as spelled above",
@@ -207,12 +260,14 @@ already at Pro level or above and believes they belong higher.
 ${SHARED_RANK_RUBRIC}
 
 LANGUAGE DETECTION:
-Detect whether this is a Chinese or French conversation from the conversation
+Detect whether this is a Chinese, French, or Spanish conversation from the conversation
 content. Apply the corresponding calibration anchors below.
 
 ${CHINESE_CALIBRATION_ANCHORS}
 
 ${FRENCH_CALIBRATION_ANCHORS}
+
+${SPANISH_CALIBRATION_ANCHORS}
 
 PHILOSOPHY: Strict but honest. Grade accurately — do not inflate,
 but do not punish unfairly either. A strong performance at Gold
@@ -234,7 +289,7 @@ WHAT DOES LOWER RANK:
 - Vocabulary consistently stays below the expected range for
   the rank claimed → drop one rank
 - Could not handle the harder turns (turns 4–6) → drop one rank
-- Any English switching (for Chinese) / any non-French switching (for French)
+- Any English switching (for Chinese) / any non-target-language switching (for French or Spanish)
   → drop one rank per instance
 - Arguments are surface-level throughout with no depth → drop one rank
 - 成語 forced or used incorrectly when attempted → note it (Chinese only)
@@ -252,16 +307,16 @@ HSK VOCABULARY EXPECTATIONS BY RANK (strictly enforced, Chinese only):
 - Eternal: Scholarly register. Classical references deployed naturally.
   Rhetorical awareness. If not demonstrably scholarly, place at Master.
 
-CEFR VOCABULARY EXPECTATIONS BY RANK (strictly enforced, French only):
+CEFR VOCABULARY EXPECTATIONS BY RANK (strictly enforced, French and Spanish):
 - Iron/Gold: B1–B2 range must appear naturally. If vocabulary stays
   at A2–B1 throughout, cannot place above Pro.
 - Diamond: C1 vocabulary must appear. Cultural competence demonstrated
-  (laïcité, Mai 68 etc.). If absent throughout, cannot place at Diamond.
+  (laïcité, Mai 68, machismo, magical realism, etc.). If absent throughout, cannot place at Diamond.
 - Ethereal: C1–C2 with native rhetorical richness. If vocabulary is
   strong but clearly learner-range, place at Diamond maximum.
 - Master: Cultivated native diction. Rhetorical precision. Lexically
   diverse across domains. If native but not loquacious, place at Ethereal.
-- Eternal: Scholarly French. Archaic or literary structures with
+- Eternal: Scholarly French or Spanish. Archaic or literary structures with
   rhetorical intent. If not demonstrably scholarly, place at Master.
 
 FAIR GRADING RULE:
@@ -312,7 +367,7 @@ export async function POST(req: NextRequest) {
   const { messages, languageCode } = await req.json();
 
   const validLanguageCode =
-    languageCode === "zh-cn" || languageCode === "zh-tw" || languageCode === "fr";
+    languageCode === "zh-cn" || languageCode === "zh-tw" || languageCode === "fr" || languageCode === "es";
 
   if (!validLanguageCode) {
     return Response.json({ error: "languageCode required" }, { status: 400 });
@@ -345,6 +400,8 @@ export async function POST(req: NextRequest) {
   const languageVariantNote =
     languageCode === "fr"
       ? `LANGUAGE NOTE: This is a French placement conversation. Use the FRENCH CALIBRATION ANCHORS above. Do not assess Chinese characters, tones, HSK levels, or Chinese-specific markers. Assess French grammar, vocabulary range, fluency, register awareness, idiomatic usage, and cultural competence (laïcité, mai 68, canonical French authors, etc.).`
+      : languageCode === "es"
+        ? `LANGUAGE NOTE: This is a Spanish placement conversation. Use the SPANISH CALIBRATION ANCHORS above. Do not assess Chinese characters, tones, HSK levels, or Chinese-specific markers. Assess Spanish grammar, vocabulary range, fluency, register awareness, idiomatic usage, and cultural competence (machismo, identidad latinoamericana, Conquista, magical realism, canonical Spanish authors, etc.).`
       : `LANGUAGE NOTE: This is a Mandarin Chinese placement conversation (${languageCode === "zh-tw" ? "Traditional" : "Simplified"} Chinese). Use the CHINESE CALIBRATION ANCHORS above. Assess HSK vocabulary range, 成语 usage, register awareness, and canonical classical Chinese literary knowledge.`;
 
   const prompt = `${ADVANCED_PLACEMENT_GRADE_PROMPT}\n\n${languageVariantNote}\n\nConversation:\n${conversation}`;

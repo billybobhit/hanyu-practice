@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
   const normalizedMessages = Array.isArray(messages) ? messages : [];
   const isAdvanced = mode === "advanced";
   const validLanguageCode =
-    languageCode === "zh-cn" || languageCode === "zh-tw" || languageCode === "fr";
+    languageCode === "zh-cn" || languageCode === "zh-tw" || languageCode === "fr" || languageCode === "es";
 
   if (!validLanguageCode) {
     return Response.json({ error: "languageCode required" }, { status: 400 });
@@ -165,12 +165,20 @@ export async function POST(req: NextRequest) {
 - Use Simplified characters only.
 - Opening line for standard placement: "你好！请用中文简单介绍一下你自己。"
 - Opening line for advanced placement: "你已经有不错的基础。我们来聊一个更深入的话题：你觉得一个人学习语言最难跨过的阶段是什么？"`
-        : `Language variant: French.
+        : languageCode === "fr"
+          ? `Language variant: French.
 - Conduct the entire conversation in French only.
 - Ask French questions and assess French proficiency.
 - Do not use Chinese.
 - Opening line for standard placement: "Bonjour ! Parlez-moi un peu de vous en français."
-- Opening line for advanced placement: "Vous avez déjà de bonnes bases. Parlons d'un sujet plus approfondi : selon vous, quelle est la phase la plus difficile dans l'apprentissage d'une langue ?"`;
+- Opening line for advanced placement: "Vous avez déjà de bonnes bases. Parlons d'un sujet plus approfondi : selon vous, quelle est la phase la plus difficile dans l'apprentissage d'une langue ?"`
+          : `Language variant: Spanish.
+- Conduct the entire conversation in Spanish only.
+- Ask Spanish questions and assess Spanish proficiency.
+- Do not use Chinese.
+- Treat any Chinese examples in the base strategy as difficulty-shape examples only; write fresh Spanish questions instead.
+- Opening line for standard placement: "¡Hola! Cuéntame un poco sobre ti en español."
+- Opening line for advanced placement: "Ya tienes una buena base. Hablemos de algo más profundo: ¿cuál crees que es la etapa más difícil en el aprendizaje de un idioma?"`;
 
   if (normalizedMessages.length === 0) {
     const openingLine =
@@ -182,9 +190,13 @@ export async function POST(req: NextRequest) {
           ? isAdvanced
             ? "你已经有不错的基础。我们来聊一个更深入的话题：你觉得一个人学习语言最难跨过的阶段是什么？"
             : "你好！请用中文简单介绍一下你自己。"
-          : isAdvanced
-            ? "Vous avez déjà de bonnes bases. Parlons d'un sujet plus approfondi : selon vous, quelle est la phase la plus difficile dans l'apprentissage d'une langue ?"
-            : "Bonjour ! Parlez-moi un peu de vous en français.";
+          : languageCode === "fr"
+            ? isAdvanced
+              ? "Vous avez déjà de bonnes bases. Parlons d'un sujet plus approfondi : selon vous, quelle est la phase la plus difficile dans l'apprentissage d'une langue ?"
+              : "Bonjour ! Parlez-moi un peu de vous en français."
+            : isAdvanced
+              ? "Ya tienes una buena base. Hablemos de algo más profundo: ¿cuál crees que es la etapa más difícil en el aprendizaje de un idioma?"
+              : "¡Hola! Cuéntame un poco sobre ti en español.";
 
     return new Response(openingLine, {
       headers: { "Content-Type": "text/plain; charset=utf-8" },
@@ -199,6 +211,15 @@ export async function POST(req: NextRequest) {
           ? isAdvanced
             ? ADVANCED_FRENCH_PLACEMENT_SYSTEM
             : FRENCH_PLACEMENT_SYSTEM
+          : languageCode === "es"
+            ? (isAdvanced
+                ? ADVANCED_FRENCH_PLACEMENT_SYSTEM
+                : FRENCH_PLACEMENT_SYSTEM
+              )
+                .replace(/French/g, "Spanish")
+                .replace(/Mandarin Chinese/g, "Spanish")
+                .replace(/in Chinese only/g, "in Spanish only")
+                .replace(/Only Chinese\. Never English\./g, "Only Spanish. Never English.")
           : isAdvanced
             ? ADVANCED_CHINESE_PLACEMENT_SYSTEM
             : CHINESE_PLACEMENT_SYSTEM

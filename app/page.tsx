@@ -17,6 +17,12 @@ const languagePods = [
       { title: "French", subtitle: "Français", path: "/fr" },
     ],
   },
+  {
+    label: "🇪🇸 Spanish",
+    variants: [
+      { title: "Spanish", subtitle: "Español", path: "/es" },
+    ],
+  },
 ];
 
 export default function HomePage() {

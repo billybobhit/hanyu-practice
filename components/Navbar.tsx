@@ -34,7 +34,7 @@ export default function Navbar() {
           >
             Languages
           </button>
-          {["Japanese", "Korean", "Spanish"].map((language) => (
+          {["Japanese", "Korean"].map((language) => (
             <span
               key={language}
               title="Coming Soon"
@@ -102,6 +102,18 @@ export default function Navbar() {
                 >
                   <div className="text-sm font-medium text-cream-100">French</div>
                   <div className="mt-1 text-xs text-cream-500">Français</div>
+                </button>
+              </div>
+              <div className="rounded-xl border border-ink-500 bg-ink-800 p-4">
+                <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-cream-500">
+                  🇪🇸 Spanish
+                </div>
+                <button
+                  onClick={() => router.push("/es")}
+                  className="w-full cursor-pointer rounded-lg border border-ink-600 bg-ink-700 px-4 py-3 text-center transition-all hover:border-vermillion-600 hover:bg-ink-600"
+                >
+                  <div className="text-sm font-medium text-cream-100">Spanish</div>
+                  <div className="mt-1 text-xs text-cream-500">Español</div>
                 </button>
               </div>
             </div>

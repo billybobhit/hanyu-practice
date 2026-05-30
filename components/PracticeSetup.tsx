@@ -18,7 +18,7 @@ import {
 import type { Difficulty, Session } from "@/lib/types";
 
 interface PracticeSetupProps {
-  basePath: "/zh-cn" | "/zh-tw" | "/fr";
+  basePath: "/zh-cn" | "/zh-tw" | "/fr" | "/es";
   variantLabel: string;
   variantNative: string;
 }
@@ -61,7 +61,7 @@ export default function PracticeSetup({
 
     void supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session?.user) return;
-      const langCode = basePath.slice(1) as "zh-cn" | "zh-tw" | "fr";
+      const langCode = basePath.slice(1) as "zh-cn" | "zh-tw" | "fr" | "es";
       const status = await getPlacementStatus(supabase, session.user.id, langCode);
       setShowPlacement(canTakeStandardPlacement(status.elo));
       setShowAdvancedPlacement(canTakeAdvancedPlacement(status.elo));
@@ -153,8 +153,15 @@ export default function PracticeSetup({
                 medium: "French with English hints",
                 easy: "English explanations with French terms",
               };
+              const spanishDescriptions: Record<Difficulty, string> = {
+                hard: "Spanish-only tutor responses",
+                medium: "Spanish with English hints",
+                easy: "English explanations with Spanish terms",
+              };
               const description = basePath === "/fr"
                 ? frenchDescriptions[option.value]
+                : basePath === "/es"
+                  ? spanishDescriptions[option.value]
                 : option.description;
 
               return (

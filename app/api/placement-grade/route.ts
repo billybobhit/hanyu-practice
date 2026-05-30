@@ -490,7 +490,7 @@ export async function POST(req: NextRequest) {
   const isAdvanced = mode === "advanced";
 
   const validLanguageCode =
-    languageCode === "zh-cn" || languageCode === "zh-tw" || languageCode === "fr";
+    languageCode === "zh-cn" || languageCode === "zh-tw" || languageCode === "fr" || languageCode === "es";
 
   if (!validLanguageCode) {
     return Response.json({ error: "languageCode required" }, { status: 400 });
@@ -532,13 +532,20 @@ export async function POST(req: NextRequest) {
       ? isAdvanced
         ? FRENCH_ADVANCED_PLACEMENT_GRADE_PROMPT
         : FRENCH_PLACEMENT_GRADE_PROMPT
+      : languageCode === "es"
+        ? (isAdvanced
+            ? FRENCH_ADVANCED_PLACEMENT_GRADE_PROMPT
+            : FRENCH_PLACEMENT_GRADE_PROMPT
+          ).replace(/French/g, "Spanish")
       : isAdvanced
         ? CHINESE_ADVANCED_PLACEMENT_GRADE_PROMPT
         : CHINESE_PLACEMENT_GRADE_PROMPT;
 
   const languageGradingNote =
     languageCode === "fr"
-      ? `LANGUAGE NOTE: This is a French placement conversation. Use CEFR-style French standards. Do not assess Chinese characters, tones, pinyin, HSK levels, or Chinese-specific markers.`
+      ? `LANGUAGE NOTE: This is a French placement conversation. Apply the same rank ladder and ELO rubric to French proficiency. Do not assess Chinese characters, tones, pinyin, HSK levels, or Chinese-specific markers. Assess French grammar, vocabulary range, fluency, register awareness, idiomatic usage, and cultural competence.`
+      : languageCode === "es"
+        ? `LANGUAGE NOTE: This is a Spanish placement conversation. Apply the same rank ladder and ELO rubric to Spanish proficiency. Do not assess Chinese characters, tones, pinyin, HSK levels, or Chinese-specific markers. Assess Spanish grammar, vocabulary range, fluency, register awareness, idiomatic usage, and cultural competence.`
       : `LANGUAGE NOTE: This is a Mandarin Chinese placement conversation. Use HSK-informed Chinese standards for the requested Chinese variant.`;
 
   const prompt = `${placementPrompt}\n\n${languageGradingNote}\n\nConversation:\n${conversation}`;
