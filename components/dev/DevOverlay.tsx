@@ -5,13 +5,33 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { eloToRank } from "@/lib/elo";
 import { RANK_UPDATED_EVENT, type RankUpdatedDetail } from "@/lib/rank-events";
-import { DEV_MODE_KEY, DEV_MODE_EVENT } from "@/lib/dev";
+import { DEV_MODE_KEY, DEV_MODE_EVENT, isDev, setDevMode } from "@/lib/dev";
 import { getSessions } from "@/lib/storage";
 
 interface LanguageElo {
   language_code: string;
   elo: number;
   has_completed_placement: boolean;
+}
+
+async function currentUserCanUseDevOverlay() {
+  const supabase = createClient();
+  if (!supabase) return false;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return false;
+  if (isDev(user.email)) return true;
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("is_dev")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  return !!profile?.is_dev;
 }
 
 export default function DevOverlay() {
@@ -31,12 +51,37 @@ export default function DevOverlay() {
       : "—";
 
   useEffect(() => {
-    function syncVisible() {
-      setVisible(localStorage.getItem(DEV_MODE_KEY) === "true");
+    let cancelled = false;
+
+    async function syncVisible() {
+      const requested = localStorage.getItem(DEV_MODE_KEY) === "true";
+      if (!requested) {
+        setVisible(false);
+        return;
+      }
+
+      const allowed = await currentUserCanUseDevOverlay();
+      if (cancelled) return;
+
+      setVisible(allowed);
+      if (!allowed) setDevMode(false);
     }
-    syncVisible();
+
+    void syncVisible();
     window.addEventListener(DEV_MODE_EVENT, syncVisible);
-    return () => window.removeEventListener(DEV_MODE_EVENT, syncVisible);
+
+    const supabase = createClient();
+    const {
+      data: { subscription },
+    } = supabase?.auth.onAuthStateChange(() => {
+      void syncVisible();
+    }) ?? { data: { subscription: null } };
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener(DEV_MODE_EVENT, syncVisible);
+      subscription?.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {

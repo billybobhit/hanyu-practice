@@ -119,6 +119,9 @@ export default function AuthButton() {
     setUser(null);
     setIsDevUser(false);
     setPersistedDevUser(false);
+    setDevMode(false);
+    setDevModeOn(false);
+    setDevModeManuallyOff(false);
     setStorageUserId("guest");
     setElo(getUserProgress().currentElo);
 
@@ -184,11 +187,19 @@ export default function AuthButton() {
           setElo(getUserProgress().currentElo);
           setIsDevUser(false);
           setPersistedDevUser(false);
+          setDevMode(false);
+          setDevModeOn(false);
+          setDevModeManuallyOff(false);
         }
       })
       .catch((error) => {
         console.log("[auth-button] initial-session-error", error);
         setUser(null);
+        setIsDevUser(false);
+        setPersistedDevUser(false);
+        setDevMode(false);
+        setDevModeOn(false);
+        setDevModeManuallyOff(false);
         setAuthResolved(true);
       });
 
@@ -216,6 +227,9 @@ export default function AuthButton() {
           setStorageUserId("guest");
           setIsDevUser(false);
           setPersistedDevUser(false);
+          setDevMode(false);
+          setDevModeOn(false);
+          setDevModeManuallyOff(false);
           setElo(getUserProgress().currentElo);
         }
       }
