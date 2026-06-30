@@ -48,7 +48,11 @@ export default function DevOverlay() {
     ? "zh-tw"
     : pathname.startsWith("/zh-cn")
       ? "zh-cn"
-      : "—";
+      : pathname.startsWith("/fr")
+        ? "fr"
+        : pathname.startsWith("/es")
+          ? "es"
+          : "—";
 
   useEffect(() => {
     let cancelled = false;

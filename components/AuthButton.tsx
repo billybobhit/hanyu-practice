@@ -59,11 +59,11 @@ function clearSupabaseAuthStorage() {
 
 export default function AuthButton() {
   const router = useRouter();
+  const [supabase] = useState(() => createClient());
   const [user, setUser] = useState<User | null>(null);
-  const [authResolved, setAuthResolved] = useState(false);
+  const [authResolved, setAuthResolved] = useState(() => !supabase);
   const [showLogin, setShowLogin] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [supabase] = useState(() => createClient());
   const [elo, setElo] = useState(() =>
     typeof window === "undefined" ? 0 : getUserProgress().currentElo
   );
@@ -139,7 +139,6 @@ export default function AuthButton() {
 
   useEffect(() => {
     if (!supabase) {
-      setAuthResolved(true);
       return;
     }
 
