@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import ChatBubble, { TypingIndicator } from "@/components/ChatBubble";
 import VoiceButton from "@/components/VoiceButton";
+import { preloadGradeRevealImages } from "@/components/GradeReveal";
 import {
   getCurrentSessionId,
   getSession,
@@ -52,6 +53,10 @@ export default function PracticePage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  useEffect(() => {
+    preloadGradeRevealImages("fr");
+  }, []);
 
   function parseGrade(text: string): string | null {
     for (const g of ["A", "B", "C", "D", "F"]) {

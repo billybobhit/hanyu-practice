@@ -243,6 +243,9 @@ const GRADE_DECKS: Record<RevealLanguage, Record<GradeKey, GradeRevealEntry>> = 
   es: SPANISH_GRADE_DATA,
 };
 
+const PRELOAD_ORDER: GradeKey[] = ["F", "D", "C", "B", "A"];
+const preloadedRevealDecks = new Set<RevealLanguage>();
+
 const FLAVOR: Record<RevealLanguage, Record<GradeKey, { zh: string; en: string }>> = {
   zh: {
   A: { zh: "天命之人！你的智慧如齊天大聖。", en: "Chosen by Heaven! Your wisdom rivals the Great Sage." },
@@ -277,6 +280,21 @@ function normalizeLanguage(languageCode?: string): RevealLanguage {
   if (languageCode === "fr") return "fr";
   if (languageCode === "es") return "es";
   return "zh";
+}
+
+export function preloadGradeRevealImages(languageCode?: string) {
+  if (typeof window === "undefined") return;
+
+  const language = normalizeLanguage(languageCode);
+  if (preloadedRevealDecks.has(language)) return;
+  preloadedRevealDecks.add(language);
+
+  const deck = GRADE_DECKS[language];
+  PRELOAD_ORDER.forEach((grade) => {
+    const img = new window.Image();
+    img.decoding = "async";
+    img.src = deck[grade].imageUrl;
+  });
 }
 
 // ── Particles ─────────────────────────────────────────────────────────────────
@@ -519,9 +537,9 @@ export default function GradeReveal({ grade, gradeData, languageCode, onComplete
 
   // Warm the other grade images in the background for later sessions.
   useEffect(() => {
-    const grades = ["A", "B", "C", "D", "F"] as const;
-    const imgs = grades.map(g => {
+    const imgs = PRELOAD_ORDER.map(g => {
       const img = new window.Image();
+      img.decoding = "async";
       img.src = activeDeck[g].imageUrl;
       return img;
     });

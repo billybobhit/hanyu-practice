@@ -13,6 +13,7 @@ import { saveSession, generateSessionId, setCurrentSessionId } from "@/lib/stora
 import { getRankForElo } from "@/lib/ranks";
 import PlacementResult from "@/components/PlacementResult";
 import VoiceButton from "@/components/VoiceButton";
+import { preloadGradeRevealImages } from "@/components/GradeReveal";
 import type { Message, RankEvent, Session } from "@/lib/types";
 
 interface PlacementGradeResult {
@@ -37,6 +38,10 @@ export default function FrPlacementPage() {
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
   const startedRef = useRef(false);
   const streamInFlightRef = useRef(false);
+
+  useEffect(() => {
+    preloadGradeRevealImages("fr");
+  }, []);
 
   const userTurns = messages.filter((m) => m.role === "user").length;
   const requiredTurns = isAdvancedPlacement ? 6 : 4;
