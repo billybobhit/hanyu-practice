@@ -6,11 +6,25 @@ import type { Grade } from "@/lib/types";
 
 type Phase = "blackout" | "flash" | "grade" | "char" | "split";
 type ImgStatus = "loading" | "loaded" | "error";
+type GradeKey = "A" | "B" | "C" | "D" | "F";
+type RevealLanguage = "zh" | "fr" | "es";
+
+interface GradeRevealEntry {
+  imageUrl: string;
+  fallbackChar: string;
+  chinese: string;
+  english: string;
+  color: string;
+  glow: string;
+  rayColor: string;
+  bg: string;
+  imgClass: string;
+}
 
 const makeUrl = (prompt: string, seed: number) =>
   `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=768&nologo=true&seed=${seed}`;
 
-const GRADE_DATA = {
+const CHINESE_GRADE_DATA: Record<GradeKey, GradeRevealEntry> = {
   A: {
     imageUrl: makeUrl(
       "ancient chinese monkey king deity warrior, golden crown and battle armor, wielding golden ruyi staff, fierce expression, glowing golden divine aura, dark dramatic fantasy background, cinematic portrait, hyperrealistic 8k digital art, epic",
@@ -75,15 +89,195 @@ const GRADE_DATA = {
     bg: "radial-gradient(ellipse at center, rgba(80,0,0,0.5) 0%, #000 70%)",
     imgClass: "img-glow-f",
   },
-} as const;
+};
 
-const FLAVOR: Record<string, { zh: string; en: string }> = {
+const FRENCH_GRADE_DATA: Record<GradeKey, GradeRevealEntry> = {
+  A: {
+    imageUrl: makeUrl(
+      "melusine french medieval serpentine fairy queen, elegant woman with shimmering dragon serpent tail, gothic chateau ruins, moonlit mist, luminous teal and gold aura, dark dramatic fantasy background, cinematic full body portrait, hyperrealistic 8k digital art, epic mythic concept art, same composition as dark fantasy rank card",
+      9101
+    ),
+    fallbackChar: "M",
+    chinese: "Mélusine",
+    english: "Mythic Serpent-Fairy",
+    color: "#67e8f9",
+    glow: "rgba(103,232,249,0.68)",
+    rayColor: "rgba(103,232,249,0.16)",
+    bg: "radial-gradient(ellipse at center, rgba(0,70,80,0.42) 0%, #000 70%)",
+    imgClass: "img-glow-a",
+  },
+  B: {
+    imageUrl: makeUrl(
+      "napoleonic french emperor general inspired commander, bicorne hat, dark blue military coat with gold epaulettes, stern commanding expression, battlefield smoke, imperial red velvet shadow, cinematic full body portrait, dark fantasy hyperrealistic digital painting 8k, dramatic gold rim light, not a photo",
+      9102
+    ),
+    fallbackChar: "N",
+    chinese: "Napoléon",
+    english: "The Emperor",
+    color: "#94a3b8",
+    glow: "rgba(148,163,184,0.7)",
+    rayColor: "rgba(148,163,184,0.14)",
+    bg: "radial-gradient(ellipse at center, rgba(20,35,90,0.42) 0%, #000 70%)",
+    imgClass: "img-glow-b",
+  },
+  C: {
+    imageUrl: makeUrl(
+      "french poilu infantry soldier, world war one horizon blue uniform, adrian helmet, rifle at rest, mud and trench smoke, stoic expression, cinematic full body portrait, moody dark atmosphere, hyperrealistic 8k digital art, epic soldier rank card, painterly dramatic lighting",
+      9103
+    ),
+    fallbackChar: "P",
+    chinese: "Poilu",
+    english: "French Infantryman",
+    color: "#9ca3af",
+    glow: "rgba(156,163,175,0.6)",
+    rayColor: "rgba(156,163,175,0.1)",
+    bg: "radial-gradient(ellipse at center, rgba(45,55,70,0.45) 0%, #000 70%)",
+    imgClass: "img-glow-c",
+  },
+  D: {
+    imageUrl: makeUrl(
+      "medieval french peasant farmer, rough linen tunic, wooden yoke, muddy vineyard field, tired determined expression, dark overcast sky, cinematic full body portrait, muted earth tones, hyperrealistic 8k digital art, somber dark fantasy rank card",
+      9104
+    ),
+    fallbackChar: "P",
+    chinese: "Paysan",
+    english: "Peasant",
+    color: "#d97706",
+    glow: "rgba(217,119,6,0.65)",
+    rayColor: "rgba(217,119,6,0.12)",
+    bg: "radial-gradient(ellipse at center, rgba(60,35,0,0.45) 0%, #000 70%)",
+    imgClass: "img-glow-d",
+  },
+  F: {
+    imageUrl: makeUrl(
+      "french forcat convict prisoner in iron chains, ragged striped prison clothing, dark stone dungeon, red torchlight shadows, haunted desperate expression, cinematic full body portrait, hyperrealistic 8k digital painting, ominous dark fantasy rank card",
+      9105
+    ),
+    fallbackChar: "F",
+    chinese: "Forçat",
+    english: "Convict",
+    color: "#dc2626",
+    glow: "rgba(220,38,38,0.75)",
+    rayColor: "rgba(220,38,38,0.14)",
+    bg: "radial-gradient(ellipse at center, rgba(80,0,0,0.5) 0%, #000 70%)",
+    imgClass: "img-glow-f",
+  },
+};
+
+const SPANISH_GRADE_DATA: Record<GradeKey, GradeRevealEntry> = {
+  A: {
+    imageUrl: makeUrl(
+      "cuelebre asturian spanish mythic dragon serpent, ancient winged serpent guarding treasure in dark northern cave, bronze scales, emerald eyes, golden hoard glow, storm mist, cinematic full body creature portrait, dark fantasy hyperrealistic 8k digital art, epic mythic rank card",
+      9201
+    ),
+    fallbackChar: "C",
+    chinese: "Cuélebre",
+    english: "Mythic Dragon-Serpent",
+    color: "#EEC050",
+    glow: "rgba(238,192,80,0.7)",
+    rayColor: "rgba(238,192,80,0.18)",
+    bg: "radial-gradient(ellipse at center, rgba(80,50,0,0.48) 0%, #000 70%)",
+    imgClass: "img-glow-a",
+  },
+  B: {
+    imageUrl: makeUrl(
+      "el gran capitan spanish renaissance general inspired commander, polished plate armor, crimson sash, command baton, battlefield banners, stern noble expression, cinematic full body portrait, dark fantasy hyperrealistic digital painting 8k, dramatic red and gold lighting, not a photo",
+      9202
+    ),
+    fallbackChar: "G",
+    chinese: "El Gran Capitán",
+    english: "The Great Captain",
+    color: "#94a3b8",
+    glow: "rgba(148,163,184,0.7)",
+    rayColor: "rgba(148,163,184,0.14)",
+    bg: "radial-gradient(ellipse at center, rgba(70,10,20,0.45) 0%, #000 70%)",
+    imgClass: "img-glow-b",
+  },
+  C: {
+    imageUrl: makeUrl(
+      "spanish tercio soldier, morion helmet and breastplate, long pike, red sash, smoky renaissance battlefield, stoic expression, cinematic full body portrait, moody dark atmosphere, hyperrealistic 8k digital art, epic soldier rank card",
+      9203
+    ),
+    fallbackChar: "T",
+    chinese: "Soldado del Tercio",
+    english: "Tercio Soldier",
+    color: "#9ca3af",
+    glow: "rgba(156,163,175,0.6)",
+    rayColor: "rgba(156,163,175,0.1)",
+    bg: "radial-gradient(ellipse at center, rgba(50,50,60,0.45) 0%, #000 70%)",
+    imgClass: "img-glow-c",
+  },
+  D: {
+    imageUrl: makeUrl(
+      "spanish campesino peasant farmer, worn linen shirt, wool vest, straw hat, carrying olive baskets, dry field at dusk, tired determined expression, cinematic full body portrait, muted earth tones, hyperrealistic 8k digital art, somber dark fantasy rank card",
+      9204
+    ),
+    fallbackChar: "C",
+    chinese: "Campesino",
+    english: "Peasant",
+    color: "#d97706",
+    glow: "rgba(217,119,6,0.65)",
+    rayColor: "rgba(217,119,6,0.12)",
+    bg: "radial-gradient(ellipse at center, rgba(60,35,0,0.45) 0%, #000 70%)",
+    imgClass: "img-glow-d",
+  },
+  F: {
+    imageUrl: makeUrl(
+      "spanish bandolero outlaw prisoner, shackled wrists, ragged cloak, dark stone jail, red candlelight shadows, haunted defiant expression, cinematic full body portrait, hyperrealistic 8k digital painting, ominous dark fantasy rank card",
+      9205
+    ),
+    fallbackChar: "B",
+    chinese: "Bandolero",
+    english: "Outlaw",
+    color: "#dc2626",
+    glow: "rgba(220,38,38,0.75)",
+    rayColor: "rgba(220,38,38,0.14)",
+    bg: "radial-gradient(ellipse at center, rgba(80,0,0,0.5) 0%, #000 70%)",
+    imgClass: "img-glow-f",
+  },
+};
+
+const GRADE_DECKS: Record<RevealLanguage, Record<GradeKey, GradeRevealEntry>> = {
+  zh: CHINESE_GRADE_DATA,
+  fr: FRENCH_GRADE_DATA,
+  es: SPANISH_GRADE_DATA,
+};
+
+const FLAVOR: Record<RevealLanguage, Record<GradeKey, { zh: string; en: string }>> = {
+  zh: {
   A: { zh: "天命之人！你的智慧如齊天大聖。", en: "Chosen by Heaven! Your wisdom rivals the Great Sage." },
   B: { zh: "統一之才！秦始皇之魄力。", en: "Unifying talent! The spirit of the First Emperor." },
   C: { zh: "忠誠的士兵，繼續訓練。", en: "Loyal soldier, keep training." },
   D: { zh: "耕耘不輟，方能收穫。", en: "Keep tilling the soil — harvest comes with effort." },
   F: { zh: "囚於無知之牢，學習是你的救贖。", en: "Imprisoned by ignorance — learning is your redemption." },
+  },
+  fr: {
+    A: { zh: "La légende répond à ton appel.", en: "Legend answers when your voice becomes fluent." },
+    B: { zh: "Une volonté impériale, nette et méthodique.", en: "Command the field with precision." },
+    C: { zh: "Tiens la ligne, avance phrase par phrase.", en: "Hold the line and keep training." },
+    D: { zh: "La terre se travaille avant la récolte.", en: "Harvest follows steady labor." },
+    F: { zh: "Les chaînes tombent avec chaque leçon.", en: "Study is the key out." },
+  },
+  es: {
+    A: { zh: "La leyenda despierta bajo tu voz.", en: "Myth wakes when your language sharpens." },
+    B: { zh: "Manda el campo con disciplina y claridad.", en: "Lead with command and precision." },
+    C: { zh: "Mantén la formación y sigue avanzando.", en: "Hold formation and keep training." },
+    D: { zh: "La cosecha llega después del esfuerzo.", en: "Harvest follows steady labor." },
+    F: { zh: "Cada palabra rompe un eslabón.", en: "Each word breaks another chain." },
+  },
 };
+
+function normalizeGrade(grade: string): GradeKey {
+  return grade === "A" || grade === "B" || grade === "C" || grade === "D" || grade === "F"
+    ? grade
+    : "C";
+}
+
+function normalizeLanguage(languageCode?: string): RevealLanguage {
+  if (languageCode === "fr") return "fr";
+  if (languageCode === "es") return "es";
+  return "zh";
+}
 
 // ── Particles ─────────────────────────────────────────────────────────────────
 function Particles({ color }: { color: string }) {
@@ -173,12 +367,14 @@ function CharPlaceholder({ color, chinese, fallbackChar, error }: {
 }
 
 // ── Split screen (Phase 3) ────────────────────────────────────────────────────
-function SplitScreen({ grade, gradeData, imagePreloaded, imagePreloadFailed, onComplete }: {
-  grade: string; gradeData?: Grade; imagePreloaded: boolean; imagePreloadFailed: boolean; onComplete: () => void;
+function SplitScreen({ grade, gradeData, imagePreloaded, imagePreloadFailed, languageCode, onComplete }: {
+  grade: string; gradeData?: Grade; imagePreloaded: boolean; imagePreloadFailed: boolean; onComplete: () => void; languageCode?: string;
 }) {
   const router = useRouter();
-  const char = GRADE_DATA[grade as keyof typeof GRADE_DATA] ?? GRADE_DATA["C"];
-  const flavor = FLAVOR[grade] ?? FLAVOR["C"];
+  const language = normalizeLanguage(languageCode);
+  const gradeKey = normalizeGrade(grade);
+  const char = GRADE_DECKS[language][gradeKey];
+  const flavor = FLAVOR[language][gradeKey];
   const [loaded, setLoaded] = useState(imagePreloaded);
   const [error, setError] = useState(imagePreloadFailed);
 
@@ -271,20 +467,21 @@ function SplitScreen({ grade, gradeData, imagePreloaded, imagePreloadFailed, onC
 interface GradeRevealProps {
   grade: string;
   gradeData?: Grade;
+  languageCode?: string;
   onComplete: () => void;
 }
 
-export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevealProps) {
+export default function GradeReveal({ grade, gradeData, languageCode, onComplete }: GradeRevealProps) {
   const [phase, setPhase] = useState<Phase>("blackout");
   const [rumbling, setRumbling] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [preloadStatuses, setPreloadStatuses] = useState<Record<string, ImgStatus>>({
-    A: "loading", B: "loading", C: "loading", D: "loading", F: "loading",
-  });
   const [selectedImageStatus, setSelectedImageStatus] = useState<ImgStatus>("loading");
 
-  const char = GRADE_DATA[grade as keyof typeof GRADE_DATA] ?? GRADE_DATA["C"];
-  const flavor = FLAVOR[grade] ?? FLAVOR["C"];
+  const language = normalizeLanguage(languageCode);
+  const gradeKey = normalizeGrade(grade);
+  const activeDeck = GRADE_DECKS[language];
+  const char = activeDeck[gradeKey];
+  const flavor = FLAVOR[language][gradeKey];
   const imageLoaded = selectedImageStatus === "loaded";
   const imageError = selectedImageStatus === "error";
 
@@ -293,8 +490,6 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
   // Preload the selected image before the cinematic reveal starts. Slow loads
   // should wait here instead of showing the one-character failure fallback.
   useEffect(() => {
-    setSelectedImageStatus("loading");
-
     const img = new window.Image();
     let cancelled = false;
 
@@ -325,33 +520,16 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
   // Warm the other grade images in the background for later sessions.
   useEffect(() => {
     const grades = ["A", "B", "C", "D", "F"] as const;
-    const pending = new Set<string>(["A", "B", "C", "D", "F"]);
-    const statuses: Record<string, ImgStatus> = { A: "loading", B: "loading", C: "loading", D: "loading", F: "loading" };
-
-    const resolve = (g: string, status: "loaded" | "error") => {
-      if (!pending.has(g)) return;
-      statuses[g] = status;
-      pending.delete(g);
-      if (pending.size === 0) setPreloadStatuses({ ...statuses });
-    };
-
     const imgs = grades.map(g => {
       const img = new window.Image();
-      img.src = GRADE_DATA[g].imageUrl;
-      img.onload = () => resolve(g, "loaded");
-      img.onerror = () => resolve(g, "error");
+      img.src = activeDeck[g].imageUrl;
       return img;
     });
 
-    const timeout = setTimeout(() => {
-      [...pending].forEach(g => resolve(g, "error"));
-    }, 15000);
-
     return () => {
-      clearTimeout(timeout);
       imgs.forEach(img => { img.onload = null; img.onerror = null; });
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeDeck]);
 
   // Start animation phases after the selected image is ready or truly failed.
   useEffect(() => {
@@ -378,7 +556,7 @@ export default function GradeReveal({ grade, gradeData, onComplete }: GradeRevea
   }
 
   if (phase === "split") {
-    return <SplitScreen grade={grade} gradeData={gradeData} imagePreloaded={imageLoaded} imagePreloadFailed={imageError} onComplete={onComplete} />;
+    return <SplitScreen grade={grade} gradeData={gradeData} imagePreloaded={imageLoaded} imagePreloadFailed={imageError} languageCode={languageCode} onComplete={onComplete} />;
   }
 
   const showGrade = phase !== "blackout" && phase !== "flash";

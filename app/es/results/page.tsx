@@ -88,6 +88,7 @@ export default function ResultsPage() {
         <GradeReveal
           grade={currentSession.grade.overallGrade}
           gradeData={currentSession.grade}
+          languageCode="es"
           onComplete={() => {
             setShowReveal(false);
             if (currentSession.rankEvent) setShowEloAnim(true);
