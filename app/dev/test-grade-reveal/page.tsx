@@ -6,19 +6,39 @@ import { createClient } from "@/lib/supabase/client";
 import { isDev } from "@/lib/dev";
 import { getRankForElo } from "@/lib/ranks";
 import { RANK_THRESHOLDS } from "@/lib/elo";
-import GradeReveal from "@/components/GradeReveal";
+import GradeReveal, { preloadGradeRevealImages } from "@/components/GradeReveal";
 import EloProgressAnimation from "@/components/EloProgressAnimation";
 import type { RankEvent } from "@/lib/types";
 
 type Stage = "selector" | "grade" | "elo" | "done";
+type PreviewLanguage = "zh" | "fr" | "es";
 
 const GRADES = ["A", "B", "C", "D", "F"] as const;
+const LANGUAGES: Array<{ code: PreviewLanguage; label: string }> = [
+  { code: "zh", label: "Chinese" },
+  { code: "fr", label: "French" },
+  { code: "es", label: "Spanish" },
+];
+
+function getInitialLanguage(): PreviewLanguage {
+  if (typeof window === "undefined") return "zh";
+  const requested = new URLSearchParams(window.location.search).get("language");
+  if (requested === "fr" || requested === "es" || requested === "zh") return requested;
+  return "zh";
+}
+
+function getInitialGrade() {
+  if (typeof window === "undefined") return "A";
+  const requested = new URLSearchParams(window.location.search).get("grade")?.toUpperCase();
+  return GRADES.find((grade) => grade === requested) ?? "A";
+}
 
 export default function TestGradeRevealPage() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [stage, setStage] = useState<Stage>("selector");
-  const [selectedGrade, setSelectedGrade] = useState<string>("A");
+  const [selectedGrade, setSelectedGrade] = useState<string>(() => getInitialGrade());
+  const [selectedLanguage, setSelectedLanguage] = useState<PreviewLanguage>(() => getInitialLanguage());
   const [eloBefore, setEloBefore] = useState(1250);
   const [eloChange, setEloChange] = useState(350);
 
@@ -38,6 +58,10 @@ export default function TestGradeRevealPage() {
     }
     void check();
   }, [router]);
+
+  useEffect(() => {
+    preloadGradeRevealImages(selectedLanguage);
+  }, [selectedLanguage]);
 
   const eloAfter = eloBefore + eloChange;
   const rankEvent: RankEvent = {
@@ -60,6 +84,7 @@ export default function TestGradeRevealPage() {
     return (
       <GradeReveal
         grade={selectedGrade}
+        languageCode={selectedLanguage}
         onComplete={() => setStage("elo")}
       />
     );
@@ -100,7 +125,25 @@ export default function TestGradeRevealPage() {
         ⚡ Test Grade Reveal
       </h1>
 
-      {/* Grade picker */}
+      <div className="space-y-2">
+        <p className="text-cream-500 text-xs uppercase tracking-widest text-center">Language Deck</p>
+        <div className="flex flex-wrap justify-center gap-2">
+          {LANGUAGES.map((language) => (
+            <button
+              key={language.code}
+              onClick={() => setSelectedLanguage(language.code)}
+              className={`cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition-all ${
+                selectedLanguage === language.code
+                  ? "bg-vermillion-600 text-cream-100 shadow-[0_0_16px_rgba(220,38,38,0.4)]"
+                  : "bg-ink-700 border border-ink-500 text-cream-400 hover:bg-ink-600"
+              }`}
+            >
+              {language.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-2">
         <p className="text-cream-500 text-xs uppercase tracking-widest text-center">Grade</p>
         <div className="flex gap-2">

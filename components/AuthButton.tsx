@@ -346,10 +346,22 @@ export default function AuthButton() {
                   View Raw ELO
                 </button>
                 <a
-                  href="/dev/test-grade-reveal"
+                  href="/dev/test-grade-reveal?language=zh"
                   className="block px-4 py-3 text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
                 >
-                  Test Grade Reveal
+                  Test Chinese Reveal
+                </a>
+                <a
+                  href="/dev/test-grade-reveal?language=fr"
+                  className="block px-4 py-3 text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
+                >
+                  Test French Reveal
+                </a>
+                <a
+                  href="/dev/test-grade-reveal?language=es"
+                  className="block px-4 py-3 text-sm text-cream-400 transition-colors hover:bg-ink-700 hover:text-cream-200"
+                >
+                  Test Spanish Reveal
                 </a>
                 <button
                   type="button"
