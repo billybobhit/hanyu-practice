@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { isDev } from "@/lib/dev";
 import { getRankForElo } from "@/lib/ranks";
 import { RANK_THRESHOLDS } from "@/lib/elo";
-import GradeReveal, { preloadGradeRevealImages } from "@/components/GradeReveal";
+import GradeReveal, { preloadGradeRevealImage } from "@/components/GradeReveal";
 import EloProgressAnimation from "@/components/EloProgressAnimation";
 import type { RankEvent } from "@/lib/types";
 
@@ -39,6 +39,7 @@ export default function TestGradeRevealPage() {
   const [stage, setStage] = useState<Stage>("selector");
   const [selectedGrade, setSelectedGrade] = useState<string>(() => getInitialGrade());
   const [selectedLanguage, setSelectedLanguage] = useState<PreviewLanguage>(() => getInitialLanguage());
+  const [selectedImageReady, setSelectedImageReady] = useState(false);
   const [eloBefore, setEloBefore] = useState(1250);
   const [eloChange, setEloChange] = useState(350);
 
@@ -60,8 +61,17 @@ export default function TestGradeRevealPage() {
   }, [router]);
 
   useEffect(() => {
-    preloadGradeRevealImages(selectedLanguage);
-  }, [selectedLanguage]);
+    let cancelled = false;
+    setSelectedImageReady(false);
+
+    preloadGradeRevealImage(selectedLanguage, selectedGrade).then(() => {
+      if (!cancelled) setSelectedImageReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedGrade, selectedLanguage]);
 
   const eloAfter = eloBefore + eloChange;
   const rankEvent: RankEvent = {
@@ -205,10 +215,17 @@ export default function TestGradeRevealPage() {
       </div>
 
       <button
-        onClick={() => setStage("grade")}
-        className="cursor-pointer rounded-full bg-gold-600 hover:bg-gold-500 px-8 py-3 text-sm font-bold text-ink-900 transition-all shadow-[0_0_18px_rgba(238,192,80,0.4)] hover:shadow-[0_0_28px_rgba(238,192,80,0.6)]"
+        onClick={() => {
+          if (selectedImageReady) setStage("grade");
+        }}
+        disabled={!selectedImageReady}
+        className={`rounded-full px-8 py-3 text-sm font-bold transition-all ${
+          selectedImageReady
+            ? "cursor-pointer bg-gold-600 text-ink-900 shadow-[0_0_18px_rgba(238,192,80,0.4)] hover:bg-gold-500 hover:shadow-[0_0_28px_rgba(238,192,80,0.6)]"
+            : "cursor-wait bg-ink-700 text-cream-500"
+        }`}
       >
-        Fire Animation →
+        {selectedImageReady ? "Fire Animation →" : "Loading portrait..."}
       </button>
     </div>
   );

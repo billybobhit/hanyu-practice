@@ -245,6 +245,7 @@ const GRADE_DECKS: Record<RevealLanguage, Record<GradeKey, GradeRevealEntry>> = 
 
 const PRELOAD_ORDER: GradeKey[] = ["F", "D", "C", "B", "A"];
 const preloadedRevealDecks = new Set<RevealLanguage>();
+const revealImagePromises = new Map<string, Promise<ImgStatus>>();
 
 const FLAVOR: Record<RevealLanguage, Record<GradeKey, { zh: string; en: string }>> = {
   zh: {
@@ -291,10 +292,42 @@ export function preloadGradeRevealImages(languageCode?: string) {
 
   const deck = GRADE_DECKS[language];
   PRELOAD_ORDER.forEach((grade) => {
-    const img = new window.Image();
-    img.decoding = "async";
-    img.src = deck[grade].imageUrl;
+    void loadRevealImage(deck[grade].imageUrl);
   });
+}
+
+function loadRevealImage(imageUrl: string): Promise<ImgStatus> {
+  if (typeof window === "undefined") return Promise.resolve("loading");
+
+  const cached = revealImagePromises.get(imageUrl);
+  if (cached) return cached;
+
+  const promise = new Promise<ImgStatus>((resolve) => {
+    const img = new window.Image();
+
+    const markLoaded = () => resolve("loaded");
+    const markError = () => resolve("error");
+
+    img.decoding = "async";
+    img.onload = () => {
+      if (typeof img.decode === "function") {
+        img.decode().then(markLoaded).catch(markLoaded);
+        return;
+      }
+      markLoaded();
+    };
+    img.onerror = markError;
+    img.src = imageUrl;
+  });
+
+  revealImagePromises.set(imageUrl, promise);
+  return promise;
+}
+
+export function preloadGradeRevealImage(languageCode: string | undefined, grade: string): Promise<ImgStatus> {
+  const language = normalizeLanguage(languageCode);
+  const gradeKey = normalizeGrade(grade);
+  return loadRevealImage(GRADE_DECKS[language][gradeKey].imageUrl);
 }
 
 // ── Particles ─────────────────────────────────────────────────────────────────
@@ -508,46 +541,34 @@ export default function GradeReveal({ grade, gradeData, languageCode, onComplete
   // Preload the selected image before the cinematic reveal starts. Slow loads
   // should wait here instead of showing the one-character failure fallback.
   useEffect(() => {
-    const img = new window.Image();
     let cancelled = false;
 
-    const markLoaded = () => {
-      if (!cancelled) setSelectedImageStatus("loaded");
-    };
-    const markError = () => {
-      if (!cancelled) setSelectedImageStatus("error");
-    };
-
-    img.onload = () => {
-      if (typeof img.decode === "function") {
-        img.decode().then(markLoaded).catch(markLoaded);
-        return;
-      }
-      markLoaded();
-    };
-    img.onerror = markError;
-    img.src = char.imageUrl;
+    setSelectedImageStatus("loading");
+    loadRevealImage(char.imageUrl).then((status) => {
+      if (!cancelled) setSelectedImageStatus(status);
+    });
 
     return () => {
       cancelled = true;
-      img.onload = null;
-      img.onerror = null;
     };
   }, [char.imageUrl]);
 
   // Warm the other grade images in the background for later sessions.
   useEffect(() => {
-    const imgs = PRELOAD_ORDER.map(g => {
-      const img = new window.Image();
-      img.decoding = "async";
-      img.src = activeDeck[g].imageUrl;
-      return img;
+    const remainingGrades = PRELOAD_ORDER.filter((g) => g !== gradeKey);
+    let cancelled = false;
+
+    loadRevealImage(char.imageUrl).then(() => {
+      if (cancelled) return;
+      remainingGrades.forEach((g) => {
+        void loadRevealImage(activeDeck[g].imageUrl);
+      });
     });
 
     return () => {
-      imgs.forEach(img => { img.onload = null; img.onerror = null; });
+      cancelled = true;
     };
-  }, [activeDeck]);
+  }, [activeDeck, char.imageUrl, gradeKey]);
 
   // Start animation phases after the selected image is ready or truly failed.
   useEffect(() => {
