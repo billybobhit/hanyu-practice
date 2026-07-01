@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import ChatBubble, { TypingIndicator } from "@/components/ChatBubble";
 import VoiceButton from "@/components/VoiceButton";
+import LoginModal from "@/components/LoginModal";
 import { preloadGradeRevealImages } from "@/components/GradeReveal";
 import {
   getCurrentSessionId,
@@ -42,6 +43,7 @@ export default function PracticePage() {
   const [isGrading, setIsGrading] = useState(false);
   const [gradingError, setGradingError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [userLanguageElo, setUserLanguageElo] = useState(0);
   const [devMode, setDevMode] = useState(false);
   const [devInput, setDevInput] = useState("");
@@ -396,7 +398,15 @@ export default function PracticePage() {
     );
   }
 
-  const userMessages = session.messages.filter((m) => m.role === "user");
+  const MAX_EXCHANGES = 6;
+  const AUTO_START_CONTENT = ["Please begin our practice session.", "老师好，请开始我们的对话练习。"];
+  const allUserMessages = session.messages.filter((m) => m.role === "user");
+  const visibleExchanges = allUserMessages.filter((m) => !AUTO_START_CONTENT.includes(m.content));
+  const exchangeCount = visibleExchanges.length;
+  const isAtExchangeLimit = allUserMessages.length >= 7;
+  const isDailyLimitError = apiError?.includes("Daily session limit") ?? false;
+  const isAnonLimitError = apiError?.includes("Sign in to unlock") ?? false;
+  const isExchangeLimitError = apiError?.includes("Session limit reached") ?? false;
   const difficulty = session.difficulty ?? "hard";
 
   return (
@@ -417,9 +427,25 @@ export default function PracticePage() {
           >
             {session.materialTitle}
           </h1>
-          <p className="text-cream-600 text-xs">
-            {userMessages.length} turns · {difficultyLabels[difficulty]} mode
-          </p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex gap-0.5">
+              {Array.from({ length: MAX_EXCHANGES }).map((_, i) => (
+                <span
+                  key={i}
+                  className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                    i < exchangeCount
+                      ? isAtExchangeLimit
+                        ? "bg-vermillion-500"
+                        : "bg-gold-500"
+                      : "bg-ink-500"
+                  }`}
+                />
+              ))}
+            </div>
+            <p className="text-cream-600 text-xs">
+              {exchangeCount}/{MAX_EXCHANGES} exchanges · {difficultyLabels[difficulty]}
+            </p>
+          </div>
         </div>
 
         {/* Controls */}
@@ -485,8 +511,8 @@ export default function PracticePage() {
         <div className="h-2" />
       </div>
 
-      {/* API error banner */}
-      {apiError && (
+      {/* API error banner — only for non-limit errors */}
+      {apiError && !isDailyLimitError && !isAnonLimitError && !isExchangeLimitError && (
         <div className="bg-vermillion-700/20 border-t border-vermillion-700/50 px-4 py-3 shrink-0 flex items-start gap-3">
           <span className="text-vermillion-400 shrink-0">⚠️</span>
           <div className="flex-1 min-w-0">
@@ -517,40 +543,84 @@ export default function PracticePage() {
 
       {/* Input area */}
       <div className="glass border-t border-ink-600 p-4 shrink-0">
-        <div className="flex gap-2 items-end">
-          <VoiceButton
-            onTranscript={(text) => setInput((prev) => prev + text)}
-            disabled={isLoading}
-            language="fr-FR"
-          />
+        {isAtExchangeLimit || isExchangeLimitError ? (
+          <div className="flex items-center justify-between gap-4 px-1">
+            <div>
+              <p className="text-cream-300 text-sm font-medium">Session complete</p>
+              <p className="text-cream-600 text-xs mt-0.5">You&apos;ve used all {MAX_EXCHANGES} exchanges. End the session to get your grade.</p>
+            </div>
+            <button
+              onClick={endSession}
+              disabled={isGrading}
+              className="shrink-0 px-4 py-2 bg-vermillion-600 hover:bg-vermillion-500 disabled:opacity-50 text-cream-100 rounded-xl text-sm font-medium transition-all cursor-pointer disabled:cursor-not-allowed"
+            >
+              {isGrading ? "Grading..." : "End & Grade →"}
+            </button>
+          </div>
+        ) : isAnonLimitError ? (
+          <div className="flex items-center justify-between gap-4 px-1">
+            <div>
+              <p className="text-cream-300 text-sm font-medium">Free session used</p>
+              <p className="text-cream-600 text-xs mt-0.5">Sign in to unlock 3 practice sessions per day.</p>
+            </div>
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="shrink-0 px-4 py-2 bg-vermillion-600 hover:bg-vermillion-500 text-cream-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+            >
+              Sign In →
+            </button>
+          </div>
+        ) : isDailyLimitError ? (
+          <div className="flex items-center justify-between gap-4 px-1">
+            <div>
+              <p className="text-cream-300 text-sm font-medium">Daily limit reached</p>
+              <p className="text-cream-600 text-xs mt-0.5">You&apos;ve used all 3 sessions for today. Come back tomorrow.</p>
+            </div>
+            <button
+              onClick={() => router.push("/fr")}
+              className="shrink-0 px-4 py-2 bg-ink-600 hover:bg-ink-500 text-cream-300 rounded-xl text-sm font-medium transition-all cursor-pointer"
+            >
+              Go Home
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2 items-end">
+            <VoiceButton
+              onTranscript={(text) => setInput((prev) => prev + text)}
+              disabled={isLoading}
+              language="fr-FR"
+            />
 
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type your response... (Enter to send, Shift+Enter for a new line)"
-            rows={1}
-            className="flex-1 bg-ink-700 border border-ink-500 focus:border-vermillion-600 rounded-xl px-4 py-2.5 text-cream-100 placeholder-cream-600 resize-none transition-colors text-sm leading-relaxed focus:outline-none"
-            style={{ maxHeight: "120px", minHeight: "42px" }}
-            onInput={(e) => {
-              const el = e.target as HTMLTextAreaElement;
-              el.style.height = "auto";
-              el.style.height = Math.min(el.scrollHeight, 120) + "px";
-            }}
-          />
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type your response... (Enter to send, Shift+Enter for a new line)"
+              rows={1}
+              className="flex-1 bg-ink-700 border border-ink-500 focus:border-vermillion-600 rounded-xl px-4 py-2.5 text-cream-100 placeholder-cream-600 resize-none transition-colors text-sm leading-relaxed focus:outline-none"
+              style={{ maxHeight: "120px", minHeight: "42px" }}
+              onInput={(e) => {
+                const el = e.target as HTMLTextAreaElement;
+                el.style.height = "auto";
+                el.style.height = Math.min(el.scrollHeight, 120) + "px";
+              }}
+            />
 
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() || isLoading}
-            className="shrink-0 w-10 h-10 bg-vermillion-600 hover:bg-vermillion-500 disabled:bg-ink-600 disabled:cursor-not-allowed rounded-xl flex items-center justify-center text-cream-100 transition-all cursor-pointer"
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current rotate-90">
-              <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
-            </svg>
-          </button>
-        </div>
+            <button
+              onClick={sendMessage}
+              disabled={!input.trim() || isLoading}
+              className="shrink-0 w-10 h-10 bg-vermillion-600 hover:bg-vermillion-500 disabled:bg-ink-600 disabled:cursor-not-allowed rounded-xl flex items-center justify-center text-cream-100 transition-all cursor-pointer"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current rotate-90">
+                <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
+
+      {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
 
       {/* Dev Console Overlay */}
       {devMode && (

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import UploadZone from "@/components/UploadZone";
+import LoginModal from "@/components/LoginModal";
 import {
   generateSessionId,
   saveSession,
@@ -54,6 +55,10 @@ export default function PracticeSetup({
   const [difficulty, setDifficulty] = useState<Difficulty>("hard");
   const [showPlacement, setShowPlacement] = useState(false);
   const [showAdvancedPlacement, setShowAdvancedPlacement] = useState(false);
+  const [sessionsRemaining, setSessionsRemaining] = useState<number | null>(null);
+  const [maxSessions, setMaxSessions] = useState<number>(3);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -65,6 +70,14 @@ export default function PracticeSetup({
       const status = await getPlacementStatus(supabase, session.user.id, langCode);
       setShowPlacement(canTakeStandardPlacement(status.elo));
       setShowAdvancedPlacement(canTakeAdvancedPlacement(status.elo));
+    });
+
+    void fetch("/api/usage").then(async (res) => {
+      if (!res.ok) return;
+      const data = await res.json();
+      setSessionsRemaining(data.sessionsRemaining ?? null);
+      setMaxSessions(data.maxSessions ?? 3);
+      setIsAuthenticated(data.isAuthenticated ?? false);
     });
   }, [basePath]);
 
@@ -116,6 +129,43 @@ export default function PracticeSetup({
             Choose a difficulty, add study material, and HanYu will begin a
             guided conversation from that source.
           </p>
+          {sessionsRemaining !== null && (
+            <div className="flex flex-col items-center gap-1.5 pt-1">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  {Array.from({ length: maxSessions }).map((_, i) => (
+                    <span
+                      key={i}
+                      className={`w-2 h-2 rounded-full ${
+                        i < sessionsRemaining ? "bg-gold-500" : "bg-ink-600"
+                      }`}
+                    />
+                  ))}
+                  {!isAuthenticated && Array.from({ length: 3 - maxSessions }).map((_, i) => (
+                    <span key={`locked-${i}`} className="w-2 h-2 rounded-full bg-ink-700 border border-ink-500/50" />
+                  ))}
+                </div>
+                <span className={`text-xs ${sessionsRemaining === 0 ? "text-vermillion-400" : "text-cream-600"}`}>
+                  {isAuthenticated
+                    ? sessionsRemaining === 0
+                      ? "No sessions remaining today"
+                      : `${sessionsRemaining} session${sessionsRemaining !== 1 ? "s" : ""} remaining today`
+                    : sessionsRemaining === 0
+                      ? "Free session used"
+                      : `${sessionsRemaining} free session today`}
+                </span>
+              </div>
+              {!isAuthenticated && (
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="text-xs text-gold-400 hover:text-gold-300 transition-colors cursor-pointer underline underline-offset-2"
+                >
+                  Sign in for 3 sessions per day
+                </button>
+              )}
+            </div>
+          )}
+          {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
         </section>
 
         <section className="space-y-3">

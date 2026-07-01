@@ -1,7 +1,11 @@
-export const DEV_EMAILS = ["billybobhit.777@gmail.com"];
+function getDevEmails(): string[] {
+  const envVal = process.env.DEV_EMAILS;
+  if (envVal) return envVal.split(",").map((e) => e.trim().toLowerCase());
+  return ["billybobhit.777@gmail.com"]; // fallback if env var not set
+}
 
 export function isDev(email: string | undefined | null): boolean {
-  return !!email && DEV_EMAILS.includes(email.toLowerCase());
+  return !!email && getDevEmails().includes(email.toLowerCase());
 }
 
 export const DEV_MODE_KEY = "hanyu_dev_mode";

@@ -25,6 +25,11 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Unsupported image type" }, { status: 400 });
   }
 
+  // ~5MB base64 limit (base64 is ~1.33x the original size, so this caps at ~3.75MB image)
+  if (typeof base64 !== "string" || base64.length > 7_000_000) {
+    return Response.json({ error: "Image too large (max 5MB)" }, { status: 413 });
+  }
+
   const client = createAiClient({ baseURL: provider.baseURL, apiKey: provider.apiKey });
 
   try {
@@ -41,7 +46,7 @@ export async function POST(req: NextRequest) {
             },
             {
               type: "text",
-              text: "Extract all text content from this image verbatim for a Spanish learning context. Preserve Spanish accents and special characters (á, é, í, ó, ú, ñ, ü, ¡, ¿) exactly. Return only the extracted text with no commentary or formatting.",
+              text: "Extract all text content from this image verbatim. If it contains Chinese characters, preserve them exactly. Include any pinyin or romanization shown. Return only the extracted text with no commentary or formatting.",
             },
           ],
         },

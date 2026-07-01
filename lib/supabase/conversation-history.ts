@@ -18,11 +18,8 @@ export interface ConversationHistoryRow {
 const MAX_PER_LANGUAGE = 10;
 
 async function getConfirmedUser(supabase: SupabaseClient) {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  return session?.user ?? null;
+  const { data: { user } } = await supabase.auth.getUser();
+  return user ?? null;
 }
 
 async function trimConversationHistory(

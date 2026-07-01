@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { isSafeExternalUrl } from "@/lib/ssrf-guard";
 
 export async function POST(req: NextRequest) {
   const { url } = await req.json();
@@ -7,10 +8,9 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Invalid URL" }, { status: 400 });
   }
 
-  try {
-    new URL(url); // validate
-  } catch {
-    return Response.json({ error: "Malformed URL" }, { status: 400 });
+  const check = await isSafeExternalUrl(url);
+  if (!check.safe) {
+    return Response.json({ error: check.reason ?? "URL not allowed" }, { status: 400 });
   }
 
   try {
